@@ -128,6 +128,8 @@ Derivation rules:
 | `ACTIVE` | `today ≤ endDate ≤ today + EXPIRING_WINDOW_DAYS` | `EXPIRING` |
 | `ACTIVE` | `endDate > today + EXPIRING_WINDOW_DAYS` | `ACTIVE` |
 
+**Activation invariant.** Transitioning a lease from `DRAFT → ACTIVE` asserts, inside the activation transaction, that the lease has at least one tenant and exactly one primary tenant. The partial-unique index enforces "exactly one primary" at the DB level, but "at least one tenant" is a service-layer assertion (`409 CONFLICT` with message "Cannot activate a lease with no tenants"). This guards against a DRAFT being edited into a tenant-less state and then silently activated.
+
 **A lease whose `endDate` has passed but which was never explicitly terminated remains `state = ACTIVE` in storage** and surfaces as `status = EXPIRED` in every API response and UI view. No nightly job flips state; staff must decide whether to terminate, renew, or leave it as-is. This is deliberate — the product does not presume a late tenant has vacated.
 
 **`LeaseTenant`** (joint leases) — PK`(leaseId, tenantId)`, `isPrimary Bool`. Partial unique index enforces exactly one `isPrimary = true` per lease.
@@ -162,23 +164,26 @@ Follow-on kinds in later slices (`PROOF_OF_PAYMENT`, `MAINTENANCE_PHOTO`, etc.) 
 
 Occupancy is **not stored** on `Unit`. It is derived on every read from the unit's leases by a single helper `getUnitOccupancy(unitId, on = today)` in `lib/services/units.ts`. Every API response that returns a Unit includes an `occupancy` field. The UI never re-derives.
 
+**DRAFT leases are invisible to occupancy.** Drafts exist so staff can prepare a lease without committing; they must not cause a unit to look reserved, upcoming, or occupied. Only `state = ACTIVE` leases affect occupancy.
+
 **Occupancy states:**
 
 | State | Rule |
 |---|---|
-| `VACANT` | No lease on this unit with `state = ACTIVE` and `startDate ≤ today ≤ endDate`, and no `DRAFT` or future-dated `ACTIVE` lease exists |
-| `OCCUPIED` | Exactly one lease on this unit with `state = ACTIVE` and `startDate ≤ today ≤ endDate` |
-| `UPCOMING` | No active lease covers today, but at least one `DRAFT` lease or `ACTIVE` lease with `startDate > today` exists |
+| `VACANT` | No lease on this unit with `state = ACTIVE` that either covers today or starts in the future |
+| `OCCUPIED` | Exactly one lease with `state = ACTIVE` where `startDate ≤ today ≤ endDate` |
+| `UPCOMING` | No `ACTIVE` lease covers today, but at least one `ACTIVE` lease with `startDate > today` exists |
 | `CONFLICT` | More than one lease with `state = ACTIVE` has overlapping `[startDate, endDate]` ranges covering today (data integrity red flag — surfaced in UI, logged to Sentry) |
 
 **The current tenant** for an occupied unit is the primary tenant of the covering active lease. Unit detail pages show:
 
 - Current occupancy state + the covering lease (if any)
 - Current primary tenant + co-tenants (if occupied)
-- Next upcoming lease (if `UPCOMING` or `OCCUPIED` with a successor lined up)
+- Next upcoming `ACTIVE` lease (if `UPCOMING` or `OCCUPIED` with a successor lined up)
 - Past leases in reverse chronological order
+- A separate "Draft leases" list, clearly labeled as not affecting occupancy
 
-**Conflict handling.** Lease creation/activation runs an overlap check in the same tx and refuses to create a second active lease that overlaps an existing one (`409 CONFLICT` with code `LEASE_OVERLAP`). `CONFLICT` as a derived occupancy state only appears if data ever reaches a bad state (e.g. a direct DB edit or a bug); it exists so the UI can flag it loudly rather than hide the problem.
+**Conflict handling.** DRAFT leases are free to create and may overlap freely — they are proposals, not commitments. The real gate is **activation**: transitioning `DRAFT → ACTIVE` runs an overlap check in the same tx and refuses the activation if any existing `ACTIVE` lease on that unit overlaps (`409 CONFLICT` with code `LEASE_OVERLAP`). `CONFLICT` as a derived occupancy state only appears if data ever reaches a bad state (e.g. a direct DB edit or a bug); it exists so the UI can flag it loudly rather than hide the problem.
 
 ### Renewal semantics
 
@@ -311,7 +316,7 @@ Admin-only endpoints: all `/api/settings/*`, `DELETE /api/properties/:id`, user 
   - `tenant@acme.test` — TENANT (no UI in Slice 1 but role enforcement works)
 - 3 Properties: a block of flats (8 units), a townhouse complex (4 units), a standalone house (1 auto "Main" unit)
 - 8 Tenants
-- 11 Leases exercising every derived status: 5 ACTIVE (well inside window), 2 EXPIRING (within 60 days), 1 EXPIRED (endDate past, state still ACTIVE — proves the "never flipped" rule), 1 DRAFT, 1 TERMINATED, 1 RENEWED + its successor ACTIVE lease. One of the ACTIVE leases is a joint lease (2 tenants, one primary). Seed leaves at least one unit `VACANT`, one `OCCUPIED`, and one `UPCOMING` (future-dated DRAFT) so the dashboard widgets all have non-zero data to show.
+- 12 Leases exercising every derived status: 5 ACTIVE (well inside window), 2 EXPIRING (within 60 days), 1 EXPIRED (endDate past, state still ACTIVE — proves the "never flipped" rule), 1 ACTIVE future-dated (drives an `UPCOMING` unit), 1 DRAFT (on a different unit — proves drafts are invisible to occupancy), 1 TERMINATED, 1 RENEWED + its successor ACTIVE lease. One of the ACTIVE leases is a joint lease (2 tenants, one primary). Seed leaves at least one unit `VACANT`, one `OCCUPIED`, and one `UPCOMING` so the dashboard widgets all have non-zero data to show.
 - 2 `LEASE_AGREEMENT` Documents attached to active leases, uploaded to Vercel Blob via the same code path as production.
 
 **Env vars** (`.env.example`):

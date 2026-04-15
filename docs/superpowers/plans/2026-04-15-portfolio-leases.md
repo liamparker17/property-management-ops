@@ -1234,27 +1234,24 @@ export async function getUnitOccupancy(
   orgId: string,
   on: Date = new Date(),
 ): Promise<{ state: UnitOccupancy; coveringLeaseId: string | null; upcomingLeaseId: string | null }> {
+  // DRAFT leases are intentionally excluded — drafts are proposals, not commitments,
+  // and must never cause a unit to appear reserved or occupied. Only ACTIVE counts.
   const leases = await db.lease.findMany({
-    where: {
-      unitId,
-      orgId,
-      state: { in: ['ACTIVE', 'DRAFT'] },
-    },
-    select: { id: true, state: true, startDate: true, endDate: true },
+    where: { unitId, orgId, state: 'ACTIVE' },
+    select: { id: true, startDate: true, endDate: true },
+    orderBy: { startDate: 'asc' },
   });
   const today = new Date(Date.UTC(on.getUTCFullYear(), on.getUTCMonth(), on.getUTCDate()));
 
-  const activeCovering = leases.filter(
-    (l) => l.state === 'ACTIVE' && l.startDate <= today && l.endDate >= today,
-  );
-  if (activeCovering.length > 1) {
-    return { state: 'CONFLICT', coveringLeaseId: activeCovering[0].id, upcomingLeaseId: null };
+  const covering = leases.filter((l) => l.startDate <= today && l.endDate >= today);
+  if (covering.length > 1) {
+    return { state: 'CONFLICT', coveringLeaseId: covering[0].id, upcomingLeaseId: null };
   }
-  if (activeCovering.length === 1) {
+  if (covering.length === 1) {
     const upcoming = leases.find((l) => l.startDate > today) ?? null;
     return {
       state: 'OCCUPIED',
-      coveringLeaseId: activeCovering[0].id,
+      coveringLeaseId: covering[0].id,
       upcomingLeaseId: upcoming?.id ?? null,
     };
   }
@@ -1662,8 +1659,8 @@ export async function createLease(ctx: RouteCtx, input: z.infer<typeof createLea
       throw ApiError.validation({ tenantIds: 'One or more tenants not found or archived' });
     }
 
-    // Drafts do not block; only ACTIVE overlaps block at create-time.
-    await assertNoOverlap(tx, ctx.orgId, input.unitId, start, end);
+    // DRAFT leases are free — no overlap check at create time.
+    // Activation is the real gate (see activateLease).
 
     const lease = await tx.lease.create({
       data: {
@@ -1736,11 +1733,25 @@ export async function updateDraftLease(
 
 export async function activateLease(ctx: RouteCtx, id: string) {
   return db.$transaction(async (tx) => {
-    const lease = await tx.lease.findFirst({ where: { id, orgId: ctx.orgId } });
+    const lease = await tx.lease.findFirst({
+      where: { id, orgId: ctx.orgId },
+      include: { tenants: true },
+    });
     if (!lease) throw ApiError.notFound('Lease not found');
     if (lease.state !== 'DRAFT') {
       throw ApiError.conflict(`Lease is ${lease.state}, cannot activate`);
     }
+    // Activation invariant: at least one tenant must be attached.
+    // (Exactly-one-primary is enforced by the partial-unique index at the DB.)
+    if (lease.tenants.length === 0) {
+      throw ApiError.conflict('Cannot activate a lease with no tenants');
+    }
+    const primaryCount = lease.tenants.filter((t) => t.isPrimary).length;
+    if (primaryCount !== 1) {
+      throw ApiError.conflict('Lease must have exactly one primary tenant to activate');
+    }
+    // Overlap is the real gate: activating must not collide with an existing
+    // ACTIVE lease on the same unit.
     await assertNoOverlap(tx, ctx.orgId, lease.unitId, lease.startDate, lease.endDate, lease.id);
     return tx.lease.update({ where: { id }, data: { state: 'ACTIVE' } });
   });
@@ -3531,7 +3542,17 @@ export function DeletePropertyButton({ id }: { id: string }) {
     const res = await fetch(`/api/properties/${id}`, { method: 'DELETE' });
     const json = await res.json();
     if (!res.ok) {
-      alert(json.error?.message ?? 'Failed');
+      const code = json.error?.code;
+      const blockingIds: string[] | undefined = json.error?.details?.blockingLeaseIds;
+      if (code === 'CONFLICT' && blockingIds?.length) {
+        alert(
+          `Cannot delete: ${blockingIds.length} active or draft lease(s) still attached.\n\n` +
+            `Blocking lease IDs:\n${blockingIds.join('\n')}\n\n` +
+            `Terminate or remove those leases first.`,
+        );
+      } else {
+        alert(json.error?.message ?? 'Failed');
+      }
       return;
     }
     router.push('/properties');
@@ -5129,8 +5150,10 @@ async function main() {
     { unitIdx: 4, tenantIdxs: [7], primary: 7, start: d(-11), end: d(2, 5), rent: 820000, deposit: 820000, state: LeaseState.ACTIVE },
     // 1 EXPIRED (endDate past, never terminated)
     { unitIdx: 5, tenantIdxs: [0], primary: 0, start: d(-15), end: d(-1, 15), rent: 790000, deposit: 790000, state: LeaseState.ACTIVE },
-    // 1 DRAFT (future-dated, makes unit 6 UPCOMING)
-    { unitIdx: 6, tenantIdxs: [1], primary: 1, start: d(1, 1), end: d(13, 1), rent: 880000, deposit: 880000, state: LeaseState.DRAFT },
+    // 1 ACTIVE future-dated (makes unit 6 UPCOMING — drafts are invisible to occupancy)
+    { unitIdx: 6, tenantIdxs: [1], primary: 1, start: d(1, 1), end: d(13, 1), rent: 880000, deposit: 880000, state: LeaseState.ACTIVE },
+    // 1 DRAFT on a different unit (doesn't affect occupancy; unit stays VACANT)
+    { unitIdx: 7, tenantIdxs: [6], primary: 6, start: d(2, 1), end: d(14, 1), rent: 820000, deposit: 820000, state: LeaseState.DRAFT },
     // 1 TERMINATED
     { unitIdx: 9, tenantIdxs: [2], primary: 2, start: d(-10), end: d(2), rent: 1400000, deposit: 1400000, state: LeaseState.TERMINATED },
     // 1 RENEWED + its successor ACTIVE lease (same unit 10)
@@ -5380,12 +5403,20 @@ Signed in as admin, verify on `/dashboard`:
 7. Click **Activate** → status flips to `ACTIVE`
 8. `/units/<main-id>` shows occupancy `OCCUPIED`; covering lease listed
 
-- [ ] **Check 7: Overlap guard**
+- [ ] **Check 7: Overlap guard (activation is the real gate)**
 
 1. `/leases/new` → pick the same "Test Villa · Main"
 2. Use dates that overlap step 6 (e.g. today+30 → today+200)
-3. Submit → server accepts (DRAFT leases don't block on create)
-4. Click **Activate** → expect `409 CONFLICT` with message about overlap
+3. Submit → server accepts (DRAFT leases are free and do not block on create)
+4. Confirm on `/units/<main-id>` that occupancy is still `OCCUPIED` with the original covering lease — the new DRAFT must NOT affect the occupancy state
+5. Click **Activate** on the new DRAFT → expect `409 CONFLICT` with message about overlap
+
+- [ ] **Check 7b: Activation requires tenants**
+
+1. Create another DRAFT lease on the Guest Cottage with a single tenant
+2. Directly hit `PATCH /api/leases/<id>` with `{ "tenantIds": [] }` — this is blocked by Zod (min 1), so instead: use the Prisma Studio or DB shell to delete the `LeaseTenant` rows for that lease
+3. Back in the UI click **Activate** → expect `409 CONFLICT` with "Cannot activate a lease with no tenants"
+4. (If you don't want to touch the DB directly, skip this sub-check — it's belt-and-braces over the Zod guard.)
 
 - [ ] **Check 8: Document upload**
 

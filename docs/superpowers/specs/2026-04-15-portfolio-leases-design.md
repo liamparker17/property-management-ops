@@ -100,16 +100,54 @@ enum SAProvince {
 
 - A standalone house is a `Property` with one auto-created `Unit` labeled `"Main"`. Auto-creation happens in the `createProperty` service when the caller sets `autoCreateMainUnit: true` (the default from the UI).
 
-**`Tenant`** — `id, orgId, firstName, lastName, email, phone, idNumber, notes?, userId?, createdAt, updatedAt`. `UNIQUE(orgId, email)`. `userId` is nullable — filled in Slice 3 when tenants get logins.
+**`Tenant`** — `id, orgId, firstName, lastName, email?, phone?, idNumber?, notes?, userId?, archivedAt?, createdAt, updatedAt`.
+
+- **No unique constraint on email.** Real-world property ops: some tenants have no email, couples share one, placeholder emails get used, addresses change. Uniqueness on email is operationally brittle. Duplicate detection is a *soft* check in the create-tenant service (warns the staff user; does not block).
+- `idNumber` is the preferred loose-identity hint for duplicate detection but is also nullable.
+- `userId` is nullable — filled in Slice 3 when tenants get logins.
+- `archivedAt` is nullable. **Tenant lifecycle:** a tenant with no active/upcoming leases can be archived by staff (soft-hide from default tenant list; appears in an "Archived" filter). Archiving is reversible. Tenants are never hard-deleted via the UI. A tenant with any active or upcoming lease cannot be archived — the service returns `409 CONFLICT`.
 
 **`Lease`** — `id, orgId, unitId, startDate, endDate, rentAmountCents, depositAmountCents, heldInTrustAccount (Bool), paymentDueDay (Int 1..31), state (LeaseState), renewedFromId?, terminatedAt?, terminatedReason?, notes?, createdAt, updatedAt`
 
 - `renewedFromId` is a self-FK; walking the chain gives full history.
-- Derived status (not stored): `ACTIVE` + `endDate` within `EXPIRING_WINDOW_DAYS` → `EXPIRING`; `ACTIVE` + `endDate < today` → `EXPIRED`. Computation lives in `lib/services/leases.ts` and every API response exposes `status` so the UI never re-derives.
+- **Rent and deposit are stored in Slice 1 but are not wired to any accounting workflow.** They are static lease attributes. No balances, no charge schedules, no trust-account logic, no billing rules exist until Slice 2. The UI displays them as "expected monthly rent" and "deposit on file."
+
+**`state` vs `status` — explicit contract**
+
+- **`state`** is the persisted workflow state. Exactly one of `DRAFT | ACTIVE | TERMINATED | RENEWED`. It is the source of truth for business actions (what buttons are enabled, what transitions are legal). It is set only by explicit user action (`activate`, `terminate`, `renew`) or by the tx that completes a renewal.
+- **`status`** is a derived, UI/business-facing label computed on every read in `lib/services/leases.ts`. Values: `DRAFT | ACTIVE | EXPIRING | EXPIRED | TERMINATED | RENEWED`. The UI never re-derives; every API response that returns a Lease includes `status`.
+
+Derivation rules:
+
+| Persisted `state` | Condition | Derived `status` |
+|---|---|---|
+| `DRAFT` | — | `DRAFT` |
+| `TERMINATED` | — | `TERMINATED` |
+| `RENEWED` | — | `RENEWED` |
+| `ACTIVE` | `endDate < today` | `EXPIRED` |
+| `ACTIVE` | `today ≤ endDate ≤ today + EXPIRING_WINDOW_DAYS` | `EXPIRING` |
+| `ACTIVE` | `endDate > today + EXPIRING_WINDOW_DAYS` | `ACTIVE` |
+
+**A lease whose `endDate` has passed but which was never explicitly terminated remains `state = ACTIVE` in storage** and surfaces as `status = EXPIRED` in every API response and UI view. No nightly job flips state; staff must decide whether to terminate, renew, or leave it as-is. This is deliberate — the product does not presume a late tenant has vacated.
 
 **`LeaseTenant`** (joint leases) — PK`(leaseId, tenantId)`, `isPrimary Bool`. Partial unique index enforces exactly one `isPrimary = true` per lease.
 
-**`Document`** — `id, orgId, kind (DocumentKind), leaseId?, propertyId?, unitId?, tenantId?, filename, mimeType, sizeBytes, storageKey, uploadedById, createdAt`. CHECK constraint: exactly one of the four parent FKs is set.
+**Joint-lease semantics** (domain contract, binding across all slices):
+
+- **All tenants on a lease are jointly liable** for rent, deposit, and obligations. There is no "primary payer" in the financial sense.
+- **`isPrimary` is a communications and display convention, not a liability marker.** The primary tenant is the default addressee for documents, reminders, and future notifications, and is the name shown in compact UI contexts (e.g. lease list rows). Co-tenants are fully visible on the lease detail page.
+- **Every tenant profile shows all leases they are on**, each annotated with their role on that lease (`primary` vs `co-tenant`), and annotated with the lease's derived `status`.
+- Changing who is primary is a single-endpoint action (`PATCH /api/leases/:id/primary-tenant`) that runs inside a tx to preserve the "exactly one primary" invariant.
+
+**`Document`** — `id, orgId, kind (DocumentKind), leaseId?, propertyId?, unitId?, tenantId?, filename, mimeType, sizeBytes, storageKey, uploadedById, createdAt`. CHECK constraint: **exactly one** of the four parent FKs is set — this is the document's *canonical owner*.
+
+**Canonical owner + relationship traversal.** A document has one canonical parent (the entity it is "about"), not many. Related views **surface** the document by traversing relationships rather than by giving it multiple owners:
+
+| Document kind | Canonical owner | Surfaces on |
+|---|---|---|
+| `LEASE_AGREEMENT` | `leaseId` | Lease detail, unit detail (via `unit.leases`), each tenant's profile (via `lease.tenants`) |
+
+Follow-on kinds in later slices (`PROOF_OF_PAYMENT`, `MAINTENANCE_PHOTO`, etc.) will declare their canonical owner in the same table so the rule stays consistent. If a use case ever genuinely needs one file in two unrelated contexts, the answer is two `Document` rows pointing at the same `storageKey`, not a polymorphic parent.
 
 ### Indexes
 
@@ -119,6 +157,28 @@ enum SAProvince {
 - `Lease(orgId, unitId, state)`
 - `Lease(orgId, endDate)` — drives the expiring-soon query
 - `Document(orgId, leaseId)`
+
+### Unit occupancy (derived)
+
+Occupancy is **not stored** on `Unit`. It is derived on every read from the unit's leases by a single helper `getUnitOccupancy(unitId, on = today)` in `lib/services/units.ts`. Every API response that returns a Unit includes an `occupancy` field. The UI never re-derives.
+
+**Occupancy states:**
+
+| State | Rule |
+|---|---|
+| `VACANT` | No lease on this unit with `state = ACTIVE` and `startDate ≤ today ≤ endDate`, and no `DRAFT` or future-dated `ACTIVE` lease exists |
+| `OCCUPIED` | Exactly one lease on this unit with `state = ACTIVE` and `startDate ≤ today ≤ endDate` |
+| `UPCOMING` | No active lease covers today, but at least one `DRAFT` lease or `ACTIVE` lease with `startDate > today` exists |
+| `CONFLICT` | More than one lease with `state = ACTIVE` has overlapping `[startDate, endDate]` ranges covering today (data integrity red flag — surfaced in UI, logged to Sentry) |
+
+**The current tenant** for an occupied unit is the primary tenant of the covering active lease. Unit detail pages show:
+
+- Current occupancy state + the covering lease (if any)
+- Current primary tenant + co-tenants (if occupied)
+- Next upcoming lease (if `UPCOMING` or `OCCUPIED` with a successor lined up)
+- Past leases in reverse chronological order
+
+**Conflict handling.** Lease creation/activation runs an overlap check in the same tx and refuses to create a second active lease that overlaps an existing one (`409 CONFLICT` with code `LEASE_OVERLAP`). `CONFLICT` as a derived occupancy state only appears if data ever reaches a bad state (e.g. a direct DB edit or a bug); it exists so the UI can flag it loudly rather than hide the problem.
 
 ### Renewal semantics
 
@@ -138,7 +198,7 @@ enum SAProvince {
 
 | Route | Purpose |
 |---|---|
-| `/dashboard` | Counts + expiring-soon list (Slice 1 stub; real KPIs in Slice 4) |
+| `/dashboard` | Fixed Slice 1 widget set — see "Dashboard widgets" below. Real KPIs + charts in Slice 4. |
 | `/properties` | List + create |
 | `/properties/[id]` | Detail + units tab |
 | `/properties/[id]/units/new` | Create unit |
@@ -149,8 +209,27 @@ enum SAProvince {
 | `/leases/new` | Create lease form (unit, tenants, dates, rent, deposit, due day) |
 | `/leases/[id]` | Detail + actions: Terminate, Renew, Upload agreement |
 | `/leases/[id]/renew` | Pre-filled new-lease form; on save sets `renewedFromId` |
-| `/settings/team` | ADMIN — invite/list users, set role |
+| `/settings/team` | ADMIN — list users, create staff account directly (no email invite flow), set role, deactivate |
 | `/settings/org` | ADMIN — org name, `EXPIRING_WINDOW_DAYS` |
+
+### Dashboard widgets (Slice 1 — exact scope)
+
+Served by one endpoint `GET /api/dashboard/summary`. The response is a flat JSON object with exactly these fields:
+
+| Widget | Field | Definition |
+|---|---|---|
+| Total properties | `totalProperties` | `Property` count, `deletedAt IS NULL` |
+| Total units | `totalUnits` | `Unit` count under non-deleted properties |
+| Occupied units | `occupiedUnits` | Units whose derived occupancy is `OCCUPIED` |
+| Vacant units | `vacantUnits` | Units whose derived occupancy is `VACANT` |
+| Upcoming units | `upcomingUnits` | Units whose derived occupancy is `UPCOMING` |
+| Active leases | `activeLeases` | Leases with `state = ACTIVE` and `status ∈ {ACTIVE, EXPIRING}` |
+| Expiring soon | `expiringSoonLeases` | Leases with `status = EXPIRING` |
+| Expired (not terminated) | `expiredLeases` | Leases with `status = EXPIRED` (endDate past, never terminated) |
+| Recently created leases | `recentLeases` | Last 5 leases by `createdAt`, any state |
+| Expiring-soon list | `expiringSoonList` | Up to 10 leases with `status = EXPIRING`, ordered by `endDate` asc, each with lease id, unit label, property name, primary tenant name, endDate, daysUntilExpiry |
+
+No charts, no trends, no money widgets (deferred to Slice 4). `CONFLICT` occupancy, if present, surfaces as a red banner above the widget grid, not as a counted widget, to keep it impossible to miss.
 
 ### REST API (`app/api/`)
 
@@ -218,7 +297,9 @@ Codes: `UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`, `VALIDATION_ERROR`, `CONFLICT`,
 1. `proxy.ts` middleware gates route groups (coarse)
 2. `withOrg(handler, { requireRole })` API wrapper checks role per endpoint (fine)
 
-Admin-only endpoints: all `/api/settings/*`, `DELETE /api/properties/:id`, user invites.
+Admin-only endpoints: all `/api/settings/*`, `DELETE /api/properties/:id`, user creation.
+
+**User creation — POC scope.** No email invitation flow in Slice 1. An ADMIN creates a staff account directly by entering `email`, `name`, `role`, and a temporary password; the new user logs in with that password and changes it from a self-serve profile page. Email-based invitations, password-reset emails, and MFA are all post-POC. This is an intentional scope cut — flagged here so implementation does not drift into building an invite pipeline.
 
 **Seed script** (`prisma/seed.ts`) — idempotent for the demo org; never touches other orgs.
 
@@ -230,7 +311,7 @@ Admin-only endpoints: all `/api/settings/*`, `DELETE /api/properties/:id`, user 
   - `tenant@acme.test` — TENANT (no UI in Slice 1 but role enforcement works)
 - 3 Properties: a block of flats (8 units), a townhouse complex (4 units), a standalone house (1 auto "Main" unit)
 - 8 Tenants
-- 10 Leases spanning all states: 6 ACTIVE (2 within the 60-day expiring window), 1 DRAFT, 1 TERMINATED, 1 RENEWED + its successor ACTIVE lease, 1 ACTIVE joint lease (2 tenants, one primary)
+- 11 Leases exercising every derived status: 5 ACTIVE (well inside window), 2 EXPIRING (within 60 days), 1 EXPIRED (endDate past, state still ACTIVE — proves the "never flipped" rule), 1 DRAFT, 1 TERMINATED, 1 RENEWED + its successor ACTIVE lease. One of the ACTIVE leases is a joint lease (2 tenants, one primary). Seed leaves at least one unit `VACANT`, one `OCCUPIED`, and one `UPCOMING` (future-dated DRAFT) so the dashboard widgets all have non-zero data to show.
 - 2 `LEASE_AGREEMENT` Documents attached to active leases, uploaded to Vercel Blob via the same code path as production.
 
 **Env vars** (`.env.example`):
@@ -265,7 +346,8 @@ Slice 4 will stand up: Vitest with a disposable Neon branch DB, Playwright again
 
 ## 6. Explicitly Out of Scope (for Slice 1)
 
-- Stripe, monthly charge generation, invoices, arrears, payment recording — Slice 2
+- Stripe, monthly charge generation, invoices, arrears, payment recording, trust-account logic — Slice 2. Rent and deposit amounts are *stored* in Slice 1 but not connected to any accounting workflow.
+- Email-based user invitations, password-reset emails, MFA — post-POC
 - Tenant portal pages, tenant login, tenant-initiated maintenance tickets — Slice 3
 - Maintenance ticket model, staff ticket queue, photos — Slice 4
 - Dashboard KPIs beyond basic counts, reports, reminders/notifications — Slice 4

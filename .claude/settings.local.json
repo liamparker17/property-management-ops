@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__serena__get_symbols_overview",
+      "mcp__serena__activate_project",
+      "Bash(git -C \"C:/Users/liamp/Desktop/Property Management Ops\" branch -a)",
+      "Bash(npx create-next-app@latest . --ts --tailwind --eslint --app --import-alias=\"@/*\" --use-npm --no-turbopack --yes)",
+      "Bash(npx create-next-app@latest . --ts --tailwind --eslint --app --import-alias=\"@/*\" --use-npm --no-turbopack --yes --name=\"property-management-ops\")",
+      "Bash(npx create-next-app@latest --version)",
+      "Read(//c/Users/liamp/Desktop/**)",
+      "Bash(npx create-next-app@latest pmops-scaffold --ts --tailwind --eslint --app --import-alias=\"@/*\" --use-npm --no-turbopack --yes)",
+      "Bash(rm *)",
+      "Bash(cp -r /c/Users/liamp/Desktop/pmops-scaffold/. \"/c/Users/liamp/Desktop/Property Management Ops/\")",
+      "Bash(rm -rf /c/Users/liamp/Desktop/pmops-scaffold)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(mkdir -p lib/services lib/auth lib/zod components/forms components/nav components/ui types)",
+      "Bash(touch lib/.gitkeep lib/services/.gitkeep lib/auth/.gitkeep lib/zod/.gitkeep components/forms/.gitkeep components/nav/.gitkeep components/ui/.gitkeep types/.gitkeep)"
+    ]
+  }
+}

@@ -15,7 +15,37 @@
       "Bash(npm install *)",
       "Bash(npm run *)",
       "Bash(mkdir -p lib/services lib/auth lib/zod components/forms components/nav components/ui types)",
-      "Bash(touch lib/.gitkeep lib/services/.gitkeep lib/auth/.gitkeep lib/zod/.gitkeep components/forms/.gitkeep components/nav/.gitkeep components/ui/.gitkeep types/.gitkeep)"
+      "Bash(touch lib/.gitkeep lib/services/.gitkeep lib/auth/.gitkeep lib/zod/.gitkeep components/forms/.gitkeep components/nav/.gitkeep components/ui/.gitkeep types/.gitkeep)",
+      "Bash(node scripts/trim-plan.mjs docs/superpowers/plans/2026-04-15-portfolio-leases/phase-a-scaffolding.md docs/superpowers/plans/2026-04-15-portfolio-leases/phase-b-schema-db.md docs/superpowers/plans/2026-04-15-portfolio-leases/phase-c-auth-infra.md docs/superpowers/plans/2026-04-15-portfolio-leases/phase-d-service-layer.md docs/superpowers/plans/2026-04-15-portfolio-leases/phase-e-api-routes.md docs/superpowers/plans/2026-04-15-portfolio-leases/phase-f-ui-foundation.md docs/superpowers/plans/2026-04-15-portfolio-leases/phase-g-portfolio-ui.md docs/superpowers/plans/2026-04-15-portfolio-leases/phase-h-tenants-leases-ui.md docs/superpowers/plans/2026-04-15-portfolio-leases/phase-i-settings-seed.md docs/superpowers/plans/2026-04-15-portfolio-leases/phase-j-acceptance.md)",
+      "Bash(wc -l docs/superpowers/plans/2026-04-15-portfolio-leases/*.md)",
+      "Skill(update-config)",
+
+      "Read(//c/Users/liamp/Desktop/Property Management Ops/**)",
+      "Write(//c/Users/liamp/Desktop/Property Management Ops/**)",
+      "Edit(//c/Users/liamp/Desktop/Property Management Ops/**)",
+      "Glob(//c/Users/liamp/Desktop/Property Management Ops/**)",
+      "Grep(//c/Users/liamp/Desktop/Property Management Ops/**)",
+
+      "Read(C:/Users/liamp/Desktop/Property Management Ops/**)",
+      "Write(C:/Users/liamp/Desktop/Property Management Ops/**)",
+      "Edit(C:/Users/liamp/Desktop/Property Management Ops/**)",
+      "Glob(C:/Users/liamp/Desktop/Property Management Ops/**)",
+      "Grep(C:/Users/liamp/Desktop/Property Management Ops/**)",
+
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(node *)",
+      "Bash(git *)",
+      "Bash(ls *)",
+      "Bash(wc *)",
+      "Bash(cat *)",
+      "Bash(sed *)",
+      "Bash(awk *)",
+      "Bash(find *)",
+      "Bash(mkdir *)",
+      "Bash(touch *)",
+      "Bash(cp *)",
+      "Bash(mv *)"
     ]
   }
 }

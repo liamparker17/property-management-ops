@@ -1,6 +1,6 @@
 # Property Management Ops — Slice 1 Implementation Plan
 
-> **For agentic workers:** This file is the **index only**. Do NOT read the full plan — read the **current phase file** listed in the Phase Map below, implement it, commit, then move to the next phase. Each phase file is self-contained. Recommended skill: `superpowers:subagent-driven-development` (fresh subagent per phase with only that phase's file attached).
+> **For agentic workers:** This file is the **index only** (≈70 lines — safe to load in full). Do NOT read the whole plan body — the implementation lives in `2026-04-15-portfolio-leases/phase-*.md`, one file per phase, and each file has been stripped of ceremonial scaffolding (no `**Files:**` duplication, no `- [ ] Step N:` ritual headers, no commit/typecheck bash blocks — just the code, the invariants, and a one-line `**Commit:**` footer per task). Read the **current phase file** listed in the Phase Map below, implement it, commit, update the status line + append to the Deviations log, then move to the next phase. Recommended skill: `superpowers:subagent-driven-development` (fresh subagent per phase with only that phase's file attached).
 
 **Goal:** Build a Next.js 16 web app that lets property management staff create properties, units, tenants, and leases end-to-end — proving the core data model. No money flow, no tenant self-service (both come in later slices).
 
@@ -36,7 +36,7 @@ The spec explicitly defers automated testing to Slice 4. Every task uses **manua
 | B — Schema & DB (Tasks 4-6) | `2026-04-15-portfolio-leases/phase-b-schema-db.md` | PENDING — **blocked on Neon provisioning (see Blockers §1)** |
 | C — Auth & infra (Tasks 7-10) | `2026-04-15-portfolio-leases/phase-c-auth-infra.md` | PENDING |
 | D — Service layer (Tasks 11-17) | `2026-04-15-portfolio-leases/phase-d-service-layer.md` | PENDING |
-| E — API routes (Tasks 18-22) | `2026-04-15-portfolio-leases/phase-e-api-routes.md` | PENDING |
+| E — API routes (Tasks 18-21) | `2026-04-15-portfolio-leases/phase-e-api-routes.md` | PENDING |
 | F — UI foundation (Tasks 23-25) | `2026-04-15-portfolio-leases/phase-f-ui-foundation.md` | PENDING |
 | G — Portfolio UI (Tasks 26-28) | `2026-04-15-portfolio-leases/phase-g-portfolio-ui.md` | PENDING |
 | H — Tenants & leases UI (Tasks 29-32) | `2026-04-15-portfolio-leases/phase-h-tenants-leases-ui.md` | PENDING |
@@ -66,3 +66,9 @@ Append-only. Each entry records what the phase actually produced when it differe
 - **Dependencies installed exactly as planned.** `prisma@^7 @prisma/client@^7 @prisma/adapter-pg@^7 pg@^8 next-auth@5.0.0-beta.30 @auth/prisma-adapter@^2 bcryptjs@^3 zod@^4 @vercel/blob @sentry/nextjs@^10` and dev deps `@types/bcryptjs @types/pg tsx prettier prettier-plugin-tailwindcss`. Resolved versions recorded in `package-lock.json`.
 - **npm audit reports 3 moderate vulnerabilities** (transitive, not addressed). Plan is silent on audit; revisit at Slice 4 when dep pinning is formalized.
 - **Verification:** `npm run typecheck` → ✅ clean. `npm run lint` → ✅ clean (after the `next lint` → `eslint` fix above).
+
+### Plan restructure (not a Phase — meta)
+
+- **Plan split into per-phase files and trimmed of ceremony.** Two subsequent commits (`f514e12` trim + the earlier split commit) reorganised the original 5525-line monolith into `2026-04-15-portfolio-leases/phase-*.md` (10 files) with this index as the entry point. Total plan size dropped to ~5042 lines *including* this index; the individual phase files sit at 126–1063 lines each so any one subagent can hold exactly the phase it needs. A structural trimmer at `scripts/trim-plan.mjs` removes `**Files:**` sections, ceremonial step headers, and commit/typecheck bash blocks; it preserves every code block byte-for-byte and every business-rule paragraph. Rerun it against any phase file after edits to keep the style consistent: `node scripts/trim-plan.mjs docs/superpowers/plans/2026-04-15-portfolio-leases/phase-X-*.md`.
+- **Phase E had a task-count bug in the original plan map** ("Tasks 18-22" but the file only contains tasks 18/19/20/21). Fixed in the phase map above.
+- **Subagent permissions added to `.claude/settings.local.json`.** Background Haiku/Sonnet agents can now `Read/Write/Edit/Glob/Grep` anywhere in the project and run `npm * / npx * / node * / git *` plus common Unix file utilities without prompting. `rm` is **not** allowlisted — destructive deletes still pause for human approval. See the file for the exact rules.

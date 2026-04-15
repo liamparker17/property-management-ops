@@ -9,12 +9,9 @@ export const GET = withOrg(async (req, ctx) => {
 });
 ```
 
+**Per-task convention:** write the routes, then commit with the message noted at the end of the task. Run `npm run typecheck` once at the end of the phase.
+
 ### Task 18: Properties API routes
-
-**Files:**
-- Create: `app/api/properties/route.ts`, `app/api/properties/[id]/route.ts`
-
-- [ ] **Step 1: Collection handler**
 
 ```ts
 // app/api/properties/route.ts
@@ -35,8 +32,6 @@ export const POST = withOrg(async (req, ctx) => {
   return NextResponse.json({ data: row }, { status: 201 });
 });
 ```
-
-- [ ] **Step 2: Item handler**
 
 ```ts
 // app/api/properties/[id]/route.ts
@@ -68,22 +63,11 @@ export const DELETE = withOrg<Params>(
 );
 ```
 
-- [ ] **Step 3: Commit**
-
-```bash
-git add app/api/properties
-git commit -m "feat(api): properties routes"
-```
+**Commit:** `feat(api): properties routes`
 
 ---
 
 ### Task 19: Units + Tenants API routes
-
-**Files:**
-- Create: `app/api/units/route.ts`, `app/api/units/[id]/route.ts`
-- Create: `app/api/tenants/route.ts`, `app/api/tenants/[id]/route.ts`, `app/api/tenants/[id]/archive/route.ts`
-
-- [ ] **Step 1: Units routes**
 
 ```ts
 // app/api/units/route.ts
@@ -130,8 +114,6 @@ export const DELETE = withOrg<Params>(async (_req, ctx, { id }) => {
   return NextResponse.json({ data: { id, deleted: true } });
 });
 ```
-
-- [ ] **Step 2: Tenants routes**
 
 ```ts
 // app/api/tenants/route.ts
@@ -194,24 +176,11 @@ export const DELETE = withOrg<Params>(async (_req, ctx, { id }) => {
 });
 ```
 
-- [ ] **Step 3: Commit**
-
-```bash
-git add app/api/units app/api/tenants
-git commit -m "feat(api): units + tenants routes"
-```
+**Commit:** `feat(api): units + tenants routes`
 
 ---
 
 ### Task 20: Leases API routes + actions
-
-**Files:**
-- Create: `app/api/leases/route.ts`, `app/api/leases/[id]/route.ts`
-- Create: `app/api/leases/[id]/activate/route.ts`, `app/api/leases/[id]/terminate/route.ts`
-- Create: `app/api/leases/[id]/renew/route.ts`, `app/api/leases/[id]/primary-tenant/route.ts`
-- Create: `app/api/leases/[id]/documents/route.ts`
-
-- [ ] **Step 1: Collection + item**
 
 ```ts
 // app/api/leases/route.ts
@@ -253,8 +222,6 @@ export const PATCH = withOrg<Params>(async (req, ctx, { id }) => {
   return NextResponse.json({ data: row });
 });
 ```
-
-- [ ] **Step 2: Action endpoints**
 
 ```ts
 // app/api/leases/[id]/activate/route.ts
@@ -319,8 +286,6 @@ export const PATCH = withOrg<Params>(async (req, ctx, { id }) => {
 });
 ```
 
-- [ ] **Step 3: Document upload endpoint**
-
 ```ts
 // app/api/leases/[id]/documents/route.ts
 import { NextResponse } from 'next/server';
@@ -339,25 +304,11 @@ export const POST = withOrg<Params>(async (req, ctx, { id }) => {
 });
 ```
 
-- [ ] **Step 4: Commit**
-
-```bash
-git add app/api/leases
-git commit -m "feat(api): leases routes + actions (activate/terminate/renew/primary-tenant/documents)"
-```
+**Commit:** `feat(api): leases routes + actions (activate/terminate/renew/primary-tenant/documents)`
 
 ---
 
 ### Task 21: Documents download + Settings + Dashboard routes
-
-**Files:**
-- Create: `app/api/documents/[id]/download/route.ts`
-- Create: `app/api/settings/team/route.ts`, `app/api/settings/team/[id]/route.ts`
-- Create: `app/api/settings/org/route.ts`
-- Create: `app/api/profile/password/route.ts`
-- Create: `app/api/dashboard/summary/route.ts`
-
-- [ ] **Step 1: Document download**
 
 ```ts
 // app/api/documents/[id]/download/route.ts
@@ -373,8 +324,6 @@ export const GET = withOrg<Params>(async (_req, ctx, { id }) => {
   return NextResponse.redirect(url, 302);
 });
 ```
-
-- [ ] **Step 2: Settings — team**
 
 ```ts
 // app/api/settings/team/route.ts
@@ -416,8 +365,6 @@ export const PATCH = withOrg<Params>(
   { requireRole: ['ADMIN'] },
 );
 ```
-
-- [ ] **Step 3: Settings — org + profile + dashboard**
 
 ```ts
 // app/api/settings/org/route.ts
@@ -464,12 +411,8 @@ export const GET = withOrg(async (_req, ctx) => {
 });
 ```
 
-- [ ] **Step 4: Commit**
-
-```bash
-git add app/api/documents app/api/settings app/api/profile app/api/dashboard
-git commit -m "feat(api): documents download + settings + profile + dashboard"
-```
+**Commit:** `feat(api): documents download + settings + profile + dashboard`
 
 ---
 
+> **Note:** Phase E ships 4 tasks (18–21). The top-level phase map's "Tasks 18–22" range is off by one.

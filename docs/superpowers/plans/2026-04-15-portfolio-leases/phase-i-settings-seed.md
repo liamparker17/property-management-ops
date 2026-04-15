@@ -1,10 +1,8 @@
 ## Phase I — Settings + seed
 
-### Task 32: Settings pages (team + org)
+**Per-task convention:** run `npm run typecheck` after each task, then commit with the message noted at the end of the task.
 
-**Files:**
-- Create: `app/(staff)/settings/team/page.tsx`, `app/(staff)/settings/team/new-user-form.tsx`, `app/(staff)/settings/team/team-row.tsx`
-- Create: `app/(staff)/settings/org/page.tsx`, `app/(staff)/settings/org/org-form.tsx`
+### Task 32: Settings pages (team + org)
 
 - [ ] **Step 1: New user + row components**
 
@@ -251,21 +249,11 @@ export default async function OrgSettingsPage() {
 }
 ```
 
-- [ ] **Step 4: Commit**
-
-```bash
-git add app/(staff)/settings
-git commit -m "feat(ui): settings team + org pages"
-```
+**Commit:** `feat(ui): settings team + org pages`
 
 ---
 
 ### Task 33: Seed script
-
-**Files:**
-- Create: `prisma/seed.ts`
-
-- [ ] **Step 1: Write seed**
 
 ```ts
 // prisma/seed.ts
@@ -517,20 +505,12 @@ main()
   });
 ```
 
-- [ ] **Step 2: Run seed**
-
 ```bash
 npm run db:seed
 ```
 
 Expected: prints "Seed complete." and the four login lines.
 
-- [ ] **Step 3: Commit**
-
-```bash
-git add prisma/seed.ts
-git commit -m "feat(db): idempotent demo seed exercising every lease status + occupancy"
-```
+**Commit:** `feat(db): idempotent demo seed exercising every lease status + occupancy`
 
 ---
-

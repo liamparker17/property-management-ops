@@ -1,12 +1,12 @@
 ## Phase H — Tenants & leases UI
 
+**Per-task convention:** run `npm run typecheck` after each task, then commit with the message noted at the end of the task.
+
+---
+
 ### Task 29: Tenants list + create + detail
 
-**Files:**
-- Create: `app/(staff)/tenants/page.tsx`, `app/(staff)/tenants/new/page.tsx`, `app/(staff)/tenants/[id]/page.tsx`
-- Create: `components/forms/tenant-form.tsx`
-
-- [ ] **Step 1: Tenant form**
+**Step 1: Tenant form**
 
 ```tsx
 // components/forms/tenant-form.tsx
@@ -102,7 +102,7 @@ export function TenantForm() {
 }
 ```
 
-- [ ] **Step 2: List + new pages**
+**Step 2: List + new pages**
 
 ```tsx
 // app/(staff)/tenants/page.tsx
@@ -183,7 +183,7 @@ export default function NewTenantPage() {
 }
 ```
 
-- [ ] **Step 3: Tenant detail (with lease role annotations)**
+**Step 3: Tenant detail (with lease role annotations)**
 
 ```tsx
 // app/(staff)/tenants/[id]/page.tsx
@@ -293,22 +293,13 @@ export function ArchiveTenantButton({ id, archived }: { id: string; archived: bo
 }
 ```
 
-- [ ] **Step 4: Commit**
-
-```bash
-git add app/(staff)/tenants components/forms/tenant-form.tsx
-git commit -m "feat(ui): tenants list/create/detail + archive"
-```
+**Commit:** `feat(ui): tenants list/create/detail + archive`
 
 ---
 
 ### Task 30: Lease list + create form
 
-**Files:**
-- Create: `app/(staff)/leases/page.tsx`, `app/(staff)/leases/new/page.tsx`
-- Create: `components/forms/lease-form.tsx`
-
-- [ ] **Step 1: Lease form**
+**Step 1: Lease form**
 
 ```tsx
 // components/forms/lease-form.tsx
@@ -503,7 +494,7 @@ export function LeaseForm({ mode, units, tenants, initial, postUrl }: Props) {
 }
 ```
 
-- [ ] **Step 2: Lease list**
+**Step 2: Lease list**
 
 ```tsx
 // app/(staff)/leases/page.tsx
@@ -587,7 +578,7 @@ export default async function LeasesPage({
 }
 ```
 
-- [ ] **Step 3: New lease page**
+**Step 3: New lease page**
 
 ```tsx
 // app/(staff)/leases/new/page.tsx
@@ -615,23 +606,13 @@ export default async function NewLeasePage() {
 }
 ```
 
-- [ ] **Step 4: Commit**
-
-```bash
-git add app/(staff)/leases components/forms/lease-form.tsx
-git commit -m "feat(ui): lease list + create"
-```
+**Commit:** `feat(ui): lease list + create`
 
 ---
 
 ### Task 31: Lease detail + actions + renew form
 
-**Files:**
-- Create: `app/(staff)/leases/[id]/page.tsx`
-- Create: `app/(staff)/leases/[id]/actions.tsx` (client action bar)
-- Create: `app/(staff)/leases/[id]/renew/page.tsx`
-
-- [ ] **Step 1: Action bar (client)**
+**Step 1: Action bar (client)**
 
 ```tsx
 // app/(staff)/leases/[id]/actions.tsx
@@ -709,7 +690,7 @@ export function LeaseActions({
 }
 ```
 
-- [ ] **Step 2: Lease detail page with document upload inline**
+**Step 2: Lease detail page with document upload inline**
 
 ```tsx
 // app/(staff)/leases/[id]/page.tsx
@@ -873,7 +854,7 @@ export function DocumentUpload({ leaseId }: { leaseId: string }) {
 }
 ```
 
-- [ ] **Step 3: Renew page**
+**Step 3: Renew page**
 
 ```tsx
 // app/(staff)/leases/[id]/renew/page.tsx
@@ -930,12 +911,4 @@ export default async function RenewLeasePage({ params }: { params: Promise<{ id:
 }
 ```
 
-- [ ] **Step 4: Commit**
-
-```bash
-git add app/(staff)/leases
-git commit -m "feat(ui): lease detail, actions, renew, document upload"
-```
-
----
-
+**Commit:** `feat(ui): lease detail, actions, renew, document upload`

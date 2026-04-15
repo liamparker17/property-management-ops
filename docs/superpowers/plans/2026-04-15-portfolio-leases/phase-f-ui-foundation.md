@@ -1,13 +1,10 @@
 ## Phase F — UI foundation
 
+**Per-task convention:** run `npm run typecheck` after each task, then commit with the message noted at the end of the task.
+
 UI in Slice 1 is pragmatic, not pretty. Server components fetch directly via services; client components only for forms and interactive bits. All forms use native `<form action={serverAction}>` where possible to avoid a client-side fetch layer.
 
 ### Task 22: Tailwind + shadcn/ui init + root layout
-
-**Files:**
-- Modify: `app/layout.tsx`, `app/globals.css`
-- Create: `components.json`, `components/ui/*` (button, input, label, select, badge, card, dialog, table, textarea)
-- Create: `lib/utils.ts`
 
 - [ ] **Step 1: Initialize shadcn/ui**
 
@@ -16,8 +13,6 @@ npx shadcn@latest init -d
 ```
 
 When prompted: New York style, Slate base color, CSS variables yes.
-
-- [ ] **Step 2: Add primitives**
 
 ```bash
 npx shadcn@latest add button input label select badge card dialog table textarea checkbox form
@@ -59,21 +54,11 @@ export default async function RootPage() {
 }
 ```
 
-- [ ] **Step 5: Typecheck + commit**
-
-```bash
-npm run typecheck
-git add -A
-git commit -m "chore(ui): shadcn init + root layout"
-```
+**Commit:** `chore(ui): shadcn init + root layout`
 
 ---
 
 ### Task 23: Marketing + login page
-
-**Files:**
-- Create: `app/(marketing)/layout.tsx`, `app/(marketing)/page.tsx`, `app/(marketing)/login/page.tsx`
-- Create: `components/login-form.tsx`
 
 - [ ] **Step 1: Marketing shell**
 
@@ -219,21 +204,11 @@ export default function LoginPage() {
 }
 ```
 
-- [ ] **Step 4: Commit**
-
-```bash
-git add -A
-git commit -m "feat(ui): marketing landing + login"
-```
+**Commit:** `feat(ui): marketing landing + login`
 
 ---
 
 ### Task 24: Staff layout + nav + tenant shell + profile
-
-**Files:**
-- Create: `app/(staff)/layout.tsx`, `components/nav/staff-nav.tsx`
-- Create: `app/(tenant)/layout.tsx`, `app/(tenant)/page.tsx`
-- Create: `app/(staff)/profile/page.tsx`, `components/forms/change-password-form.tsx`
 
 - [ ] **Step 1: Staff layout + nav**
 
@@ -404,12 +379,6 @@ export default async function ProfilePage() {
 }
 ```
 
-- [ ] **Step 4: Commit**
-
-```bash
-git add -A
-git commit -m "feat(ui): staff layout + nav, tenant shell, profile page"
-```
+**Commit:** `feat(ui): staff layout + nav, tenant shell, profile page`
 
 ---
-

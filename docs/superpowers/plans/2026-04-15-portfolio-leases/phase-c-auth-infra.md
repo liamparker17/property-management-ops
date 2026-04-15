@@ -1,11 +1,8 @@
 ## Phase C — Auth & infra
 
+**Per-task convention:** run `npm run typecheck` after each task, then commit with the message noted at the end of the task.
+
 ### Task 7: Error contract + shared helpers
-
-**Files:**
-- Create: `lib/errors.ts`
-
-- [ ] **Step 1: Write the error helpers**
 
 ```ts
 // lib/errors.ts
@@ -71,19 +68,11 @@ export function toErrorResponse(err: unknown): NextResponse {
 }
 ```
 
-- [ ] **Step 2: Commit**
-
-```bash
-git add lib/errors.ts
-git commit -m "feat(api): error contract helpers"
-```
+**Commit:** `feat(api): error contract helpers`
 
 ---
 
 ### Task 8: NextAuth v5 config + session types
-
-**Files:**
-- Create: `lib/auth.ts`, `types/next-auth.d.ts`, `app/api/auth/[...nextauth]/route.ts`
 
 - [ ] **Step 1: Augment NextAuth types**
 
@@ -186,27 +175,11 @@ import { handlers } from '@/lib/auth';
 export const { GET, POST } = handlers;
 ```
 
-- [ ] **Step 4: Typecheck**
-
-```bash
-npm run typecheck
-```
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add lib/auth.ts types/next-auth.d.ts app/api/auth
-git commit -m "feat(auth): NextAuth v5 credentials + JWT session w/ orgId+role"
-```
+**Commit:** `feat(auth): NextAuth v5 credentials + JWT session w/ orgId+role`
 
 ---
 
 ### Task 9: `withOrg` API wrapper
-
-**Files:**
-- Create: `lib/auth/with-org.ts`
-
-- [ ] **Step 1: Write the wrapper**
 
 ```ts
 // lib/auth/with-org.ts
@@ -254,29 +227,13 @@ export function withOrg<P = Record<string, string>>(
 }
 ```
 
-- [ ] **Step 2: Typecheck**
-
-```bash
-npm run typecheck
-```
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add lib/auth/with-org.ts
-git commit -m "feat(auth): withOrg wrapper for API routes"
-```
+**Commit:** `feat(auth): withOrg wrapper for API routes`
 
 ---
 
 ### Task 10: `proxy.ts` middleware
 
-**Files:**
-- Create: `proxy.ts`
-
 Next.js 16 replaces `middleware.ts` with `proxy.ts` at the repo root.
-
-- [ ] **Step 1: Write the middleware**
 
 ```ts
 // proxy.ts
@@ -340,18 +297,6 @@ export const config = {
 };
 ```
 
-- [ ] **Step 2: Typecheck**
-
-```bash
-npm run typecheck
-```
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add proxy.ts
-git commit -m "feat(auth): proxy middleware enforcing route-group roles"
-```
+**Commit:** `feat(auth): proxy middleware enforcing route-group roles`
 
 ---
-

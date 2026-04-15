@@ -1,9 +1,8 @@
 ## Phase B — Schema & DB
 
-### Task 4: Prisma setup + full schema
+**Per-task convention:** run `npm run typecheck` after each task, then commit with the message noted at the end of the task.
 
-**Files:**
-- Create: `prisma.config.ts`, `prisma/schema.prisma`
+### Task 4: Prisma setup + full schema
 
 - [ ] **Step 1: `prisma.config.ts`**
 
@@ -18,8 +17,6 @@ export default {
   schema: path.join('prisma', 'schema.prisma'),
 } satisfies PrismaConfig;
 ```
-
-- [ ] **Step 2: Write `prisma/schema.prisma` in full**
 
 ```prisma
 // prisma/schema.prisma
@@ -274,12 +271,7 @@ model Document {
 }
 ```
 
-- [ ] **Step 3: Commit**
-
-```bash
-git add prisma.config.ts prisma/schema.prisma
-git commit -m "feat(db): Prisma schema — org, auth, portfolio, leases, documents"
-```
+**Commit:** `feat(db): Prisma schema — org, auth, portfolio, leases, documents`
 
 ---
 
@@ -287,19 +279,11 @@ git commit -m "feat(db): Prisma schema — org, auth, portfolio, leases, documen
 
 Prisma cannot express the Document "exactly one parent FK" CHECK constraint or the "one primary per lease" partial unique. Both land via a raw-SQL follow-up migration right after the initial baseline.
 
-**Files:**
-- Create: `prisma/migrations/<timestamp>_init/migration.sql` (via Prisma)
-- Create: `prisma/migrations/<timestamp>_constraints/migration.sql`
-
-- [ ] **Step 1: Generate baseline migration**
-
 ```bash
 npm run db:migrate -- --name init
 ```
 
 Expected: creates `prisma/migrations/<ts>_init/` with `migration.sql` and applies it against Neon. Prisma Client is generated.
-
-- [ ] **Step 2: Add constraints migration**
 
 Create a new folder `prisma/migrations/<timestamp>_constraints/migration.sql` (use `date +%Y%m%d%H%M%S` for timestamp) with:
 
@@ -320,29 +304,17 @@ CREATE UNIQUE INDEX lease_tenant_one_primary_uq
   WHERE "isPrimary" = true;
 ```
 
-- [ ] **Step 3: Apply**
-
 ```bash
 npm run db:migrate -- --name constraints
 ```
 
 Expected: Prisma records the migration and the constraints are applied.
 
-- [ ] **Step 4: Commit**
-
-```bash
-git add prisma/migrations
-git commit -m "feat(db): init migration + document & primary-tenant constraints"
-```
+**Commit:** `feat(db): init migration + document & primary-tenant constraints`
 
 ---
 
 ### Task 6: Prisma client singleton
-
-**Files:**
-- Create: `lib/db.ts`
-
-- [ ] **Step 1: Write the client**
 
 ```ts
 // lib/db.ts
@@ -363,18 +335,6 @@ export const db =
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db;
 ```
 
-- [ ] **Step 2: Typecheck**
-
-```bash
-npm run typecheck
-```
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add lib/db.ts
-git commit -m "feat(db): Prisma client singleton with pg adapter"
-```
+**Commit:** `feat(db): Prisma client singleton with pg adapter`
 
 ---
-

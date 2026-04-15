@@ -1,11 +1,8 @@
 ## Phase J — Manual acceptance + README
 
+**Per-task convention:** run `npm run typecheck` after each task, then commit with the message noted at the end of the task.
+
 ### Task 34: README
-
-**Files:**
-- Create: `README.md`
-
-- [ ] **Step 1: Write README**
 
 ````markdown
 # Property Management Ops
@@ -54,12 +51,7 @@ Open http://localhost:3000 and log in with:
 Stripe, invoices, arrears, tenant self-service, maintenance tickets, reminders/notifications, email invites, automated tests. See the spec for each slice's scope.
 ````
 
-- [ ] **Step 2: Commit**
-
-```bash
-git add README.md
-git commit -m "docs: README for Slice 1 POC"
-```
+**Commit:** `docs: README for Slice 1 POC`
 
 ---
 
@@ -237,13 +229,3 @@ git commit --allow-empty -m "chore: Slice 1 manual acceptance passed"
 2. **Inline Execution** — execute tasks in this session using `superpowers:executing-plans`, batch execution with checkpoints.
 
 Which approach?
-
-
-
-
-
-
-
-
-
-

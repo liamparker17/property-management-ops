@@ -1,12 +1,8 @@
 ## Phase A — Scaffolding
 
+**Per-task convention:** run `npm run typecheck` after each task, then commit with the message noted at the end of the task.
+
 ### Task 1: Initialize Next.js project + core deps
-
-**Files:**
-- Create: `package.json`, `tsconfig.json`, `next.config.mjs`, `postcss.config.mjs`, `.gitignore`
-- Create: `app/layout.tsx`, `app/page.tsx`, `app/globals.css`
-
-- [ ] **Step 1: Scaffold Next.js 16 app**
 
 Run from repo root (`C:\Users\liamp\Desktop\Property Management Ops`):
 
@@ -16,8 +12,6 @@ npx create-next-app@latest . --ts --tailwind --eslint --app --src-dir=false --im
 
 When prompted to overwrite existing files, answer **No** for any files already committed; **Yes** for new scaffolding.
 
-- [ ] **Step 2: Install runtime deps**
-
 ```bash
 npm install next@16 react@19 react-dom@19 \
   prisma@^7 @prisma/client@^7 @prisma/adapter-pg@^7 pg@^8 \
@@ -26,8 +20,6 @@ npm install next@16 react@19 react-dom@19 \
   @vercel/blob \
   @sentry/nextjs@^10
 ```
-
-- [ ] **Step 3: Install dev deps**
 
 ```bash
 npm install -D @types/bcryptjs @types/pg tsx
@@ -54,34 +46,17 @@ Edit `package.json` — set `"engines": { "node": ">=20.11" }` and replace the `
 }
 ```
 
-- [ ] **Step 5: Verify build chain**
-
-```bash
-npm run typecheck
-npm run lint
-```
-
 Expected: both pass on the vanilla scaffold.
 
-- [ ] **Step 6: Commit**
-
-```bash
-git add -A
-git commit -m "chore: scaffold Next.js 16 + core deps"
-```
+**Commit:** `chore: scaffold Next.js 16 + core deps`
 
 ---
 
 ### Task 2: Environment + Neon database
 
-**Files:**
-- Create: `.env.example`, `.env.local` (gitignored)
-
 - [ ] **Step 1: Provision a Neon project**
 
 In the Neon dashboard create a project named `property-management-ops`. Copy the **pooled** connection string and the **direct** connection string.
-
-- [ ] **Step 2: Write `.env.example`**
 
 ```bash
 # .env.example
@@ -97,8 +72,6 @@ SENTRY_DSN=""
 EXPIRING_WINDOW_DAYS="60"
 ```
 
-- [ ] **Step 3: Create `.env.local`**
-
 Copy `.env.example` → `.env.local`, paste real Neon values, and generate a secret:
 
 ```bash
@@ -109,20 +82,11 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 
 Verify `.gitignore` contains `.env*.local`. Add if missing.
 
-- [ ] **Step 5: Commit**
-
-```bash
-git add .env.example .gitignore
-git commit -m "chore: env template + Neon wiring"
-```
+**Commit:** `chore: env template + Neon wiring`
 
 ---
 
 ### Task 3: Prettier + folder layout
-
-**Files:**
-- Create: `.prettierrc`, `.prettierignore`
-- Create empty dirs via `.gitkeep`: `lib/`, `lib/services/`, `lib/auth/`, `lib/zod/`, `components/`, `components/forms/`, `components/nav/`, `components/ui/`, `types/`
 
 - [ ] **Step 1: Prettier config**
 
@@ -152,19 +116,11 @@ Install plugin:
 npm install -D prettier prettier-plugin-tailwindcss
 ```
 
-- [ ] **Step 2: Create empty dirs**
-
 ```bash
 mkdir -p lib/services lib/auth lib/zod components/forms components/nav components/ui types
 touch lib/.gitkeep lib/services/.gitkeep lib/auth/.gitkeep lib/zod/.gitkeep components/forms/.gitkeep components/nav/.gitkeep components/ui/.gitkeep types/.gitkeep
 ```
 
-- [ ] **Step 3: Commit**
-
-```bash
-git add -A
-git commit -m "chore: prettier + folder skeleton"
-```
+**Commit:** `chore: prettier + folder skeleton`
 
 ---
-

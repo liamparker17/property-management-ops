@@ -1,12 +1,10 @@
 ## Phase G — Portfolio UI
 
+**Per-task convention:** run `npm run typecheck` after each task, then commit with the message noted at the end of the task.
+
 Shared helpers used by the next several tasks. Create them once here.
 
 ### Task 25: Shared UI helpers (badges + formatters)
-
-**Files:**
-- Create: `components/lease-status-badge.tsx`, `components/occupancy-badge.tsx`
-- Create: `lib/format.ts`
 
 - [ ] **Step 1: Formatters**
 
@@ -70,21 +68,11 @@ export function OccupancyBadge({ state }: { state: Occ }) {
 }
 ```
 
-- [ ] **Step 3: Commit**
-
-```bash
-git add -A
-git commit -m "feat(ui): shared formatters + lease/occupancy badges"
-```
+**Commit:** `feat(ui): shared formatters + lease/occupancy badges`
 
 ---
 
 ### Task 26: Dashboard page
-
-**Files:**
-- Create: `app/(staff)/dashboard/page.tsx`
-
-- [ ] **Step 1: Write page**
 
 ```tsx
 // app/(staff)/dashboard/page.tsx
@@ -175,21 +163,11 @@ function Stat({ label, value }: { label: string; value: number }) {
 }
 ```
 
-- [ ] **Step 2: Commit**
-
-```bash
-git add app/(staff)/dashboard
-git commit -m "feat(ui): dashboard page"
-```
+**Commit:** `feat(ui): dashboard page`
 
 ---
 
 ### Task 27: Properties list + create + detail + edit + delete
-
-**Files:**
-- Create: `app/(staff)/properties/page.tsx`, `app/(staff)/properties/new/page.tsx`
-- Create: `app/(staff)/properties/[id]/page.tsx`, `app/(staff)/properties/[id]/edit/page.tsx`
-- Create: `components/forms/property-form.tsx`
 
 - [ ] **Step 1: Property form**
 
@@ -511,21 +489,11 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
 }
 ```
 
-- [ ] **Step 4: Commit**
-
-```bash
-git add app/(staff)/properties components/forms/property-form.tsx
-git commit -m "feat(ui): properties list/create/detail/edit/delete"
-```
+**Commit:** `feat(ui): properties list/create/detail/edit/delete`
 
 ---
 
 ### Task 28: Units create + detail
-
-**Files:**
-- Create: `app/(staff)/properties/[id]/units/new/page.tsx`
-- Create: `app/(staff)/units/[id]/page.tsx`
-- Create: `components/forms/unit-form.tsx`
 
 - [ ] **Step 1: Unit form**
 
@@ -707,12 +675,6 @@ export default async function UnitDetail({ params }: { params: Promise<{ id: str
 }
 ```
 
-- [ ] **Step 4: Commit**
-
-```bash
-git add app/(staff)/properties app/(staff)/units components/forms/unit-form.tsx
-git commit -m "feat(ui): unit create + detail with occupancy surface"
-```
+**Commit:** `feat(ui): unit create + detail with occupancy surface`
 
 ---
-

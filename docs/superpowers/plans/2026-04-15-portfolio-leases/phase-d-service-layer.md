@@ -1,13 +1,12 @@
 ## Phase D — Service layer
 
-The service layer owns all business rules. Routes stay thin (auth + Zod parse + delegate). Each service file exports pure functions that take a `RouteCtx` (orgId, userId, role) plus typed input and call Prisma. Derived values (`status`, `occupancy`) are computed here and never re-derived in the UI.
+The service layer owns all business rules. Routes stay thin (auth + Zod parse + delegate). Each service file exports pure functions that take a `RouteCtx` (orgId, userId, role) plus typed input and call Prisma. Derived values (`status`, `occupancy`) are computed here, never re-derived in the UI.
+
+**Per-task convention:** write the file(s), run `npm run typecheck`, then commit with the message noted at the end of each task. All commits on `master`.
+
+---
 
 ### Task 11: Zod schemas
-
-**Files:**
-- Create: `lib/zod/property.ts`, `lib/zod/unit.ts`, `lib/zod/tenant.ts`, `lib/zod/lease.ts`, `lib/zod/document.ts`, `lib/zod/team.ts`
-
-- [ ] **Step 1: Property schemas**
 
 ```ts
 // lib/zod/property.ts
@@ -30,8 +29,6 @@ export const createPropertySchema = z.object({
 export const updatePropertySchema = createPropertySchema.partial().omit({ autoCreateMainUnit: true });
 ```
 
-- [ ] **Step 2: Unit schemas**
-
 ```ts
 // lib/zod/unit.ts
 import { z } from 'zod';
@@ -47,8 +44,6 @@ export const createUnitSchema = z.object({
 
 export const updateUnitSchema = createUnitSchema.partial().omit({ propertyId: true });
 ```
-
-- [ ] **Step 3: Tenant schemas**
 
 ```ts
 // lib/zod/tenant.ts
@@ -66,17 +61,13 @@ export const createTenantSchema = z.object({
 export const updateTenantSchema = createTenantSchema.partial();
 ```
 
-- [ ] **Step 4: Lease schemas**
-
 ```ts
 // lib/zod/lease.ts
 import { z } from 'zod';
 
 export const leaseStateEnum = z.enum(['DRAFT','ACTIVE','TERMINATED','RENEWED']);
 
-const isoDate = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, 'YYYY-MM-DD');
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'YYYY-MM-DD');
 
 export const createLeaseSchema = z
   .object({
@@ -125,17 +116,12 @@ export const leaseListQuerySchema = z.object({
 });
 ```
 
-- [ ] **Step 5: Document + team schemas**
-
 ```ts
 // lib/zod/document.ts
 import { z } from 'zod';
 
 export const documentKindEnum = z.enum(['LEASE_AGREEMENT']);
-
-export const documentUploadMetaSchema = z.object({
-  kind: documentKindEnum,
-});
+export const documentUploadMetaSchema = z.object({ kind: documentKindEnum });
 ```
 
 ```ts
@@ -168,21 +154,11 @@ export const changePasswordSchema = z.object({
 });
 ```
 
-- [ ] **Step 6: Commit**
-
-```bash
-git add lib/zod
-git commit -m "feat(zod): boundary schemas for all Slice 1 resources"
-```
+**Commit:** `feat(zod): boundary schemas for all Slice 1 resources`
 
 ---
 
 ### Task 12: Properties service
-
-**Files:**
-- Create: `lib/services/properties.ts`
-
-- [ ] **Step 1: Write service**
 
 ```ts
 // lib/services/properties.ts
@@ -203,9 +179,7 @@ export async function listProperties(ctx: RouteCtx) {
 export async function getProperty(ctx: RouteCtx, id: string) {
   const p = await db.property.findFirst({
     where: { id, orgId: ctx.orgId, deletedAt: null },
-    include: {
-      units: { orderBy: { label: 'asc' } },
-    },
+    include: { units: { orderBy: { label: 'asc' } } },
   });
   if (!p) throw ApiError.notFound('Property not found');
   return p;
@@ -217,9 +191,7 @@ export async function createProperty(
 ) {
   const { autoCreateMainUnit, ...data } = input;
   return db.$transaction(async (tx) => {
-    const property = await tx.property.create({
-      data: { ...data, orgId: ctx.orgId },
-    });
+    const property = await tx.property.create({ data: { ...data, orgId: ctx.orgId } });
     if (autoCreateMainUnit) {
       await tx.unit.create({
         data: { orgId: ctx.orgId, propertyId: property.id, label: 'Main' },
@@ -262,22 +234,13 @@ export async function softDeleteProperty(ctx: RouteCtx, id: string) {
 }
 ```
 
-- [ ] **Step 2: Typecheck + commit**
-
-```bash
-npm run typecheck
-git add lib/services/properties.ts
-git commit -m "feat(services): properties CRUD + soft-delete w/ active-lease guard"
-```
+**Commit:** `feat(services): properties CRUD + soft-delete w/ active-lease guard`
 
 ---
 
 ### Task 13: Units service + `getUnitOccupancy`
 
-**Files:**
-- Create: `lib/services/units.ts`
-
-- [ ] **Step 1: Write service**
+`getUnitOccupancy` ignores DRAFT leases — drafts are proposals, not commitments, and must never mark a unit occupied or reserved. Only `ACTIVE` counts.
 
 ```ts
 // lib/services/units.ts
@@ -294,8 +257,6 @@ export async function getUnitOccupancy(
   orgId: string,
   on: Date = new Date(),
 ): Promise<{ state: UnitOccupancy; coveringLeaseId: string | null; upcomingLeaseId: string | null }> {
-  // DRAFT leases are intentionally excluded — drafts are proposals, not commitments,
-  // and must never cause a unit to appear reserved or occupied. Only ACTIVE counts.
   const leases = await db.lease.findMany({
     where: { unitId, orgId, state: 'ACTIVE' },
     select: { id: true, startDate: true, endDate: true },
@@ -309,11 +270,7 @@ export async function getUnitOccupancy(
   }
   if (covering.length === 1) {
     const upcoming = leases.find((l) => l.startDate > today) ?? null;
-    return {
-      state: 'OCCUPIED',
-      coveringLeaseId: covering[0].id,
-      upcomingLeaseId: upcoming?.id ?? null,
-    };
+    return { state: 'OCCUPIED', coveringLeaseId: covering[0].id, upcomingLeaseId: upcoming?.id ?? null };
   }
   const upcoming = leases.find((l) => l.startDate > today);
   if (upcoming) return { state: 'UPCOMING', coveringLeaseId: null, upcomingLeaseId: upcoming.id };
@@ -339,9 +296,7 @@ export async function getUnit(ctx: RouteCtx, id: string) {
       property: true,
       leases: {
         orderBy: { startDate: 'desc' },
-        include: {
-          tenants: { include: { tenant: true } },
-        },
+        include: { tenants: { include: { tenant: true } } },
       },
     },
   });
@@ -385,22 +340,11 @@ export async function deleteUnit(ctx: RouteCtx, id: string) {
 }
 ```
 
-- [ ] **Step 2: Typecheck + commit**
-
-```bash
-npm run typecheck
-git add lib/services/units.ts
-git commit -m "feat(services): units CRUD + getUnitOccupancy"
-```
+**Commit:** `feat(services): units CRUD + getUnitOccupancy`
 
 ---
 
 ### Task 14: Tenants service (soft-duplicate, archive)
-
-**Files:**
-- Create: `lib/services/tenants.ts`
-
-- [ ] **Step 1: Write service**
 
 ```ts
 // lib/services/tenants.ts
@@ -410,19 +354,14 @@ import type { RouteCtx } from '@/lib/auth/with-org';
 import type { z } from 'zod';
 import type { createTenantSchema, updateTenantSchema } from '@/lib/zod/tenant';
 
-export async function listTenants(
-  ctx: RouteCtx,
-  opts: { includeArchived?: boolean } = {},
-) {
+export async function listTenants(ctx: RouteCtx, opts: { includeArchived?: boolean } = {}) {
   return db.tenant.findMany({
     where: {
       orgId: ctx.orgId,
       ...(opts.includeArchived ? {} : { archivedAt: null }),
     },
     orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
-    include: {
-      _count: { select: { leases: true } },
-    },
+    include: { _count: { select: { leases: true } } },
   });
 }
 
@@ -433,9 +372,7 @@ export async function getTenant(ctx: RouteCtx, id: string) {
       leases: {
         include: {
           lease: {
-            include: {
-              unit: { include: { property: { select: { id: true, name: true } } } },
-            },
+            include: { unit: { include: { property: { select: { id: true, name: true } } } } },
           },
         },
       },
@@ -480,9 +417,7 @@ export async function archiveTenant(ctx: RouteCtx, id: string) {
     where: { id, orgId: ctx.orgId },
     include: {
       leases: {
-        include: {
-          lease: { select: { state: true, startDate: true, endDate: true } },
-        },
+        include: { lease: { select: { state: true, startDate: true, endDate: true } } },
       },
     },
   });
@@ -507,22 +442,13 @@ export async function unarchiveTenant(ctx: RouteCtx, id: string) {
 }
 ```
 
-- [ ] **Step 2: Typecheck + commit**
-
-```bash
-npm run typecheck
-git add lib/services/tenants.ts
-git commit -m "feat(services): tenants CRUD + soft-duplicate + archive"
-```
+**Commit:** `feat(services): tenants CRUD + soft-duplicate + archive`
 
 ---
 
-### Task 15: Leases service — state machine, derived status, overlap guard, renewal
+### Task 15: Leases — state machine, derived status, overlap guard, renewal
 
-**Files:**
-- Create: `lib/services/leases.ts`
-
-- [ ] **Step 1: Write service**
+Key invariants: DRAFT leases are free (no overlap check at create); **activation** is the overlap gate. Activation also requires ≥1 tenant and exactly one primary. Exactly-one-primary is enforced at the DB by the partial-unique index from Phase B.
 
 ```ts
 // lib/services/leases.ts
@@ -538,18 +464,11 @@ import type {
   leaseListQuerySchema,
 } from '@/lib/zod/lease';
 
-export type DerivedStatus =
-  | 'DRAFT'
-  | 'ACTIVE'
-  | 'EXPIRING'
-  | 'EXPIRED'
-  | 'TERMINATED'
-  | 'RENEWED';
+export type DerivedStatus = 'DRAFT' | 'ACTIVE' | 'EXPIRING' | 'EXPIRED' | 'TERMINATED' | 'RENEWED';
 
 function toDateOnly(d: Date): Date {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
 }
-
 function parseDate(s: string): Date {
   return new Date(`${s}T00:00:00.000Z`);
 }
@@ -560,12 +479,9 @@ export function deriveStatus(
   now: Date = new Date(),
 ): DerivedStatus {
   switch (lease.state) {
-    case 'DRAFT':
-      return 'DRAFT';
-    case 'TERMINATED':
-      return 'TERMINATED';
-    case 'RENEWED':
-      return 'RENEWED';
+    case 'DRAFT': return 'DRAFT';
+    case 'TERMINATED': return 'TERMINATED';
+    case 'RENEWED': return 'RENEWED';
     case 'ACTIVE': {
       const today = toDateOnly(now);
       const end = toDateOnly(lease.endDate);
@@ -597,10 +513,7 @@ async function assertNoOverlap(
       unitId,
       state: 'ACTIVE',
       ...(excludeLeaseId ? { NOT: { id: excludeLeaseId } } : {}),
-      AND: [
-        { startDate: { lte: endDate } },
-        { endDate: { gte: startDate } },
-      ],
+      AND: [{ startDate: { lte: endDate } }, { endDate: { gte: startDate } }],
     },
     select: { id: true, startDate: true, endDate: true },
   });
@@ -612,23 +525,7 @@ async function assertNoOverlap(
   }
 }
 
-async function attach(
-  ctx: RouteCtx,
-  lease: Lease & { tenants: Array<{ tenantId: string; isPrimary: boolean; tenant: { id: string; firstName: string; lastName: string } }> },
-): Promise<
-  Lease & {
-    status: DerivedStatus;
-    tenants: typeof lease.tenants;
-  }
-> {
-  const window = await getExpiringWindow(ctx.orgId);
-  return { ...lease, status: deriveStatus(lease, window) };
-}
-
-export async function listLeases(
-  ctx: RouteCtx,
-  query: z.infer<typeof leaseListQuerySchema>,
-) {
+export async function listLeases(ctx: RouteCtx, query: z.infer<typeof leaseListQuerySchema>) {
   const window = await getExpiringWindow(ctx.orgId);
   const now = new Date();
   const today = toDateOnly(now);
@@ -719,10 +616,7 @@ export async function createLease(ctx: RouteCtx, input: z.infer<typeof createLea
       throw ApiError.validation({ tenantIds: 'One or more tenants not found or archived' });
     }
 
-    // DRAFT leases are free — no overlap check at create time.
-    // Activation is the real gate (see activateLease).
-
-    const lease = await tx.lease.create({
+    return tx.lease.create({
       data: {
         orgId: ctx.orgId,
         unitId: input.unitId,
@@ -743,7 +637,6 @@ export async function createLease(ctx: RouteCtx, input: z.infer<typeof createLea
       },
       include: { tenants: { include: { tenant: true } } },
     });
-    return lease;
   });
 }
 
@@ -755,9 +648,7 @@ export async function updateDraftLease(
   return db.$transaction(async (tx) => {
     const existing = await tx.lease.findFirst({ where: { id, orgId: ctx.orgId } });
     if (!existing) throw ApiError.notFound('Lease not found');
-    if (existing.state !== 'DRAFT') {
-      throw ApiError.conflict('Only DRAFT leases may be edited');
-    }
+    if (existing.state !== 'DRAFT') throw ApiError.conflict('Only DRAFT leases may be edited');
 
     const data: Prisma.LeaseUpdateInput = {};
     if (input.startDate) data.startDate = parseDate(input.startDate);
@@ -798,20 +689,12 @@ export async function activateLease(ctx: RouteCtx, id: string) {
       include: { tenants: true },
     });
     if (!lease) throw ApiError.notFound('Lease not found');
-    if (lease.state !== 'DRAFT') {
-      throw ApiError.conflict(`Lease is ${lease.state}, cannot activate`);
-    }
-    // Activation invariant: at least one tenant must be attached.
-    // (Exactly-one-primary is enforced by the partial-unique index at the DB.)
-    if (lease.tenants.length === 0) {
-      throw ApiError.conflict('Cannot activate a lease with no tenants');
-    }
+    if (lease.state !== 'DRAFT') throw ApiError.conflict(`Lease is ${lease.state}, cannot activate`);
+    if (lease.tenants.length === 0) throw ApiError.conflict('Cannot activate a lease with no tenants');
     const primaryCount = lease.tenants.filter((t) => t.isPrimary).length;
     if (primaryCount !== 1) {
       throw ApiError.conflict('Lease must have exactly one primary tenant to activate');
     }
-    // Overlap is the real gate: activating must not collide with an existing
-    // ACTIVE lease on the same unit.
     await assertNoOverlap(tx, ctx.orgId, lease.unitId, lease.startDate, lease.endDate, lease.id);
     return tx.lease.update({ where: { id }, data: { state: 'ACTIVE' } });
   });
@@ -850,9 +733,7 @@ export async function renewLease(
       include: { tenants: true },
     });
     if (!predecessor) throw ApiError.notFound('Lease not found');
-    if (predecessor.state !== 'ACTIVE') {
-      throw ApiError.conflict('Only ACTIVE leases can be renewed');
-    }
+    if (predecessor.state !== 'ACTIVE') throw ApiError.conflict('Only ACTIVE leases can be renewed');
     if (predecessor.unitId !== input.unitId) {
       throw ApiError.validation({ unitId: 'Renewal must stay on the same unit' });
     }
@@ -889,7 +770,6 @@ export async function renewLease(
     });
 
     await tx.lease.update({ where: { id: predecessor.id }, data: { state: 'RENEWED' } });
-
     return successor;
   });
 }
@@ -904,10 +784,7 @@ export async function setPrimaryTenant(ctx: RouteCtx, leaseId: string, tenantId:
     if (!lease.tenants.some((t) => t.tenantId === tenantId)) {
       throw ApiError.validation({ tenantId: 'Tenant is not on this lease' });
     }
-    await tx.leaseTenant.updateMany({
-      where: { leaseId, isPrimary: true },
-      data: { isPrimary: false },
-    });
+    await tx.leaseTenant.updateMany({ where: { leaseId, isPrimary: true }, data: { isPrimary: false } });
     await tx.leaseTenant.update({
       where: { leaseId_tenantId: { leaseId, tenantId } },
       data: { isPrimary: true },
@@ -920,34 +797,18 @@ export async function setPrimaryTenant(ctx: RouteCtx, leaseId: string, tenantId:
 }
 ```
 
-- [ ] **Step 2: Typecheck + commit**
-
-```bash
-npm run typecheck
-git add lib/services/leases.ts
-git commit -m "feat(services): lease state machine, derived status, overlap guard, renewal"
-```
+**Commit:** `feat(services): lease state machine, derived status, overlap guard, renewal`
 
 ---
 
 ### Task 16: Documents service (Vercel Blob)
-
-**Files:**
-- Create: `lib/blob.ts`, `lib/services/documents.ts`
-
-- [ ] **Step 1: Blob helpers**
 
 ```ts
 // lib/blob.ts
 import { put, del } from '@vercel/blob';
 
 const MAX_BYTES = 20 * 1024 * 1024; // 20 MB
-const ALLOWED_MIME = new Set([
-  'application/pdf',
-  'image/png',
-  'image/jpeg',
-  'image/webp',
-]);
+const ALLOWED_MIME = new Set(['application/pdf', 'image/png', 'image/jpeg', 'image/webp']);
 
 export function validateFile(file: File) {
   if (file.size > MAX_BYTES) throw new Error('File too large (max 20MB)');
@@ -955,11 +816,7 @@ export function validateFile(file: File) {
 }
 
 export async function uploadBlob(path: string, file: File) {
-  const result = await put(path, file, {
-    access: 'public',
-    addRandomSuffix: true,
-    contentType: file.type,
-  });
+  const result = await put(path, file, { access: 'public', addRandomSuffix: true, contentType: file.type });
   return { url: result.url, pathname: result.pathname };
 }
 
@@ -968,21 +825,16 @@ export async function deleteBlob(pathname: string) {
 }
 ```
 
-- [ ] **Step 2: Documents service**
-
 ```ts
 // lib/services/documents.ts
+// Slice 1 uses public Vercel Blob URLs. Slice 2+ will move to private blobs + signed URLs.
 import { db } from '@/lib/db';
 import { ApiError } from '@/lib/errors';
 import { uploadBlob, validateFile } from '@/lib/blob';
 import type { RouteCtx } from '@/lib/auth/with-org';
 import type { DocumentKind } from '@prisma/client';
 
-export async function uploadLeaseAgreement(
-  ctx: RouteCtx,
-  leaseId: string,
-  file: File,
-) {
+export async function uploadLeaseAgreement(ctx: RouteCtx, leaseId: string, file: File) {
   const lease = await db.lease.findFirst({
     where: { id: leaseId, orgId: ctx.orgId },
     select: { id: true },
@@ -993,10 +845,7 @@ export async function uploadLeaseAgreement(
   } catch (err) {
     throw ApiError.validation({ file: (err as Error).message });
   }
-  const { url, pathname } = await uploadBlob(
-    `orgs/${ctx.orgId}/leases/${leaseId}/${file.name}`,
-    file,
-  );
+  const { pathname } = await uploadBlob(`orgs/${ctx.orgId}/leases/${leaseId}/${file.name}`, file);
   return db.document.create({
     data: {
       orgId: ctx.orgId,
@@ -1014,28 +863,15 @@ export async function uploadLeaseAgreement(
 export async function getDocumentForDownload(ctx: RouteCtx, id: string) {
   const doc = await db.document.findFirst({ where: { id, orgId: ctx.orgId } });
   if (!doc) throw ApiError.notFound('Document not found');
-  // For Vercel Blob public access the pathname converts to a public URL.
-  // In Slice 2+ we'll switch to private blobs + signed URLs.
   return doc;
 }
 ```
 
-- [ ] **Step 3: Typecheck + commit**
-
-```bash
-npm run typecheck
-git add lib/blob.ts lib/services/documents.ts
-git commit -m "feat(services): document upload via Vercel Blob"
-```
+**Commit:** `feat(services): document upload via Vercel Blob`
 
 ---
 
 ### Task 17: Team + Dashboard services
-
-**Files:**
-- Create: `lib/services/team.ts`, `lib/services/dashboard.ts`
-
-- [ ] **Step 1: Team service**
 
 ```ts
 // lib/services/team.ts
@@ -1055,14 +891,7 @@ export async function listTeam(ctx: RouteCtx) {
   return db.user.findMany({
     where: { orgId: ctx.orgId },
     orderBy: { email: 'asc' },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      role: true,
-      disabledAt: true,
-      createdAt: true,
-    },
+    select: { id: true, email: true, name: true, role: true, disabledAt: true, createdAt: true },
   });
 }
 
@@ -1112,10 +941,7 @@ export async function updateOrg(ctx: RouteCtx, input: z.infer<typeof updateOrgSc
   return db.org.update({ where: { id: ctx.orgId }, data: input });
 }
 
-export async function changeOwnPassword(
-  ctx: RouteCtx,
-  input: z.infer<typeof changePasswordSchema>,
-) {
+export async function changeOwnPassword(ctx: RouteCtx, input: z.infer<typeof changePasswordSchema>) {
   const user = await db.user.findUnique({ where: { id: ctx.userId } });
   if (!user) throw ApiError.notFound('User not found');
   const ok = await bcrypt.compare(input.currentPassword, user.passwordHash);
@@ -1125,8 +951,6 @@ export async function changeOwnPassword(
   return { ok: true };
 }
 ```
-
-- [ ] **Step 2: Dashboard service**
 
 ```ts
 // lib/services/dashboard.ts
@@ -1152,9 +976,7 @@ export async function getDashboardSummary(ctx: RouteCtx) {
   ]);
   const totalUnits = units.length;
 
-  const occupancies = await Promise.all(
-    units.map((u) => getUnitOccupancy(u.id, ctx.orgId, now)),
-  );
+  const occupancies = await Promise.all(units.map((u) => getUnitOccupancy(u.id, ctx.orgId, now)));
   const occupiedUnits = occupancies.filter((o) => o.state === 'OCCUPIED').length;
   const vacantUnits = occupancies.filter((o) => o.state === 'VACANT').length;
   const upcomingUnits = occupancies.filter((o) => o.state === 'UPCOMING').length;
@@ -1201,8 +1023,7 @@ export async function getDashboardSummary(ctx: RouteCtx) {
     .slice(0, 10)
     .map((l) => {
       const primary = l.tenants[0]?.tenant;
-      const daysUntil =
-        Math.ceil((l.endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      const daysUntil = Math.ceil((l.endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
       return {
         id: l.id,
         unitLabel: l.unit.label,
@@ -1239,13 +1060,4 @@ export async function getDashboardSummary(ctx: RouteCtx) {
 }
 ```
 
-- [ ] **Step 3: Typecheck + commit**
-
-```bash
-npm run typecheck
-git add lib/services/team.ts lib/services/dashboard.ts
-git commit -m "feat(services): team management + dashboard summary"
-```
-
----
-
+**Commit:** `feat(services): team management + dashboard summary`

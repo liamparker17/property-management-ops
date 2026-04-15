@@ -94,7 +94,7 @@ enum SAProvince {
 
 **`User`** — NextAuth-compatible + `role`, `orgId`, `passwordHash`. Standard NextAuth `Account`, `Session`, `VerificationToken` tables alongside.
 
-**`Property`** — `id, orgId, name, addressLine1, addressLine2?, suburb, city, province (SAProvince), postalCode, notes?, createdAt, updatedAt`
+**`Property`** — `id, orgId, name, addressLine1, addressLine2?, suburb, city, province (SAProvince), postalCode, notes?, deletedAt?, createdAt, updatedAt`. `deletedAt` nullable — soft-delete timestamp. All list/detail queries filter `deletedAt IS NULL` by default.
 
 **`Unit`** (canonical lettable entity) — `id, orgId, propertyId, label, bedrooms, bathrooms, sizeSqm?, notes?, createdAt, updatedAt`. `UNIQUE(propertyId, label)`.
 

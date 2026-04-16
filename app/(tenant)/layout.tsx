@@ -1,7 +1,5 @@
-import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
-
-export const dynamic = 'force-dynamic';
+import { redirect } from 'next/navigation';
 
 export default async function TenantLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();

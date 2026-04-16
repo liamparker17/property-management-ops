@@ -2,6 +2,9 @@ import Link from 'next/link';
 import { auth } from '@/lib/auth';
 import { getDashboardSummary } from '@/lib/services/dashboard';
 
+type ExpiringSoon = { id: string; propertyName: string; unitLabel: string; primaryTenantName: string | null; endDate: string; daysUntilExpiry: number };
+type RecentLease = { id: string; propertyName: string; unitLabel: string; primaryTenantName: string | null; startDate: string; endDate: string; state: string };
+
 export default async function DashboardPage() {
   const session = await auth();
   const ctx = {
@@ -39,7 +42,7 @@ export default async function DashboardPage() {
           <p className="text-sm text-muted-foreground">Nothing in the window.</p>
         ) : (
           <ul className="divide-y rounded-md border bg-white text-sm">
-            {s.expiringSoonList.map((l) => (
+            {s.expiringSoonList.map((l: ExpiringSoon) => (
               <li key={l.id} className="flex items-center gap-4 p-3">
                 <Link href={`/leases/${l.id}`} className="font-medium hover:underline">
                   {l.propertyName} · {l.unitLabel}
@@ -57,7 +60,7 @@ export default async function DashboardPage() {
       <section className="space-y-3">
         <h2 className="text-lg font-medium">Recent leases</h2>
         <ul className="divide-y rounded-md border bg-white text-sm">
-          {s.recentLeases.map((l) => (
+          {s.recentLeases.map((l: RecentLease) => (
             <li key={l.id} className="flex items-center gap-4 p-3">
               <Link href={`/leases/${l.id}`} className="font-medium hover:underline">
                 {l.propertyName} · {l.unitLabel}

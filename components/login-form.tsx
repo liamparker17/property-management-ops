@@ -16,18 +16,23 @@ export function LoginForm() {
     setPending(true);
     setError(null);
     const form = new FormData(e.currentTarget);
-    const res = await signIn('credentials', {
-      email: form.get('email'),
-      password: form.get('password'),
-      redirect: false,
-    });
-    setPending(false);
-    if (res?.error) {
+    try {
+      const res = await signIn('credentials', {
+        email: form.get('email'),
+        password: form.get('password'),
+        redirect: false,
+      });
+      if (res?.error) {
+        setPending(false);
+        setError('Invalid email or password');
+        return;
+      }
+    } catch {
+      setPending(false);
       setError('Invalid email or password');
       return;
     }
-    router.push(from);
-    router.refresh();
+    window.location.href = from;
   }
 
   return (

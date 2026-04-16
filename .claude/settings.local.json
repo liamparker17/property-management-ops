@@ -48,7 +48,18 @@
       "mcp__claude_ai_Context7__query-docs",
       "Bash(ls components/ui/)",
       "Bash(ls components/forms/)",
-      "Bash(ls components/nav/)"
+      "Bash(ls components/nav/)",
+      "Bash(gh repo *)",
+      "Bash(PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=Yes npm run db:reset)",
+      "Bash(vercel *)",
+      "Read(//c/Users/liamp/AppData/Roaming/com.vercel.cli/**)",
+      "Read(//c/Users/liamp/.local/share/**)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/login)",
+      "Bash(mkdir -p \"app/\\(tenant\\)/tenant\")",
+      "Bash(mv \"app/\\(tenant\\)/page.tsx\" \"app/\\(tenant\\)/tenant/page.tsx\")",
+      "Bash(curl -s -o /dev/null -w \"login=%{http_code}\\\\n\" http://localhost:3000/login)",
+      "Bash(curl -s -o /dev/null -w \"root=%{http_code}\\\\nredirect=%{redirect_url}\\\\n\" http://localhost:3000/)",
+      "Bash(curl *)"
     ]
   }
 }

@@ -78,7 +78,7 @@ From header renders as `"PMOps" <you@gmail.com>`. Override with `EMAIL_FROM` if 
 Optional SMS invites use an Android phone as a zero-cost gateway via [SMS Gateway for Android](https://sms-gate.app) (Apache-2.0). Your Gmail SMTP already sends emails — SMS is additive for tenants who prefer text.
 
 **Setup (~3 minutes):**
-1. Install the [SMS Gateway app](https://play.google.com/store/apps/details?id=me.capcom.smsgateway) on an Android phone (v5+). Grant SMS send permissions.
+1. Install the [SMS Gateway APK](https://github.com/capcom6/android-sms-gateway/releases/latest/download/app-release.apk) on an Android phone (v5+). It's not on the Play Store — sideload the APK from [github.com/capcom6/android-sms-gateway](https://github.com/capcom6/android-sms-gateway) (enable "Install unknown apps" for your browser). Grant SMS send permissions on first launch.
 2. In the app, toggle **Cloud Server** on, tap **Online**.
 3. Copy the displayed username/password into `.env.local`:
    ```

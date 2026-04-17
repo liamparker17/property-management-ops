@@ -18,8 +18,10 @@ Next.js 16.2 | React 19 | TypeScript strict | Prisma 7 + Neon Postgres | NextAut
 | SENTRY_DSN | Error tracking (optional) |
 | EXPIRING_WINDOW_DAYS | Lease expiry warning threshold |
 | AUTH_TRUST_HOST | Trust proxy host header (Vercel) |
-| RESEND_API_KEY | Resend API key; leave blank to disable outbound email |
-| EMAIL_FROM | Sender address (e.g. `"PMOps <noreply@yourdomain.co.za>"`) |
+| GMAIL_USER | Gmail address used as SMTP sender; leave blank to disable outbound email |
+| GMAIL_APP_PASSWORD | Gmail App Password (16 chars) — generate at myaccount.google.com/apppasswords with 2FA on |
+| EMAIL_FROM_NAME | Display name in From header (default `"PMOps"`) |
+| EMAIL_FROM | Optional explicit From override (default `"EMAIL_FROM_NAME <GMAIL_USER>"`) |
 | EMAIL_REPLY_TO | Optional reply-to address (route tenant replies to a real inbox) |
 | APP_URL | Base URL used in email login links; falls back to request origin |
 
@@ -75,7 +77,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | errors.ts | `ApiError` class (unauthorized/forbidden/notFound/validation/conflict/internal), `toErrorResponse()`, `ApiErrorCode` type | 58 |
 | format.ts | `formatZar(cents)`, `formatDate(d)` | 12 |
 | lease-template.ts | `LeaseTemplateData`, `LeaseSection`, `renderLeaseAgreement(data)` — generic SA residential lease generator (15 sections) | 200 |
-| email.ts | `sendTenantInvite({to, tenantName, orgName, tempPassword, appUrl})` — Resend-backed transactional email; no-ops gracefully if `RESEND_API_KEY` missing | — |
+| email.ts | `sendTenantInvite({to, tenantName, orgName, tempPassword, appUrl})`, `SendResult` — Gmail SMTP (nodemailer) transactional email; no-ops gracefully if `GMAIL_USER`/`GMAIL_APP_PASSWORD` missing | 112 |
 | blob.ts | `validateFile(file)` (20MB, pdf/png/jpeg/webp), `uploadBlob(path, file)`, `deleteBlob(pathname)` | 13 |
 | utils.ts | `cn()` — clsx + tailwind-merge | 6 |
 

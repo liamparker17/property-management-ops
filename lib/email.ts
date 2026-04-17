@@ -1,13 +1,26 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
-function getResend() {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) return null;
-  return new Resend(key);
+type Transporter = ReturnType<typeof nodemailer.createTransport>;
+let cached: Transporter | null = null;
+
+function getTransporter(): Transporter | null {
+  const user = process.env.GMAIL_USER;
+  const pass = process.env.GMAIL_APP_PASSWORD;
+  if (!user || !pass) return null;
+  if (cached) return cached;
+  cached = nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user, pass },
+  });
+  return cached;
 }
 
 function defaultFrom() {
-  return process.env.EMAIL_FROM ?? 'PMOps <onboarding@resend.dev>';
+  const explicit = process.env.EMAIL_FROM?.trim();
+  if (explicit) return explicit;
+  const user = process.env.GMAIL_USER;
+  const name = process.env.EMAIL_FROM_NAME?.trim() || 'PMOps';
+  return user ? `"${name}" <${user}>` : name;
 }
 
 function defaultReplyTo() {
@@ -24,8 +37,8 @@ export async function sendTenantInvite(args: {
   tempPassword: string;
   appUrl: string;
 }): Promise<SendResult> {
-  const resend = getResend();
-  if (!resend) return { sent: false, reason: 'RESEND_API_KEY not configured' };
+  const transporter = getTransporter();
+  if (!transporter) return { sent: false, reason: 'GMAIL_USER / GMAIL_APP_PASSWORD not configured' };
 
   const loginUrl = `${args.appUrl.replace(/\/$/, '')}/login`;
   const subject = `Welcome to ${args.orgName} — your tenant portal access`;
@@ -52,7 +65,7 @@ export async function sendTenantInvite(args: {
       </a>
     </p>
     <p style="margin:0;font-size:12px;color:#64748b;line-height:1.5;">
-      If you did not expect this email, you can safely ignore it.
+      This is an automated message — please do not reply. If you need assistance, contact your property manager.
     </p>
   </div>
   `;
@@ -68,11 +81,13 @@ export async function sendTenantInvite(args: {
     `Sign in: ${loginUrl}`,
     ``,
     `Please change your password after signing in.`,
+    ``,
+    `This is an automated message — please do not reply.`,
   ].join('\n');
 
   try {
     const replyTo = defaultReplyTo();
-    const res = await resend.emails.send({
+    await transporter.sendMail({
       from: defaultFrom(),
       to: args.to,
       subject,
@@ -80,7 +95,6 @@ export async function sendTenantInvite(args: {
       text,
       ...(replyTo ? { replyTo } : {}),
     });
-    if (res.error) return { sent: false, reason: res.error.message ?? 'Resend error' };
     return { sent: true };
   } catch (e) {
     return { sent: false, reason: e instanceof Error ? e.message : 'Unknown email error' };

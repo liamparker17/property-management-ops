@@ -4,14 +4,14 @@ Multi-tenant SaaS for South African residential rentals. Landlords / property ma
 
 ## Stack
 
-Next.js 16 (App Router) · React 19 · Prisma 7 · Neon Postgres · NextAuth v5 (JWT + credentials) · Vercel Blob · Resend · Tailwind 4 + shadcn/ui · Zod 4
+Next.js 16 (App Router) · React 19 · Prisma 7 · Neon Postgres · NextAuth v5 (JWT + credentials) · Vercel Blob · Nodemailer (Gmail SMTP) · Tailwind 4 + shadcn/ui · Zod 4
 
 ## Setup
 
 ```bash
 cp .env.example .env.local
 # Fill DATABASE_URL, DIRECT_URL, NEXTAUTH_SECRET, BLOB_READ_WRITE_TOKEN
-# Optional: RESEND_API_KEY, EMAIL_FROM, EMAIL_REPLY_TO
+# Optional: GMAIL_USER, GMAIL_APP_PASSWORD, EMAIL_FROM_NAME, EMAIL_REPLY_TO
 
 npm install
 npm run db:migrate
@@ -40,7 +40,7 @@ Open http://localhost:3000 and log in:
 - Team management and org settings for admins
 
 ### Tenant onboarding wizard
-`/tenants/onboard` creates a tenant, assigns them to a unit with a draft lease, and provisions a portal login — all in one submit. If `RESEND_API_KEY` is set, the tenant receives an invite email with their login details; otherwise the PM sees a one-time temp password in the UI to share manually.
+`/tenants/onboard` creates a tenant, assigns them to a unit with a draft lease, and provisions a portal login — all in one submit. If Gmail SMTP is configured (`GMAIL_USER` + `GMAIL_APP_PASSWORD`), the tenant receives an invite email with their login details; otherwise the PM sees a one-time temp password in the UI to share manually.
 
 ### Generated lease agreement
 `lib/lease-template.ts` renders a 15-section generic South African residential lease from stored data (rent, deposit, address, pets clause, governing law, etc.). Tenants read the full agreement inline in their portal — no PDF required. Uploaded lease PDFs still display for backwards compatibility.
@@ -57,8 +57,22 @@ If a tenant disagrees with a clause (e.g. pets), they can submit a review reques
 ### Maintenance tickets
 Tenants submit repair requests with priority and description. Staff triage on `/maintenance`: update status (OPEN → IN_PROGRESS → RESOLVED → CLOSED), change priority, add internal notes. Auto-stamps `resolvedAt` when resolved.
 
-### Transactional email (Resend)
-Optional outbound email via Resend's free tier (3000/mo). Set `RESEND_API_KEY`, verify a domain, and set `EMAIL_FROM` (e.g. `"PMOps <noreply@yourdomain.co.za>"`). Add `EMAIL_REPLY_TO` to route replies to a real inbox. Email failures degrade gracefully — the PM still sees the temp password in the UI.
+### Transactional email (Gmail SMTP)
+Optional outbound email via Gmail SMTP using [nodemailer](https://nodemailer.com/). No domain required — sends to any recipient from your Gmail address, roughly 500 msgs/day on free personal accounts.
+
+**Setup (~2 minutes):**
+1. Enable [2-Step Verification](https://myaccount.google.com/security) on the Gmail account you want to send from.
+2. Generate an [App Password](https://myaccount.google.com/apppasswords) (select "Mail" → "Other" → name it "PMOps"). Google shows a 16-character password once.
+3. Set in `.env.local`:
+   ```
+   GMAIL_USER="you@gmail.com"
+   GMAIL_APP_PASSWORD="xxxx xxxx xxxx xxxx"
+   EMAIL_FROM_NAME="PMOps"              # display name in From header
+   EMAIL_REPLY_TO=""                     # leave blank for no-reply; else e.g. "Support <support@yourdomain.co.za>"
+   ```
+4. Restart `npm run dev`.
+
+From header renders as `"PMOps" <you@gmail.com>`. Override with `EMAIL_FROM` if you need a fully custom value. Email failures degrade gracefully — the PM still sees the temp password in the UI.
 
 ## Project conventions
 

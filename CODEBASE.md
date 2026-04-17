@@ -79,6 +79,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | units.ts | `UnitOccupancy` type, `getUnitOccupancy()`, `listUnits()`, `getUnit()`, `createUnit()`, `updateUnit()`, `deleteUnit()` | 97 |
 | documents.ts | `uploadLeaseAgreement()`, `getDocumentForDownload()` | 37 |
 | team.ts | `listTeam()`, `createTeamUser()`, `updateTeamUser()`, `getOrg()`, `updateOrg()`, `changeOwnPassword()` | 102 |
+| tenant-portal.ts | `getTenantProfile()`, `getActiveLeaseForTenant()`, `getTenantLeases()`, `listTenantDocuments()`, `getTenantDocumentForDownload()` — all scoped by User.id → Tenant.userId | 72 |
 
 ### lib/zod/
 | File | Exports | Lines |
@@ -128,8 +129,11 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | /settings/team | (staff)/settings/team/page.tsx | Team management page |
 | /settings/team | (staff)/settings/team/new-user-form.tsx | Client: new team member form |
 | /settings/team | (staff)/settings/team/team-row.tsx | Client: team member row |
-| — | (tenant)/layout.tsx | Tenant auth guard |
-| /tenant | (tenant)/tenant/page.tsx | Tenant portal |
+| — | (tenant)/layout.tsx | Tenant auth guard + TenantSidebar + TopBar shell |
+| /tenant | (tenant)/tenant/page.tsx | Tenant home: active lease card, renewal banner, recent documents |
+| /tenant/lease | (tenant)/tenant/lease/page.tsx | Full active lease detail + document list + previous leases |
+| /tenant/documents | (tenant)/tenant/documents/page.tsx | All documents available to tenant |
+| /tenant/profile | (tenant)/tenant/profile/page.tsx | Tenant contact info (read-only) + change password |
 
 ### app/api/ — Route Handlers
 | Endpoint | Methods | Handler calls |
@@ -150,7 +154,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | /api/leases/[id]/renew | POST | renewLease |
 | /api/leases/[id]/primary-tenant | POST | setPrimaryTenant |
 | /api/leases/[id]/documents | POST | uploadLeaseAgreement |
-| /api/documents/[id]/download | GET | getDocumentForDownload |
+| /api/documents/[id]/download | GET | role-dispatch: `getTenantDocumentForDownload` for TENANT, `getDocumentForDownload` otherwise |
 | /api/profile/password | POST | changeOwnPassword |
 | /api/settings/org | GET, PATCH | getOrg, updateOrg |
 | /api/settings/team | GET, POST | listTeam, createTeamUser |
@@ -162,8 +166,9 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | login-form.tsx | Client | `LoginForm` — email/password, signIn + redirect | 70 |
 | lease-status-badge.tsx | Server | `LeaseStatusBadge` — color-coded status with dot (DRAFT/ACTIVE/EXPIRING/EXPIRED/TERMINATED/RENEWED) | 28 |
 | occupancy-badge.tsx | Server | `OccupancyBadge` — color-coded occupancy with dot (VACANT/OCCUPIED/UPCOMING/CONFLICT) | 26 |
-| nav/sidebar.tsx | Client | `Sidebar` — left vertical nav with lucide icons, active-state highlight | 56 |
-| nav/top-bar.tsx | Server | `TopBar` — top bar: profile link + signOut | 27 |
+| nav/sidebar.tsx | Client | `Sidebar` — staff left nav with lucide icons, active-state highlight | 56 |
+| nav/tenant-sidebar.tsx | Client | `TenantSidebar` — tenant left nav (Home/Lease/Documents/Profile) | 46 |
+| nav/top-bar.tsx | Server | `TopBar` — top bar: profile link + signOut (shared by staff + tenant) | 27 |
 | nav/staff-nav.tsx | Server | (unused — superseded by sidebar + top-bar) | 30 |
 | forms/lease-form.tsx | Client | `LeaseForm` — unit, tenants, dates, rent, deposit, notes | 189 |
 | forms/property-form.tsx | Client | `PropertyForm` — name, address fields, province, autoCreateMainUnit | 112 |

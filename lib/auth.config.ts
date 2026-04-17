@@ -7,6 +7,7 @@ import type { Role } from '@prisma/client';
  * Full provider config lives in auth.ts.
  */
 export const authConfig = {
+  trustHost: true,
   session: { strategy: 'jwt' as const },
   pages: { signIn: '/login' },
   callbacks: {

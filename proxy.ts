@@ -1,9 +1,11 @@
+import NextAuth from 'next-auth';
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-import { getToken } from 'next-auth/jwt';
 import type { Role } from '@prisma/client';
+import { authConfig } from './lib/auth.config';
 
-const PUBLIC_PATHS = ['/', '/login', '/api/auth'];
+const { auth } = NextAuth(authConfig);
+
+const PUBLIC_PATHS = ['/', '/login'];
 const STAFF_ROLES: Role[] = ['ADMIN', 'PROPERTY_MANAGER', 'FINANCE'];
 
 function isPublic(pathname: string) {
@@ -14,21 +16,18 @@ function isPublic(pathname: string) {
   return false;
 }
 
-export async function proxy(req: NextRequest) {
+export default auth((req) => {
   const { pathname } = req.nextUrl;
   if (isPublic(pathname)) return NextResponse.next();
 
-  const token = (await getToken({ req, secret: process.env.NEXTAUTH_SECRET })) as
-    | { role?: Role }
-    | null;
-
-  if (!token) {
+  const session = req.auth;
+  if (!session) {
     const url = new URL('/login', req.url);
     url.searchParams.set('from', pathname);
     return NextResponse.redirect(url);
   }
 
-  const role = token.role;
+  const role = session.user?.role as Role | undefined;
   const isStaffArea =
     pathname.startsWith('/dashboard') ||
     pathname.startsWith('/properties') ||
@@ -51,7 +50,7 @@ export async function proxy(req: NextRequest) {
   }
 
   return NextResponse.next();
-}
+});
 
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],

@@ -64,7 +64,8 @@
       "Bash(netstat -ano)",
       "Bash(xargs grep *)",
       "Bash(grep -E \"\\\\.\\(ts|js|json|prisma|md\\)$\")",
-      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); mcps=d.get\\('mcpServers',{}\\); print\\(f'MCP servers configured: {len\\(mcps\\)}'\\); [print\\(f' - {k}'\\) for k in mcps.keys\\(\\)]\")"
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); mcps=d.get\\('mcpServers',{}\\); print\\(f'MCP servers configured: {len\\(mcps\\)}'\\); [print\\(f' - {k}'\\) for k in mcps.keys\\(\\)]\")",
+      "Bash(DOTENV_CONFIG_PATH=.env.production.local npx tsx -r dotenv/config prisma/seed.ts)"
     ]
   }
 }

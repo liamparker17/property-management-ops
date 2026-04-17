@@ -6,6 +6,7 @@ import { deriveStatus } from '@/lib/services/leases';
 import { LeaseStatusBadge } from '@/components/lease-status-badge';
 import { formatDate } from '@/lib/format';
 import { ArchiveTenantButton } from './archive-button';
+import { InvitePortalButton } from './invite-button';
 
 export default async function TenantDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -35,7 +36,12 @@ export default async function TenantDetail({ params }: { params: Promise<{ id: s
             </p>
           )}
         </div>
-        <ArchiveTenantButton id={id} archived={!!tenant.archivedAt} />
+        <div className="flex flex-col items-end gap-3">
+          <ArchiveTenantButton id={id} archived={!!tenant.archivedAt} />
+          {!tenant.archivedAt && tenant.email && (
+            <InvitePortalButton tenantId={id} hasAccount={!!tenant.userId} />
+          )}
+        </div>
       </div>
 
       <section className="space-y-3">

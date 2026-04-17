@@ -1,3 +1,6 @@
+import { randomBytes } from 'crypto';
+import bcrypt from 'bcryptjs';
+import { Role } from '@prisma/client';
 import { db } from '@/lib/db';
 import { ApiError } from '@/lib/errors';
 import type { RouteCtx } from '@/lib/auth/with-org';
@@ -89,4 +92,40 @@ export async function unarchiveTenant(ctx: RouteCtx, id: string) {
   const existing = await db.tenant.findFirst({ where: { id, orgId: ctx.orgId }, select: { id: true } });
   if (!existing) throw ApiError.notFound('Tenant not found');
   return db.tenant.update({ where: { id }, data: { archivedAt: null } });
+}
+
+function generateTempPassword() {
+  return randomBytes(9).toString('base64url');
+}
+
+export async function inviteTenantToPortal(ctx: RouteCtx, tenantId: string) {
+  const tenant = await db.tenant.findFirst({
+    where: { id: tenantId, orgId: ctx.orgId },
+    select: { id: true, email: true, firstName: true, lastName: true, userId: true, archivedAt: true },
+  });
+  if (!tenant) throw ApiError.notFound('Tenant not found');
+  if (tenant.archivedAt) throw ApiError.conflict('Cannot invite an archived tenant');
+  if (!tenant.email) throw ApiError.validation('Tenant needs an email before being invited');
+  if (tenant.userId) throw ApiError.conflict('Tenant already has a portal account');
+
+  const clash = await db.user.findUnique({ where: { email: tenant.email } });
+  if (clash) throw ApiError.conflict('A user with this email already exists');
+
+  const tempPassword = generateTempPassword();
+  const passwordHash = await bcrypt.hash(tempPassword, 10);
+
+  await db.$transaction(async (tx) => {
+    const user = await tx.user.create({
+      data: {
+        email: tenant.email!,
+        name: `${tenant.firstName} ${tenant.lastName}`.trim(),
+        role: Role.TENANT,
+        orgId: ctx.orgId,
+        passwordHash,
+      },
+    });
+    await tx.tenant.update({ where: { id: tenant.id }, data: { userId: user.id } });
+  });
+
+  return { email: tenant.email, tempPassword };
 }

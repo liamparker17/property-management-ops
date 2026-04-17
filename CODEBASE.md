@@ -75,7 +75,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | dashboard.ts | `getDashboardSummary(ctx)` → totalProperties, totalUnits, occupied/vacant/upcoming/conflict, activeLeases, expiring, recentLeases | 103 |
 | leases.ts | `DerivedStatus` type, `deriveStatus()`, `listLeases()`, `getLease()`, `createLease()`, `updateDraftLease()`, `activateLease()`, `terminateLease()`, `renewLease()`, `setPrimaryTenant()` | 348 |
 | properties.ts | `listProperties()`, `getProperty()`, `createProperty()`, `updateProperty()`, `softDeleteProperty()` | 51 |
-| tenants.ts | `listTenants()`, `getTenant()`, `detectDuplicates()`, `createTenant()`, `updateTenant()`, `archiveTenant()`, `unarchiveTenant()` | 104 |
+| tenants.ts | `listTenants()`, `getTenant()`, `detectDuplicates()`, `createTenant()`, `updateTenant()`, `archiveTenant()`, `unarchiveTenant()`, `inviteTenantToPortal()` — creates a TENANT User, links via Tenant.userId, returns one-time temp password | 145 |
 | units.ts | `UnitOccupancy` type, `getUnitOccupancy()`, `listUnits()`, `getUnit()`, `createUnit()`, `updateUnit()`, `deleteUnit()` | 97 |
 | documents.ts | `uploadLeaseAgreement()`, `getDocumentForDownload()` | 37 |
 | team.ts | `listTeam()`, `createTeamUser()`, `updateTeamUser()`, `getOrg()`, `updateOrg()`, `changeOwnPassword()` | 102 |
@@ -117,6 +117,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | /tenants/new | (staff)/tenants/new/page.tsx | Create tenant form |
 | /tenants/[id] | (staff)/tenants/[id]/page.tsx | Tenant detail + lease history |
 | /tenants/[id] | (staff)/tenants/[id]/archive-button.tsx | Client: archive/unarchive |
+| /tenants/[id] | (staff)/tenants/[id]/invite-button.tsx | Client: invite tenant to portal, shows one-time temp password |
 | /leases | (staff)/leases/page.tsx | Lease list with status filters |
 | /leases/new | (staff)/leases/new/page.tsx | Create lease form |
 | /leases/[id] | (staff)/leases/[id]/page.tsx | Lease detail |
@@ -147,6 +148,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | /api/tenants | GET, POST | listTenants, createTenant |
 | /api/tenants/[id] | GET, PATCH | getTenant, updateTenant |
 | /api/tenants/[id]/archive | POST | archiveTenant/unarchiveTenant |
+| /api/tenants/[id]/invite | POST | inviteTenantToPortal (ADMIN/PM only) |
 | /api/leases | GET, POST | listLeases, createLease |
 | /api/leases/[id] | GET, PATCH | getLease, updateDraftLease |
 | /api/leases/[id]/activate | POST | activateLease |

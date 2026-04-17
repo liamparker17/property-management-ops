@@ -78,12 +78,10 @@ export async function archiveTenant(ctx: RouteCtx, id: string) {
   const today = new Date();
   const blocking = existing.leases.filter((lt) => {
     const l = lt.lease;
-    if (l.state === 'ACTIVE' && l.endDate >= today) return true;
-    if (l.state === 'DRAFT') return true;
-    return false;
+    return l.state === 'ACTIVE' && l.endDate >= today;
   });
   if (blocking.length > 0) {
-    throw ApiError.conflict('Cannot archive tenant with active or draft leases');
+    throw ApiError.conflict('Cannot archive tenant with an active lease — terminate the lease first');
   }
   return db.tenant.update({ where: { id }, data: { archivedAt: new Date() } });
 }

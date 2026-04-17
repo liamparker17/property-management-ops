@@ -3,6 +3,8 @@ import { Sidebar } from '@/components/nav/sidebar';
 import { TopBar } from '@/components/nav/top-bar';
 import { redirect } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session) redirect('/login');

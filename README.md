@@ -74,6 +74,26 @@ Optional outbound email via Gmail SMTP using [nodemailer](https://nodemailer.com
 
 From header renders as `"PMOps" <you@gmail.com>`. Override with `EMAIL_FROM` if you need a fully custom value. Email failures degrade gracefully — the PM still sees the temp password in the UI.
 
+### SMS invites (Android phone as gateway)
+Optional SMS invites use an Android phone as a zero-cost gateway via [SMS Gateway for Android](https://sms-gate.app) (Apache-2.0). Your Gmail SMTP already sends emails — SMS is additive for tenants who prefer text.
+
+**Setup (~3 minutes):**
+1. Install the [SMS Gateway app](https://play.google.com/store/apps/details?id=me.capcom.smsgateway) on an Android phone (v5+). Grant SMS send permissions.
+2. In the app, toggle **Cloud Server** on, tap **Online**.
+3. Copy the displayed username/password into `.env.local`:
+   ```
+   SMS_GATEWAY_USER="..."
+   SMS_GATEWAY_PASSWORD="..."
+   ```
+4. Keep the phone on a charger, WiFi on, app running.
+5. On the onboarding form, tick "Also send SMS invite" (only fires if the phone number field is filled).
+
+SA local numbers (`0821234567`) are normalized to E.164 (`+27821234567`) automatically.
+
+> **POPIA note:** cloud mode routes recipient numbers through sms-gate.app's server. For production, either (a) disclose in the privacy policy and obtain consent, or (b) run the app in Local Server mode behind a tunnel (Cloudflare Tunnel) and point `SMS_GATEWAY_URL` at it. End-to-end encryption is available in the app settings.
+
+> **Carrier note:** SMSes bill to your phone's plan at standard rates. SA consumer SIMs may be throttled or flagged for bulk sending — this is suitable for low-volume demo/transactional use, not marketing.
+
 ## Project conventions
 
 - **Currency:** integer cents, formatted via `formatZar()` from `lib/format.ts`

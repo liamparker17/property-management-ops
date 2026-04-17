@@ -15,6 +15,8 @@ type Result = {
   tempPassword: string | null;
   emailSent: boolean;
   emailError?: string;
+  smsSent: boolean;
+  smsError?: string;
 };
 
 export function OnboardTenantForm({ units }: Props) {
@@ -45,6 +47,7 @@ export function OnboardTenantForm({ units }: Props) {
       paymentDueDay: Number(form.get('paymentDueDay')),
       leaseNotes: form.get('leaseNotes') || null,
       sendInvite: form.get('sendInvite') === 'on',
+      sendSmsInvite: form.get('sendSmsInvite') === 'on',
     };
     const res = await fetch('/api/onboarding/tenants', {
       method: 'POST',
@@ -83,6 +86,16 @@ export function OnboardTenantForm({ units }: Props) {
         {result.tempPassword && !result.emailSent && result.emailError && (
           <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
             Email not sent: {result.emailError}. You can share the password manually below.
+          </p>
+        )}
+        {result.smsSent && (
+          <p className="mt-2 rounded-md border border-emerald-200 bg-white px-3 py-2 text-xs text-emerald-900">
+            SMS invite sent.
+          </p>
+        )}
+        {!result.smsSent && result.smsError && (
+          <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            SMS not sent: {result.smsError}.
           </p>
         )}
         <dl className="mt-4 space-y-3 text-sm">
@@ -264,6 +277,14 @@ export function OnboardTenantForm({ units }: Props) {
           <span>
             Create a tenant portal login now. You&rsquo;ll be shown a one-time temporary password to
             share with the tenant so they can sign in, review the lease, and sign.
+          </span>
+        </label>
+        <label className="mt-3 flex items-start gap-2 text-sm">
+          <input type="checkbox" name="sendSmsInvite" className="mt-0.5 h-4 w-4" />
+          <span>
+            Also send an SMS invite (requires a phone number above, and{' '}
+            <code className="rounded bg-muted px-1 py-0.5 text-xs">SMS_GATEWAY_*</code> env vars
+            configured).
           </span>
         </label>
       </section>

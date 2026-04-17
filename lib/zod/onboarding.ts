@@ -21,6 +21,7 @@ export const onboardTenantSchema = z
     leaseNotes: z.string().max(2000).optional().nullable(),
 
     sendInvite: z.boolean().default(true),
+    sendSmsInvite: z.boolean().default(false),
   })
   .refine((v) => new Date(v.startDate) <= new Date(v.endDate), {
     path: ['endDate'],

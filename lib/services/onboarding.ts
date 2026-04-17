@@ -4,6 +4,7 @@ import { LeaseState, Role } from '@prisma/client';
 import { db } from '@/lib/db';
 import { ApiError } from '@/lib/errors';
 import { sendTenantInvite } from '@/lib/email';
+import { sendTenantInviteSms } from '@/lib/sms';
 import type { RouteCtx } from '@/lib/auth/with-org';
 import type { z } from 'zod';
 import type { onboardTenantSchema } from '@/lib/zod/onboarding';
@@ -91,18 +92,40 @@ export async function onboardTenant(
     return { tenant, lease };
   });
 
+  const appUrl = meta.appUrl ?? process.env.APP_URL ?? 'http://localhost:3000';
+  const tenantName = `${input.firstName} ${input.lastName}`.trim();
+  const orgName = org?.name ?? 'Your landlord';
+
   let emailSent = false;
   let emailError: string | undefined;
   if (input.sendInvite && tempPassword) {
     const send = await sendTenantInvite({
       to: input.email,
-      tenantName: `${input.firstName} ${input.lastName}`.trim(),
-      orgName: org?.name ?? 'Your landlord',
+      tenantName,
+      orgName,
       tempPassword,
-      appUrl: meta.appUrl ?? process.env.APP_URL ?? 'http://localhost:3000',
+      appUrl,
     });
     emailSent = send.sent;
     emailError = send.reason;
+  }
+
+  let smsSent = false;
+  let smsError: string | undefined;
+  if (input.sendInvite && input.sendSmsInvite && tempPassword) {
+    if (!input.phone) {
+      smsError = 'No phone number provided';
+    } else {
+      const send = await sendTenantInviteSms({
+        to: input.phone,
+        tenantName,
+        orgName,
+        tempPassword,
+        appUrl,
+      });
+      smsSent = send.sent;
+      smsError = send.reason;
+    }
   }
 
   return {
@@ -112,5 +135,7 @@ export async function onboardTenant(
     tempPassword,
     emailSent,
     emailError,
+    smsSent,
+    smsError,
   };
 }

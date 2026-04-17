@@ -39,6 +39,7 @@ async function main() {
     ],
   });
   const adminUser = await db.user.findUniqueOrThrow({ where: { email: 'admin@acme.test' } });
+  const tenantUser = await db.user.findUniqueOrThrow({ where: { email: 'tenant@acme.test' } });
 
   // Properties: block of flats (8 units), townhouse complex (4), standalone house (1 auto "Main").
   const block = await db.property.create({
@@ -110,6 +111,19 @@ async function main() {
     ),
   );
 
+  // Demo tenant user linked to an actual Tenant record so the tenant portal works end-to-end.
+  const thandi = await db.tenant.create({
+    data: {
+      orgId: org.id,
+      firstName: 'Thandi',
+      lastName: 'Tenant',
+      email: 'tenant@acme.test',
+      phone: '+27 82 555 0100',
+      userId: tenantUser.id,
+    },
+  });
+  tenants.push(thandi);
+
   const today = new Date();
   const d = (monthsFromNow: number, day = 1): Date => {
     const x = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + monthsFromNow, day));
@@ -149,6 +163,8 @@ async function main() {
     { unitIdx: 9, tenantIdxs: [2], primary: 2, start: d(-10), end: d(2), rent: 1400000, deposit: 1400000, state: LeaseState.TERMINATED },
     // 1 RENEWED + its successor ACTIVE lease (same unit 10)
     { unitIdx: 10, tenantIdxs: [3], primary: 3, start: d(-14), end: d(-2), rent: 1450000, deposit: 1450000, state: LeaseState.RENEWED },
+    // Thandi (demo tenant user) on unit 11 — EXPIRING in ~45 days so the renewal banner demos nicely
+    { unitIdx: 11, tenantIdxs: [8], primary: 8, start: d(-10), end: d(1, 15), rent: 1800000, deposit: 1800000, state: LeaseState.ACTIVE, note: 'Demo tenant lease for the tenant portal walkthrough.' },
   ];
 
   const leaseIds: string[] = [];
@@ -203,9 +219,11 @@ async function main() {
     },
   });
 
-  // 2 seeded lease-agreement documents via Vercel Blob (same code path as production)
+  // Seeded lease-agreement documents via Vercel Blob (same code path as production).
+  // Include Thandi's lease (last in leaseIds) so the tenant portal shows real documents.
   if (process.env.BLOB_READ_WRITE_TOKEN) {
-    const activeLeaseIds = leaseIds.slice(0, 2);
+    const thandiLeaseId = leaseIds[leaseIds.length - 1];
+    const activeLeaseIds = [leaseIds[0], leaseIds[1], thandiLeaseId];
     for (const lid of activeLeaseIds) {
       const dummy = new File([new Uint8Array([0x25, 0x50, 0x44, 0x46])], `agreement-${lid}.pdf`, {
         type: 'application/pdf',

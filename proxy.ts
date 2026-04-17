@@ -40,10 +40,10 @@ export default auth((req) => {
   const isAdminArea = pathname.startsWith('/settings');
 
   if (isStaffArea && (!role || !STAFF_ROLES.includes(role))) {
-    return NextResponse.redirect(new URL('/login', req.url));
+    return NextResponse.redirect(new URL('/tenant', req.url));
   }
   if (isTenantArea && role !== 'TENANT') {
-    return NextResponse.redirect(new URL('/login', req.url));
+    return NextResponse.redirect(new URL('/dashboard', req.url));
   }
   if (isAdminArea && role !== 'ADMIN') {
     return NextResponse.redirect(new URL('/dashboard', req.url));

@@ -94,6 +94,31 @@ export async function unarchiveTenant(ctx: RouteCtx, id: string) {
   return db.tenant.update({ where: { id }, data: { archivedAt: null } });
 }
 
+export async function deleteTenant(ctx: RouteCtx, id: string) {
+  const tenant = await db.tenant.findFirst({
+    where: { id, orgId: ctx.orgId },
+    select: { id: true, archivedAt: true, userId: true },
+  });
+  if (!tenant) throw ApiError.notFound('Tenant not found');
+  if (!tenant.archivedAt) {
+    throw ApiError.conflict('Archive the tenant before permanently deleting');
+  }
+
+  await db.$transaction(async (tx) => {
+    await tx.leaseTenant.deleteMany({ where: { tenantId: id } });
+    await tx.document.updateMany({ where: { tenantId: id }, data: { tenantId: null } });
+    await tx.maintenanceRequest.deleteMany({ where: { tenantId: id } });
+    await tx.leaseSignature.deleteMany({ where: { tenantId: id } });
+    await tx.leaseReviewRequest.deleteMany({ where: { tenantId: id } });
+    await tx.tenant.delete({ where: { id } });
+    if (tenant.userId) {
+      await tx.user.delete({ where: { id: tenant.userId } });
+    }
+  });
+
+  return { ok: true };
+}
+
 function generateTempPassword() {
   return randomBytes(9).toString('base64url');
 }

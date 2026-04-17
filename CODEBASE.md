@@ -160,9 +160,11 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | File | Type | Exports | Lines |
 |------|------|---------|-------|
 | login-form.tsx | Client | `LoginForm` — email/password, signIn + redirect | 70 |
-| lease-status-badge.tsx | Server | `LeaseStatusBadge` — color-coded status (DRAFT/ACTIVE/EXPIRING/EXPIRED/TERMINATED/RENEWED) | 18 |
-| occupancy-badge.tsx | Server | `OccupancyBadge` — color-coded occupancy (VACANT/OCCUPIED/UPCOMING/CONFLICT) | 16 |
-| nav/staff-nav.tsx | Server | `StaffNav` — sidebar links + user info + signOut | 30 |
+| lease-status-badge.tsx | Server | `LeaseStatusBadge` — color-coded status with dot (DRAFT/ACTIVE/EXPIRING/EXPIRED/TERMINATED/RENEWED) | 28 |
+| occupancy-badge.tsx | Server | `OccupancyBadge` — color-coded occupancy with dot (VACANT/OCCUPIED/UPCOMING/CONFLICT) | 26 |
+| nav/sidebar.tsx | Client | `Sidebar` — left vertical nav with lucide icons, active-state highlight | 56 |
+| nav/top-bar.tsx | Server | `TopBar` — top bar: profile link + signOut | 27 |
+| nav/staff-nav.tsx | Server | (unused — superseded by sidebar + top-bar) | 30 |
 | forms/lease-form.tsx | Client | `LeaseForm` — unit, tenants, dates, rent, deposit, notes | 189 |
 | forms/property-form.tsx | Client | `PropertyForm` — name, address fields, province, autoCreateMainUnit | 112 |
 | forms/unit-form.tsx | Client | `UnitForm` — property, label, bedrooms, bathrooms, size | 59 |

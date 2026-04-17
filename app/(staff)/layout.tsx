@@ -1,5 +1,6 @@
 import { auth, signOut } from '@/lib/auth';
-import { StaffNav } from '@/components/nav/staff-nav';
+import { Sidebar } from '@/components/nav/sidebar';
+import { TopBar } from '@/components/nav/top-bar';
 import { redirect } from 'next/navigation';
 
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
@@ -8,16 +9,20 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   if (session.user.role === 'TENANT') redirect('/tenant');
 
   return (
-    <div className="min-h-screen">
-      <StaffNav
-        email={session.user.email ?? ''}
-        role={session.user.role}
-        signOut={async () => {
-          'use server';
-          await signOut({ redirectTo: '/login' });
-        }}
-      />
-      <main className="mx-auto max-w-6xl p-6">{children}</main>
+    <div className="flex min-h-screen">
+      <Sidebar role={session.user.role} />
+      <div className="flex flex-1 flex-col">
+        <TopBar
+          email={session.user.email ?? ''}
+          signOut={async () => {
+            'use server';
+            await signOut({ redirectTo: '/login' });
+          }}
+        />
+        <main className="flex-1 overflow-auto p-8">
+          <div className="mx-auto max-w-7xl">{children}</div>
+        </main>
+      </div>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { LeaseState, Role } from '@prisma/client';
 import { db } from '@/lib/db';
 import { ApiError } from '@/lib/errors';
+import { sendTenantInvite } from '@/lib/email';
 import type { RouteCtx } from '@/lib/auth/with-org';
 import type { z } from 'zod';
 import type { onboardTenantSchema } from '@/lib/zod/onboarding';
@@ -14,12 +15,15 @@ function generateTempPassword() {
 export async function onboardTenant(
   ctx: RouteCtx,
   input: z.infer<typeof onboardTenantSchema>,
+  meta: { appUrl?: string | null } = {},
 ) {
   const unit = await db.unit.findFirst({
     where: { id: input.unitId, property: { orgId: ctx.orgId } },
     select: { id: true },
   });
   if (!unit) throw ApiError.notFound('Unit not found');
+
+  const org = await db.org.findUnique({ where: { id: ctx.orgId }, select: { name: true } });
 
   const existingUser = await db.user.findUnique({ where: { email: input.email } });
   if (existingUser && input.sendInvite) {
@@ -87,10 +91,26 @@ export async function onboardTenant(
     return { tenant, lease };
   });
 
+  let emailSent = false;
+  let emailError: string | undefined;
+  if (input.sendInvite && tempPassword) {
+    const send = await sendTenantInvite({
+      to: input.email,
+      tenantName: `${input.firstName} ${input.lastName}`.trim(),
+      orgName: org?.name ?? 'Your landlord',
+      tempPassword,
+      appUrl: meta.appUrl ?? process.env.APP_URL ?? 'http://localhost:3000',
+    });
+    emailSent = send.sent;
+    emailError = send.reason;
+  }
+
   return {
     tenantId: result.tenant.id,
     leaseId: result.lease.id,
     email: input.email,
     tempPassword,
+    emailSent,
+    emailError,
   };
 }

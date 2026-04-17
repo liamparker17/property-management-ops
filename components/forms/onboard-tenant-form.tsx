@@ -13,6 +13,8 @@ type Result = {
   leaseId: string;
   email: string;
   tempPassword: string | null;
+  emailSent: boolean;
+  emailError?: string;
 };
 
 export function OnboardTenantForm({ units }: Props) {
@@ -74,8 +76,15 @@ export function OnboardTenantForm({ units }: Props) {
           <h2 className="text-lg font-semibold">Tenant onboarded</h2>
         </div>
         <p className="mt-1 text-sm text-emerald-900">
-          Draft lease created. Share the login details below so the tenant can review &amp; sign.
+          {result.emailSent
+            ? `Draft lease created and an invite email with login details has been sent to ${result.email}.`
+            : `Draft lease created. Share the login details below with the tenant.`}
         </p>
+        {result.tempPassword && !result.emailSent && result.emailError && (
+          <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            Email not sent: {result.emailError}. You can share the password manually below.
+          </p>
+        )}
         <dl className="mt-4 space-y-3 text-sm">
           <div className="flex items-center justify-between gap-4 rounded-md border border-emerald-200 bg-white px-3 py-2">
             <div>

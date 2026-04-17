@@ -1,7 +1,7 @@
 # Codebase Manifest — Property Management Ops
 
 > **This is the LLM source of truth.** Check here BEFORE reading any file.
-> Last updated: 2026-04-16
+> Last updated: 2026-04-17
 
 ## Stack
 
@@ -23,7 +23,7 @@ Next.js 16.2 | React 19 | TypeScript strict | Prisma 7 + Neon Postgres | NextAut
 
 ## Database Schema (prisma/schema.prisma)
 
-**Enums:** Role (ADMIN, PROPERTY_MANAGER, FINANCE, TENANT) | LeaseState (DRAFT, ACTIVE, TERMINATED, RENEWED) | DocumentKind (LEASE_AGREEMENT) | SAProvince (GP, WC, KZN, EC, FS, LP, MP, NW, NC) | MaintenancePriority (LOW, MEDIUM, HIGH, URGENT) | MaintenanceStatus (OPEN, IN_PROGRESS, RESOLVED, CLOSED) | InvoiceStatus (DUE, PAID, OVERDUE)
+**Enums:** Role (ADMIN, PROPERTY_MANAGER, FINANCE, TENANT) | LeaseState (DRAFT, ACTIVE, TERMINATED, RENEWED) | DocumentKind (LEASE_AGREEMENT) | SAProvince (GP, WC, KZN, EC, FS, LP, MP, NW, NC) | MaintenancePriority (LOW, MEDIUM, HIGH, URGENT) | MaintenanceStatus (OPEN, IN_PROGRESS, RESOLVED, CLOSED) | InvoiceStatus (DUE, PAID, OVERDUE) | ReviewRequestStatus (OPEN, ACCEPTED, REJECTED, RESOLVED)
 
 **Models:**
 | Model | Key Fields | Relations |
@@ -39,6 +39,8 @@ Next.js 16.2 | React 19 | TypeScript strict | Prisma 7 + Neon Postgres | NextAut
 | Account/Session/VerificationToken | Standard NextAuth models | |
 | MaintenanceRequest | title, description, priority, status, internalNotes, resolvedAt | org, tenant, unit |
 | Invoice | leaseId, periodStart, dueDate, amountCents, status, paidAt, paidAmountCents, paidNote | org, lease — unique(leaseId, periodStart) |
+| LeaseSignature | leaseId, tenantId, signedName, signedAt, ipAddress, userAgent, latitude, longitude, locationText | lease, tenant — unique(leaseId, tenantId) |
+| LeaseReviewRequest | leaseId, tenantId, clauseExcerpt, tenantNote, status, pmResponse, respondedAt | lease (no FK to tenant) |
 
 ## Auth Flow
 
@@ -81,7 +83,8 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | units.ts | `UnitOccupancy` type, `getUnitOccupancy()`, `listUnits()`, `getUnit()`, `createUnit()`, `updateUnit()`, `deleteUnit()` | 97 |
 | documents.ts | `uploadLeaseAgreement()`, `getDocumentForDownload()` | 37 |
 | team.ts | `listTeam()`, `createTeamUser()`, `updateTeamUser()`, `getOrg()`, `updateOrg()`, `changeOwnPassword()` | 102 |
-| tenant-portal.ts | `getTenantProfile()`, `getActiveLeaseForTenant()`, `getTenantLeases()`, `listTenantDocuments()`, `getTenantDocumentForDownload()` — all scoped by User.id → Tenant.userId | 72 |
+| tenant-portal.ts | `getTenantProfile()`, `getActiveLeaseForTenant()`, `getPendingLeaseForTenant()` (DRAFT lease w/ signatures+reviewRequests filtered to tenant), `getTenantLeases()`, `listTenantDocuments()`, `getTenantDocumentForDownload()` — all scoped by User.id → Tenant.userId | 106 |
+| signatures.ts | `signLeaseAsTenant()`, `getTenantSignatureForLease()`, `listLeaseSignatures(ctx)`, `createReviewRequest()`, `listTenantReviewRequests()`, `listLeaseReviewRequests(ctx)`, `respondToReviewRequest(ctx)` | 145 |
 | maintenance.ts | `createTenantMaintenanceRequest()`, `listTenantMaintenanceRequests()`, `getTenantMaintenanceRequest()`, `listMaintenanceRequests()`, `getMaintenanceRequest()`, `updateMaintenanceRequest()` | 128 |
 | invoices.ts | `ensureInvoicesForLease()` (idempotent month-by-month generator, past→PAID, current/future→DUE), `listTenantInvoices()`, `listLeaseInvoices()`, `markInvoicePaid()`, `markInvoiceUnpaid()` | 135 |
 
@@ -96,6 +99,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | document.ts | `documentKindEnum`, `documentUploadMetaSchema` | 4 |
 | maintenance.ts | `maintenancePriorityEnum`, `maintenanceStatusEnum`, `createMaintenanceRequestSchema`, `updateMaintenanceRequestSchema` | 18 |
 | invoice.ts | `markInvoicePaidSchema` | 8 |
+| signature.ts | `signLeaseSchema`, `createReviewRequestSchema`, `respondReviewRequestSchema` | — |
 
 ### types/
 | File | Purpose | Lines |
@@ -149,6 +153,9 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | /maintenance/[id] | (staff)/maintenance/[id]/page.tsx | Staff detail + update status/priority/internal notes |
 | /maintenance/[id] | (staff)/maintenance/[id]/update-form.tsx | Client: status/priority/notes form |
 | /leases/[id] | (staff)/leases/[id]/invoices-panel.tsx | Client: mark-paid / unpay actions per invoice |
+| /leases/[id] | (staff)/leases/[id]/signatures-panel.tsx | Client: signatures list + review requests with respond (accept/reject/resolve + pmResponse) |
+| /tenant/lease | (tenant)/tenant/lease/sign-card.tsx | Client: `SignLeaseCard` (typed name + geolocation + agreement) and `SignedConfirmation` |
+| /tenant/lease | (tenant)/tenant/lease/review-form.tsx | Client: `ReviewRequestForm` (clause + note) and `ReviewRequestList` |
 
 ### app/api/ — Route Handlers
 | Endpoint | Methods | Handler calls |
@@ -166,6 +173,9 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | /api/maintenance | GET, POST | listMaintenanceRequests (staff), createTenantMaintenanceRequest (tenant) |
 | /api/maintenance/[id] | GET, PATCH | getMaintenanceRequest, updateMaintenanceRequest (ADMIN/PM only) |
 | /api/invoices/[id]/paid | POST, DELETE | markInvoicePaid, markInvoiceUnpaid (ADMIN/PM/FINANCE) |
+| /api/leases/[id]/sign | POST | signLeaseAsTenant (TENANT only; records IP/UA from request headers) |
+| /api/leases/[id]/review-requests | POST | createReviewRequest (TENANT only) |
+| /api/review-requests/[id] | PATCH | respondToReviewRequest (ADMIN/PM only) |
 | /api/leases | GET, POST | listLeases, createLease |
 | /api/leases/[id] | GET, PATCH | getLease, updateDraftLease |
 | /api/leases/[id]/activate | POST | activateLease |

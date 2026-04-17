@@ -36,10 +36,12 @@ async function main() {
       { email: 'pm@acme.test',      name: 'Priya Manager',  role: Role.PROPERTY_MANAGER, orgId: org.id, passwordHash },
       { email: 'finance@acme.test', name: 'Frank Finance',  role: Role.FINANCE,          orgId: org.id, passwordHash },
       { email: 'tenant@acme.test',  name: 'Thandi Tenant',  role: Role.TENANT,           orgId: org.id, passwordHash },
+      { email: 'tenant2@acme.test', name: 'Daniel Newman',  role: Role.TENANT,           orgId: org.id, passwordHash },
     ],
   });
   const adminUser = await db.user.findUniqueOrThrow({ where: { email: 'admin@acme.test' } });
   const tenantUser = await db.user.findUniqueOrThrow({ where: { email: 'tenant@acme.test' } });
+  const tenant2User = await db.user.findUniqueOrThrow({ where: { email: 'tenant2@acme.test' } });
 
   // Properties: block of flats (8 units), townhouse complex (4), standalone house (1 auto "Main").
   const block = await db.property.create({
@@ -124,6 +126,18 @@ async function main() {
   });
   tenants.push(thandi);
 
+  const daniel = await db.tenant.create({
+    data: {
+      orgId: org.id,
+      firstName: 'Daniel',
+      lastName: 'Newman',
+      email: 'tenant2@acme.test',
+      phone: '+27 82 555 0101',
+      userId: tenant2User.id,
+    },
+  });
+  tenants.push(daniel);
+
   const today = new Date();
   const d = (monthsFromNow: number, day = 1): Date => {
     const x = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + monthsFromNow, day));
@@ -157,8 +171,8 @@ async function main() {
     { unitIdx: 5, tenantIdxs: [0], primary: 0, start: d(-15), end: d(-1, 15), rent: 790000, deposit: 790000, state: LeaseState.ACTIVE },
     // 1 ACTIVE future-dated (makes unit 6 UPCOMING — drafts are invisible to occupancy)
     { unitIdx: 6, tenantIdxs: [1], primary: 1, start: d(1, 1), end: d(13, 1), rent: 880000, deposit: 880000, state: LeaseState.ACTIVE },
-    // 1 DRAFT on a different unit (doesn't affect occupancy; unit stays VACANT)
-    { unitIdx: 7, tenantIdxs: [6], primary: 6, start: d(2, 1), end: d(14, 1), rent: 820000, deposit: 820000, state: LeaseState.DRAFT },
+    // Daniel (tenant2) — DRAFT lease awaiting signature, demos the onboarding/signing flow
+    { unitIdx: 7, tenantIdxs: [9], primary: 9, start: d(1, 1), end: d(13, 1), rent: 820000, deposit: 820000, state: LeaseState.DRAFT, note: 'Pending tenant signature — standard residential lease.' },
     // 1 TERMINATED
     { unitIdx: 9, tenantIdxs: [2], primary: 2, start: d(-10), end: d(2), rent: 1400000, deposit: 1400000, state: LeaseState.TERMINATED },
     // 1 RENEWED + its successor ACTIVE lease (same unit 10)
@@ -223,7 +237,9 @@ async function main() {
   // Include Thandi's lease (last in leaseIds) so the tenant portal shows real documents.
   if (process.env.BLOB_READ_WRITE_TOKEN) {
     const thandiLeaseId = leaseIds[leaseIds.length - 1];
-    const activeLeaseIds = [leaseIds[0], leaseIds[1], thandiLeaseId];
+    // Daniel's DRAFT lease (index 9 in leaseSpecs) so the onboarding/signing demo has a document to view.
+    const danielLeaseId = leaseIds[9];
+    const activeLeaseIds = [leaseIds[0], leaseIds[1], thandiLeaseId, danielLeaseId];
     for (const lid of activeLeaseIds) {
       const dummy = new File([new Uint8Array([0x25, 0x50, 0x44, 0x46])], `agreement-${lid}.pdf`, {
         type: 'application/pdf',
@@ -254,6 +270,7 @@ async function main() {
   console.log('  pm@acme.test / demo1234 (PROPERTY_MANAGER)');
   console.log('  finance@acme.test / demo1234 (FINANCE)');
   console.log('  tenant@acme.test / demo1234 (TENANT)');
+  console.log('  tenant2@acme.test / demo1234 (TENANT — pending signature demo)');
 }
 
 main()

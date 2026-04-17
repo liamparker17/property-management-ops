@@ -47,6 +47,13 @@ enum InvoiceStatus {
   OVERDUE
 }
 
+enum ReviewRequestStatus {
+  OPEN
+  ACCEPTED
+  REJECTED
+  RESOLVED
+}
+
 enum SAProvince {
   GP
   WC
@@ -228,6 +235,8 @@ model Lease {
   tenants             LeaseTenant[]
   documents           Document[]
   invoices            Invoice[]
+  signatures          LeaseSignature[]
+  reviewRequests      LeaseReviewRequest[]
 
   @@index([orgId, unitId, state])
   @@index([orgId, endDate])
@@ -312,4 +321,36 @@ model Invoice {
   @@unique([leaseId, periodStart])
   @@index([orgId, status])
   @@index([orgId, dueDate])
+}
+
+model LeaseSignature {
+  id           String   @id @default(cuid())
+  leaseId      String
+  lease        Lease    @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  tenantId     String
+  signedName   String
+  signedAt     DateTime @default(now())
+  ipAddress    String?
+  userAgent    String?
+  latitude     Float?
+  longitude    Float?
+  locationText String?
+
+  @@unique([leaseId, tenantId])
+  @@index([leaseId])
+}
+
+model LeaseReviewRequest {
+  id             String              @id @default(cuid())
+  leaseId        String
+  lease          Lease               @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  tenantId       String
+  clauseExcerpt  String
+  tenantNote     String
+  pmResponse     String?
+  status         ReviewRequestStatus @default(OPEN)
+  createdAt      DateTime            @default(now())
+  respondedAt    DateTime?
+
+  @@index([leaseId, status])
 }

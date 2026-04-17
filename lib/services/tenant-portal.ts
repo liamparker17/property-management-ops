@@ -31,6 +31,26 @@ export async function getActiveLeaseForTenant(userId: string) {
   return leaseTenant?.lease ?? null;
 }
 
+export async function getPendingLeaseForTenant(userId: string) {
+  const tenant = await getTenantByUserId(userId);
+  const leaseTenant = await db.leaseTenant.findFirst({
+    where: { tenantId: tenant.id, lease: { state: 'DRAFT' } },
+    include: {
+      lease: {
+        include: {
+          unit: { include: { property: true } },
+          documents: { orderBy: { createdAt: 'desc' } },
+          signatures: { where: { tenantId: tenant.id } },
+          reviewRequests: { where: { tenantId: tenant.id }, orderBy: { createdAt: 'desc' } },
+        },
+      },
+    },
+    orderBy: { lease: { startDate: 'asc' } },
+  });
+  if (!leaseTenant) return null;
+  return { ...leaseTenant.lease, tenantRecordId: tenant.id };
+}
+
 export async function getTenantLeases(userId: string) {
   const tenant = await getTenantByUserId(userId);
   const rows = await db.leaseTenant.findMany({

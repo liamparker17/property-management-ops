@@ -7,7 +7,9 @@ import { formatDate, formatZar } from '@/lib/format';
 import { LeaseActions } from './actions';
 import { DocumentUpload } from './document-upload';
 import { InvoicesPanel } from './invoices-panel';
+import { SignaturesPanel } from './signatures-panel';
 import { listLeaseInvoices } from '@/lib/services/invoices';
+import { db } from '@/lib/db';
 
 export default async function LeaseDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -22,6 +24,27 @@ export default async function LeaseDetail({ params }: { params: Promise<{ id: st
 
   const primary = lease.tenants.find((t) => t.isPrimary)?.tenant;
   const coTenants = lease.tenants.filter((t) => !t.isPrimary).map((t) => t.tenant);
+
+  const signatures = await db.leaseSignature.findMany({
+    where: { leaseId: lease.id },
+    orderBy: { signedAt: 'desc' },
+  });
+  const reviewRequests = await db.leaseReviewRequest.findMany({
+    where: { leaseId: lease.id },
+    orderBy: { createdAt: 'desc' },
+  });
+  const tenantIds = Array.from(new Set([...signatures.map((s) => s.tenantId), ...reviewRequests.map((r) => r.tenantId)]));
+  const tenants = tenantIds.length
+    ? await db.tenant.findMany({
+        where: { id: { in: tenantIds } },
+        select: { id: true, firstName: true, lastName: true },
+      })
+    : [];
+  const tenantNameMap = Object.fromEntries(tenants.map((t) => [t.id, `${t.firstName} ${t.lastName}`]));
+  const reviewRequestsWithTenant = reviewRequests.map((r) => ({
+    ...r,
+    tenant: tenants.find((t) => t.id === r.tenantId) ?? null,
+  }));
 
   const showInvoices = lease.state === 'ACTIVE' || lease.state === 'RENEWED';
   const rawInvoices = showInvoices ? await listLeaseInvoices(ctx, lease.id) : [];
@@ -118,6 +141,14 @@ export default async function LeaseDetail({ params }: { params: Promise<{ id: st
           <InvoicesPanel invoices={invoices} />
         </section>
       )}
+
+      <section>
+        <SignaturesPanel
+          signatures={signatures}
+          reviewRequests={reviewRequestsWithTenant}
+          tenantNameMap={tenantNameMap}
+        />
+      </section>
     </div>
   );
 }

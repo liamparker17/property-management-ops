@@ -34,7 +34,7 @@ export async function onboardTenant(
   const overlapping = await db.lease.findFirst({
     where: {
       unitId: input.unitId,
-      state: { in: [LeaseState.DRAFT, LeaseState.ACTIVE, LeaseState.RENEWED] },
+      state: { in: [LeaseState.ACTIVE, LeaseState.RENEWED] },
       startDate: { lte: new Date(input.endDate) },
       endDate: { gte: new Date(input.startDate) },
     },

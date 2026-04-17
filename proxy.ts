@@ -36,7 +36,7 @@ export default auth((req) => {
     pathname.startsWith('/leases') ||
     pathname.startsWith('/settings') ||
     pathname.startsWith('/profile');
-  const isTenantArea = pathname.startsWith('/tenant');
+  const isTenantArea = pathname === '/tenant' || pathname.startsWith('/tenant/');
   const isAdminArea = pathname.startsWith('/settings');
 
   if (isStaffArea && (!role || !STAFF_ROLES.includes(role))) {

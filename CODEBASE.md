@@ -23,7 +23,7 @@ Next.js 16.2 | React 19 | TypeScript strict | Prisma 7 + Neon Postgres | NextAut
 
 ## Database Schema (prisma/schema.prisma)
 
-**Enums:** Role (ADMIN, PROPERTY_MANAGER, FINANCE, TENANT) | LeaseState (DRAFT, ACTIVE, TERMINATED, RENEWED) | DocumentKind (LEASE_AGREEMENT) | SAProvince (GP, WC, KZN, EC, FS, LP, MP, NW, NC)
+**Enums:** Role (ADMIN, PROPERTY_MANAGER, FINANCE, TENANT) | LeaseState (DRAFT, ACTIVE, TERMINATED, RENEWED) | DocumentKind (LEASE_AGREEMENT) | SAProvince (GP, WC, KZN, EC, FS, LP, MP, NW, NC) | MaintenancePriority (LOW, MEDIUM, HIGH, URGENT) | MaintenanceStatus (OPEN, IN_PROGRESS, RESOLVED, CLOSED) | InvoiceStatus (DUE, PAID, OVERDUE)
 
 **Models:**
 | Model | Key Fields | Relations |
@@ -37,6 +37,8 @@ Next.js 16.2 | React 19 | TypeScript strict | Prisma 7 + Neon Postgres | NextAut
 | LeaseTenant | leaseId, tenantId, isPrimary | lease, tenant |
 | Document | kind, storageKey, filename, mimeType, sizeBytes, uploadedById | lease?, property?, unit?, tenant? |
 | Account/Session/VerificationToken | Standard NextAuth models | |
+| MaintenanceRequest | title, description, priority, status, internalNotes, resolvedAt | org, tenant, unit |
+| Invoice | leaseId, periodStart, dueDate, amountCents, status, paidAt, paidAmountCents, paidNote | org, lease — unique(leaseId, periodStart) |
 
 ## Auth Flow
 
@@ -80,6 +82,8 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | documents.ts | `uploadLeaseAgreement()`, `getDocumentForDownload()` | 37 |
 | team.ts | `listTeam()`, `createTeamUser()`, `updateTeamUser()`, `getOrg()`, `updateOrg()`, `changeOwnPassword()` | 102 |
 | tenant-portal.ts | `getTenantProfile()`, `getActiveLeaseForTenant()`, `getTenantLeases()`, `listTenantDocuments()`, `getTenantDocumentForDownload()` — all scoped by User.id → Tenant.userId | 72 |
+| maintenance.ts | `createTenantMaintenanceRequest()`, `listTenantMaintenanceRequests()`, `getTenantMaintenanceRequest()`, `listMaintenanceRequests()`, `getMaintenanceRequest()`, `updateMaintenanceRequest()` | 128 |
+| invoices.ts | `ensureInvoicesForLease()` (idempotent month-by-month generator, past→PAID, current/future→DUE), `listTenantInvoices()`, `listLeaseInvoices()`, `markInvoicePaid()`, `markInvoiceUnpaid()` | 135 |
 
 ### lib/zod/
 | File | Exports | Lines |
@@ -90,6 +94,8 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | unit.ts | `createUnitSchema`, `updateUnitSchema` | 12 |
 | team.ts | `roleEnum`, `createUserSchema`, `updateUserSchema`, `updateOrgSchema`, `changePasswordSchema` | 26 |
 | document.ts | `documentKindEnum`, `documentUploadMetaSchema` | 4 |
+| maintenance.ts | `maintenancePriorityEnum`, `maintenanceStatusEnum`, `createMaintenanceRequestSchema`, `updateMaintenanceRequestSchema` | 18 |
+| invoice.ts | `markInvoicePaidSchema` | 8 |
 
 ### types/
 | File | Purpose | Lines |
@@ -135,6 +141,14 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | /tenant/lease | (tenant)/tenant/lease/page.tsx | Full active lease detail + document list + previous leases |
 | /tenant/documents | (tenant)/tenant/documents/page.tsx | All documents available to tenant |
 | /tenant/profile | (tenant)/tenant/profile/page.tsx | Tenant contact info (read-only) + change password |
+| /tenant/repairs | (tenant)/tenant/repairs/page.tsx | List of tenant's maintenance requests |
+| /tenant/repairs/new | (tenant)/tenant/repairs/new/page.tsx | Submit a repair request |
+| /tenant/repairs/[id] | (tenant)/tenant/repairs/[id]/page.tsx | Tenant view of a request |
+| /tenant/invoices | (tenant)/tenant/invoices/page.tsx | Rent invoices: next due, history, paid total |
+| /maintenance | (staff)/maintenance/page.tsx | Staff maintenance list with status filters |
+| /maintenance/[id] | (staff)/maintenance/[id]/page.tsx | Staff detail + update status/priority/internal notes |
+| /maintenance/[id] | (staff)/maintenance/[id]/update-form.tsx | Client: status/priority/notes form |
+| /leases/[id] | (staff)/leases/[id]/invoices-panel.tsx | Client: mark-paid / unpay actions per invoice |
 
 ### app/api/ — Route Handlers
 | Endpoint | Methods | Handler calls |
@@ -149,6 +163,9 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | /api/tenants/[id] | GET, PATCH | getTenant, updateTenant |
 | /api/tenants/[id]/archive | POST | archiveTenant/unarchiveTenant |
 | /api/tenants/[id]/invite | POST | inviteTenantToPortal (ADMIN/PM only) |
+| /api/maintenance | GET, POST | listMaintenanceRequests (staff), createTenantMaintenanceRequest (tenant) |
+| /api/maintenance/[id] | GET, PATCH | getMaintenanceRequest, updateMaintenanceRequest (ADMIN/PM only) |
+| /api/invoices/[id]/paid | POST, DELETE | markInvoicePaid, markInvoiceUnpaid (ADMIN/PM/FINANCE) |
 | /api/leases | GET, POST | listLeases, createLease |
 | /api/leases/[id] | GET, PATCH | getLease, updateDraftLease |
 | /api/leases/[id]/activate | POST | activateLease |

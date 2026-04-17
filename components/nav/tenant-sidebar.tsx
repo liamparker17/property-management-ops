@@ -2,12 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, FileText, Folder, User } from 'lucide-react';
+import { Home, FileText, Folder, User, Wrench, Receipt } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const NAV = [
   { href: '/tenant', label: 'Home', icon: Home, match: (p: string) => p === '/tenant' },
   { href: '/tenant/lease', label: 'My Lease', icon: FileText, match: (p: string) => p.startsWith('/tenant/lease') },
+  { href: '/tenant/invoices', label: 'Invoices', icon: Receipt, match: (p: string) => p.startsWith('/tenant/invoices') },
+  { href: '/tenant/repairs', label: 'Repairs', icon: Wrench, match: (p: string) => p.startsWith('/tenant/repairs') },
   { href: '/tenant/documents', label: 'Documents', icon: Folder, match: (p: string) => p.startsWith('/tenant/documents') },
   { href: '/tenant/profile', label: 'Profile', icon: User, match: (p: string) => p.startsWith('/tenant/profile') },
 ];

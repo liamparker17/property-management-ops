@@ -27,6 +27,26 @@ enum DocumentKind {
   LEASE_AGREEMENT
 }
 
+enum MaintenancePriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum MaintenanceStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum InvoiceStatus {
+  DUE
+  PAID
+  OVERDUE
+}
+
 enum SAProvince {
   GP
   WC
@@ -54,6 +74,8 @@ model Org {
   tenants             Tenant[]
   leases              Lease[]
   documents           Document[]
+  maintenance         MaintenanceRequest[]
+  invoices            Invoice[]
 }
 
 model User {
@@ -152,6 +174,7 @@ model Unit {
 
   leases      Lease[]
   documents   Document[]
+  maintenance MaintenanceRequest[]
 
   @@unique([propertyId, label])
   @@index([orgId, propertyId])
@@ -174,6 +197,7 @@ model Tenant {
 
   leases      LeaseTenant[]
   documents   Document[]
+  maintenance MaintenanceRequest[]
 
   @@index([orgId, email])
   @@index([orgId, archivedAt])
@@ -203,6 +227,7 @@ model Lease {
 
   tenants             LeaseTenant[]
   documents           Document[]
+  invoices            Invoice[]
 
   @@index([orgId, unitId, state])
   @@index([orgId, endDate])
@@ -244,4 +269,47 @@ model Document {
 
   @@index([orgId, leaseId])
   @@index([orgId, tenantId])
+}
+
+model MaintenanceRequest {
+  id            String              @id @default(cuid())
+  orgId         String
+  org           Org                 @relation(fields: [orgId], references: [id])
+  tenantId      String
+  tenant        Tenant              @relation(fields: [tenantId], references: [id])
+  unitId        String
+  unit          Unit                @relation(fields: [unitId], references: [id])
+  title         String
+  description   String
+  priority      MaintenancePriority @default(MEDIUM)
+  status        MaintenanceStatus   @default(OPEN)
+  internalNotes String?
+  resolvedAt    DateTime?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  @@index([orgId, status])
+  @@index([orgId, tenantId])
+  @@index([orgId, unitId])
+}
+
+model Invoice {
+  id              String         @id @default(cuid())
+  orgId           String
+  org             Org            @relation(fields: [orgId], references: [id])
+  leaseId         String
+  lease           Lease          @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  periodStart     DateTime       @db.Date
+  dueDate         DateTime       @db.Date
+  amountCents     Int
+  status          InvoiceStatus  @default(DUE)
+  paidAt          DateTime?
+  paidAmountCents Int?
+  paidNote        String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@unique([leaseId, periodStart])
+  @@index([orgId, status])
+  @@index([orgId, dueDate])
 }

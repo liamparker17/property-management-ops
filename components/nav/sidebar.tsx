@@ -9,6 +9,7 @@ import {
   FileText,
   Settings,
   Home,
+  Wrench,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -19,6 +20,7 @@ const NAV: NavItem[] = [
   { href: '/properties', label: 'Properties', icon: Building2, match: (p) => p.startsWith('/properties') },
   { href: '/tenants', label: 'Tenants', icon: Users, match: (p) => p.startsWith('/tenants') },
   { href: '/leases', label: 'Leases', icon: FileText, match: (p) => p.startsWith('/leases') },
+  { href: '/maintenance', label: 'Maintenance', icon: Wrench, match: (p) => p.startsWith('/maintenance') },
 ];
 
 export function Sidebar({ role }: { role: string }) {

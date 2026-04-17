@@ -34,6 +34,7 @@ export default auth((req) => {
     pathname.startsWith('/units') ||
     pathname.startsWith('/tenants') ||
     pathname.startsWith('/leases') ||
+    pathname.startsWith('/maintenance') ||
     pathname.startsWith('/settings') ||
     pathname.startsWith('/profile');
   const isTenantArea = pathname === '/tenant' || pathname.startsWith('/tenant/');

@@ -77,6 +77,12 @@ export default async function DashboardPage() {
                     <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200">
                       {l.daysUntilExpiry}d
                     </span>
+                    <Link
+                      href={`/leases/${l.id}/renew`}
+                      className="inline-flex h-7 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                    >
+                      Renew
+                    </Link>
                   </span>
                 </li>
               ))}

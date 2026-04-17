@@ -6,6 +6,8 @@ import { LeaseStatusBadge } from '@/components/lease-status-badge';
 import { formatDate, formatZar } from '@/lib/format';
 import { LeaseActions } from './actions';
 import { DocumentUpload } from './document-upload';
+import { InvoicesPanel } from './invoices-panel';
+import { listLeaseInvoices } from '@/lib/services/invoices';
 
 export default async function LeaseDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -20,6 +22,18 @@ export default async function LeaseDetail({ params }: { params: Promise<{ id: st
 
   const primary = lease.tenants.find((t) => t.isPrimary)?.tenant;
   const coTenants = lease.tenants.filter((t) => !t.isPrimary).map((t) => t.tenant);
+
+  const showInvoices = lease.state === 'ACTIVE' || lease.state === 'RENEWED';
+  const rawInvoices = showInvoices ? await listLeaseInvoices(ctx, lease.id) : [];
+  const invoices = rawInvoices.map((i) => ({
+    id: i.id,
+    periodStart: i.periodStart.toISOString(),
+    dueDate: i.dueDate.toISOString(),
+    amountCents: i.amountCents,
+    status: i.status,
+    paidAt: i.paidAt ? i.paidAt.toISOString() : null,
+    paidAmountCents: i.paidAmountCents,
+  }));
 
   return (
     <div className="space-y-6">
@@ -97,6 +111,13 @@ export default async function LeaseDetail({ params }: { params: Promise<{ id: st
         )}
         <DocumentUpload leaseId={lease.id} />
       </section>
+
+      {showInvoices && (
+        <section className="space-y-3">
+          <h2 className="text-lg font-medium">Invoices</h2>
+          <InvoicesPanel invoices={invoices} />
+        </section>
+      )}
     </div>
   );
 }

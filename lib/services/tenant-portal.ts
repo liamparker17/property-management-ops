@@ -38,7 +38,15 @@ export async function getPendingLeaseForTenant(userId: string) {
     include: {
       lease: {
         include: {
+          org: { select: { name: true } },
           unit: { include: { property: true } },
+          tenants: {
+            include: {
+              tenant: {
+                select: { id: true, firstName: true, lastName: true, idNumber: true, email: true },
+              },
+            },
+          },
           documents: { orderBy: { createdAt: 'desc' } },
           signatures: { where: { tenantId: tenant.id } },
           reviewRequests: { where: { tenantId: tenant.id }, orderBy: { createdAt: 'desc' } },

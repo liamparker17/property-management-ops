@@ -84,7 +84,7 @@ export function SignLeaseCard({ leaseId, documentUrl, documentFilename, tenantFu
             <FileText className="h-5 w-5 text-muted-foreground" />
             <div className="flex-1">
               <p className="text-sm font-medium">{documentFilename ?? 'Lease agreement'}</p>
-              <p className="text-xs text-muted-foreground">Download or open to read the full agreement</p>
+              <p className="text-xs text-muted-foreground">Optional PDF copy supplied by your landlord</p>
             </div>
             <a
               href={documentUrl}
@@ -95,17 +95,18 @@ export function SignLeaseCard({ leaseId, documentUrl, documentFilename, tenantFu
               Open
             </a>
           </div>
-          <label className="mt-3 flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={reviewed}
-              onChange={(e) => setReviewed(e.target.checked)}
-              className="h-4 w-4"
-            />
-            I&apos;ve read the lease agreement in full.
-          </label>
         </div>
       )}
+
+      <label className="mt-4 flex items-center gap-2 rounded-md border bg-muted/30 p-3 text-sm">
+        <input
+          type="checkbox"
+          checked={reviewed}
+          onChange={(e) => setReviewed(e.target.checked)}
+          className="h-4 w-4"
+        />
+        I&apos;ve read the lease agreement above in full.
+      </label>
 
       <div className="mt-4 flex flex-col gap-1.5">
         <label htmlFor="signed-name" className="text-sm font-medium">Type your full legal name</label>

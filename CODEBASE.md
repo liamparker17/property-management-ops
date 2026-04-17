@@ -70,6 +70,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | auth/with-org.ts | `withOrg<P>()` — HOF for auth'd API routes; `RouteCtx {orgId, userId, role}`, `RouteParams<P>` | 38 |
 | errors.ts | `ApiError` class (unauthorized/forbidden/notFound/validation/conflict/internal), `toErrorResponse()`, `ApiErrorCode` type | 58 |
 | format.ts | `formatZar(cents)`, `formatDate(d)` | 12 |
+| lease-template.ts | `LeaseTemplateData`, `LeaseSection`, `renderLeaseAgreement(data)` — generic SA residential lease generator (15 sections) | 200 |
 | blob.ts | `validateFile(file)` (20MB, pdf/png/jpeg/webp), `uploadBlob(path, file)`, `deleteBlob(pathname)` | 13 |
 | utils.ts | `cn()` — clsx + tailwind-merge | 6 |
 
@@ -85,6 +86,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | team.ts | `listTeam()`, `createTeamUser()`, `updateTeamUser()`, `getOrg()`, `updateOrg()`, `changeOwnPassword()` | 102 |
 | tenant-portal.ts | `getTenantProfile()`, `getActiveLeaseForTenant()`, `getPendingLeaseForTenant()` (DRAFT lease w/ signatures+reviewRequests filtered to tenant), `getTenantLeases()`, `listTenantDocuments()`, `getTenantDocumentForDownload()` — all scoped by User.id → Tenant.userId | 106 |
 | signatures.ts | `signLeaseAsTenant()`, `getTenantSignatureForLease()`, `listLeaseSignatures(ctx)`, `createReviewRequest()`, `listTenantReviewRequests()`, `listLeaseReviewRequests(ctx)`, `respondToReviewRequest(ctx)` | 145 |
+| onboarding.ts | `onboardTenant(ctx, input)` — single-transaction tenant + DRAFT lease + optional portal account with temp password | 94 |
 | maintenance.ts | `createTenantMaintenanceRequest()`, `listTenantMaintenanceRequests()`, `getTenantMaintenanceRequest()`, `listMaintenanceRequests()`, `getMaintenanceRequest()`, `updateMaintenanceRequest()` | 128 |
 | invoices.ts | `ensureInvoicesForLease()` (idempotent month-by-month generator, past→PAID, current/future→DUE), `listTenantInvoices()`, `listLeaseInvoices()`, `markInvoicePaid()`, `markInvoiceUnpaid()` | 135 |
 
@@ -100,6 +102,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | maintenance.ts | `maintenancePriorityEnum`, `maintenanceStatusEnum`, `createMaintenanceRequestSchema`, `updateMaintenanceRequestSchema` | 18 |
 | invoice.ts | `markInvoicePaidSchema` | 8 |
 | signature.ts | `signLeaseSchema`, `createReviewRequestSchema`, `respondReviewRequestSchema` | — |
+| onboarding.ts | `onboardTenantSchema` — full form schema for tenant+lease+invite in one step | — |
 
 ### types/
 | File | Purpose | Lines |
@@ -125,6 +128,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | /units/[id] | (staff)/units/[id]/page.tsx | Unit detail + lease history |
 | /tenants | (staff)/tenants/page.tsx | Tenant list |
 | /tenants/new | (staff)/tenants/new/page.tsx | Create tenant form |
+| /tenants/onboard | (staff)/tenants/onboard/page.tsx | Single-screen wizard: tenant + unit assignment + draft lease + portal invite |
 | /tenants/[id] | (staff)/tenants/[id]/page.tsx | Tenant detail + lease history |
 | /tenants/[id] | (staff)/tenants/[id]/archive-button.tsx | Client: archive/unarchive |
 | /tenants/[id] | (staff)/tenants/[id]/invite-button.tsx | Client: invite tenant to portal, shows one-time temp password |
@@ -176,6 +180,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | /api/leases/[id]/sign | POST | signLeaseAsTenant (TENANT only; records IP/UA from request headers) |
 | /api/leases/[id]/review-requests | POST | createReviewRequest (TENANT only) |
 | /api/review-requests/[id] | PATCH | respondToReviewRequest (ADMIN/PM only) |
+| /api/onboarding/tenants | POST | onboardTenant (ADMIN/PM only) — creates tenant + draft lease + optional portal user |
 | /api/leases | GET, POST | listLeases, createLease |
 | /api/leases/[id] | GET, PATCH | getLease, updateDraftLease |
 | /api/leases/[id]/activate | POST | activateLease |
@@ -204,4 +209,6 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | forms/unit-form.tsx | Client | `UnitForm` — property, label, bedrooms, bathrooms, size | 59 |
 | forms/tenant-form.tsx | Client | `TenantForm` — name, email, phone, ID, duplicate detection | 90 |
 | forms/change-password-form.tsx | Client | `ChangePasswordForm` — current + new + confirm | 47 |
+| forms/onboard-tenant-form.tsx | Client | `OnboardTenantForm` — full wizard form, POSTs to /api/onboarding/tenants, displays temp password result | — |
+| lease-agreement-document.tsx | Server | `LeaseAgreementDocument` — scrollable rendered lease from `renderLeaseAgreement()` | — |
 | ui/* | Client | shadcn: badge, button, card, checkbox, dialog, input, label, select, table, textarea | ~800 |

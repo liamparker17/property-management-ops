@@ -10,6 +10,8 @@ import {
 import { formatDate, formatZar } from '@/lib/format';
 import { SignLeaseCard, SignedConfirmation } from './sign-card';
 import { ReviewRequestForm, ReviewRequestList } from './review-form';
+import { LeaseAgreementDocument } from '@/components/lease-agreement-document';
+import type { LeaseTemplateData } from '@/lib/lease-template';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,6 +37,39 @@ export default async function TenantLeasePage() {
     : (session?.user.name ?? '');
   const signature = pending?.signatures[0];
   const firstDoc = pending?.documents[0];
+  const templateData: LeaseTemplateData | null = pending
+    ? {
+        lessor: { name: pending.org.name },
+        property: {
+          name: pending.unit.property.name,
+          addressLine1: pending.unit.property.addressLine1,
+          addressLine2: pending.unit.property.addressLine2,
+          suburb: pending.unit.property.suburb,
+          city: pending.unit.property.city,
+          postalCode: pending.unit.property.postalCode,
+          province: pending.unit.property.province,
+        },
+        unit: {
+          label: pending.unit.label,
+          bedrooms: pending.unit.bedrooms,
+          bathrooms: pending.unit.bathrooms,
+          sizeSqm: pending.unit.sizeSqm,
+        },
+        tenants: pending.tenants.map((lt) => ({
+          firstName: lt.tenant.firstName,
+          lastName: lt.tenant.lastName,
+          idNumber: lt.tenant.idNumber,
+          email: lt.tenant.email,
+        })),
+        startDate: pending.startDate,
+        endDate: pending.endDate,
+        rentAmountCents: pending.rentAmountCents,
+        depositAmountCents: pending.depositAmountCents,
+        paymentDueDay: pending.paymentDueDay,
+        heldInTrustAccount: pending.heldInTrustAccount,
+        notes: pending.notes,
+      }
+    : null;
 
   return (
     <div className="space-y-8">
@@ -107,13 +142,21 @@ export default async function TenantLeasePage() {
             />
           </div>
 
-          <div className="mt-6 border-t pt-5">
-            <h3 className="text-sm font-semibold">Lease documents</h3>
-            {pending.documents.length === 0 ? (
-              <p className="mt-2 text-sm text-muted-foreground">
-                No documents uploaded yet.
+          {templateData && (
+            <div className="mt-6 border-t pt-5">
+              <h3 className="text-sm font-semibold">Read the full lease</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Generated from your lease details. Scroll through the full agreement before signing.
               </p>
-            ) : (
+              <div className="mt-3">
+                <LeaseAgreementDocument data={templateData} />
+              </div>
+            </div>
+          )}
+
+          {pending.documents.length > 0 && (
+            <div className="mt-6 border-t pt-5">
+              <h3 className="text-sm font-semibold">Additional documents</h3>
               <ul className="mt-3 space-y-2">
                 {pending.documents.map((doc) => (
                   <li
@@ -137,8 +180,8 @@ export default async function TenantLeasePage() {
                   </li>
                 ))}
               </ul>
-            )}
-          </div>
+            </div>
+          )}
 
           <div className="mt-6">
             {signature ? (

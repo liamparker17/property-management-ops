@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Plus, Users } from 'lucide-react';
+import { Plus, UserPlus, Users } from 'lucide-react';
 import { auth } from '@/lib/auth';
 import { listTenants } from '@/lib/services/tenants';
 
@@ -32,10 +32,17 @@ export default async function TenantsPage({
           </Link>
           <Link
             href="/tenants/new"
-            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-3.5 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+            className="inline-flex h-9 items-center gap-1.5 rounded-md border bg-card px-3.5 text-sm font-medium transition-colors hover:bg-muted"
           >
             <Plus className="h-4 w-4" />
             New tenant
+          </Link>
+          <Link
+            href="/tenants/onboard"
+            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-3.5 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+          >
+            <UserPlus className="h-4 w-4" />
+            Onboard tenant
           </Link>
         </div>
       </div>

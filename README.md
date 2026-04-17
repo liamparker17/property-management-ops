@@ -90,6 +90,21 @@ Optional SMS invites use an Android phone as a zero-cost gateway via [SMS Gatewa
 
 SA local numbers (`0821234567`) are normalized to E.164 (`+27821234567`) automatically.
 
+**SMS notifications sent automatically** (when `OPS_SMS_RECIPIENTS` and/or tenant phone present):
+
+| Event | Recipient | Contents |
+|---|---|---|
+| Tenant onboarded | Tenant | Login URL + temp password |
+| Maintenance ticket created | Tenant | Confirmation |
+| Maintenance ticket created | Ops (OPS_SMS_RECIPIENTS) | New ticket alert with priority, tenant, unit |
+| Maintenance status changed | Tenant | New status (IN_PROGRESS / RESOLVED / etc) |
+| Lease signed | Ops | Alert to activate the lease |
+| Clause review flagged | Ops | Alert with clause excerpt |
+| Clause review responded | Tenant | Status (accepted / rejected / resolved) |
+| Invoice marked paid | Tenant | Payment confirmation with amount + period |
+
+To enable PM-side alerts, set `OPS_SMS_RECIPIENTS="+27821234567,+27839876543"` in Vercel env (or `.env.local`).
+
 > **POPIA note:** cloud mode routes recipient numbers through sms-gate.app's server. For production, either (a) disclose in the privacy policy and obtain consent, or (b) run the app in Local Server mode behind a tunnel (Cloudflare Tunnel) and point `SMS_GATEWAY_URL` at it. End-to-end encryption is available in the app settings.
 
 > **Carrier note:** SMSes bill to your phone's plan at standard rates. SA consumer SIMs may be throttled or flagged for bulk sending — this is suitable for low-volume demo/transactional use, not marketing.

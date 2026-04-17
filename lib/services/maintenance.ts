@@ -1,6 +1,11 @@
 import { MaintenanceStatus } from '@prisma/client';
 import { db } from '@/lib/db';
 import { ApiError } from '@/lib/errors';
+import {
+  sendMaintenanceCreatedOpsSms,
+  sendMaintenanceCreatedTenantSms,
+  sendMaintenanceStatusTenantSms,
+} from '@/lib/sms';
 import type { RouteCtx } from '@/lib/auth/with-org';
 import type { z } from 'zod';
 import type {
@@ -41,7 +46,7 @@ export async function createTenantMaintenanceRequest(
 ) {
   const tenant = await getTenantForUser(userId);
   const unitId = await findActiveUnitForTenant(tenant.id);
-  return db.maintenanceRequest.create({
+  const request = await db.maintenanceRequest.create({
     data: {
       orgId: tenant.orgId,
       tenantId: tenant.id,
@@ -50,7 +55,32 @@ export async function createTenantMaintenanceRequest(
       description: input.description,
       priority: input.priority,
     },
+    include: {
+      tenant: { select: { firstName: true, lastName: true, phone: true } },
+      unit: { select: { label: true, property: { select: { name: true } } } },
+    },
   });
+
+  const tenantName = `${request.tenant.firstName} ${request.tenant.lastName}`.trim();
+  const unitLabel = `${request.unit.property.name} · ${request.unit.label}`;
+
+  await Promise.allSettled([
+    sendMaintenanceCreatedOpsSms({
+      ticketTitle: request.title,
+      priority: request.priority,
+      tenantName,
+      unitLabel,
+    }),
+    request.tenant.phone
+      ? sendMaintenanceCreatedTenantSms({
+          to: request.tenant.phone,
+          tenantName,
+          ticketTitle: request.title,
+        })
+      : Promise.resolve(),
+  ]);
+
+  return request;
 }
 
 export async function listTenantMaintenanceRequests(userId: string) {
@@ -114,8 +144,9 @@ export async function updateMaintenanceRequest(
     input.status === 'RESOLVED' && existing.status !== 'RESOLVED';
   const becameUnresolved =
     input.status && input.status !== 'RESOLVED' && existing.status === 'RESOLVED';
+  const statusChanged = Boolean(input.status && input.status !== existing.status);
 
-  return db.maintenanceRequest.update({
+  const updated = await db.maintenanceRequest.update({
     where: { id },
     data: {
       ...(input.status ? { status: input.status } : {}),
@@ -124,5 +155,20 @@ export async function updateMaintenanceRequest(
       ...(becameResolved ? { resolvedAt: new Date() } : {}),
       ...(becameUnresolved ? { resolvedAt: null } : {}),
     },
+    include: {
+      tenant: { select: { firstName: true, lastName: true, phone: true } },
+    },
   });
+
+  if (statusChanged && updated.tenant.phone) {
+    const tenantName = `${updated.tenant.firstName} ${updated.tenant.lastName}`.trim();
+    await sendMaintenanceStatusTenantSms({
+      to: updated.tenant.phone,
+      tenantName,
+      ticketTitle: updated.title,
+      status: updated.status,
+    });
+  }
+
+  return updated;
 }

@@ -27,6 +27,7 @@ Next.js 16.2 | React 19 | TypeScript strict | Prisma 7 + Neon Postgres | NextAut
 | SMS_GATEWAY_USER | Username for SMS Gateway for Android cloud server; leave blank to disable SMS |
 | SMS_GATEWAY_PASSWORD | Password for SMS Gateway for Android cloud server |
 | SMS_GATEWAY_URL | Optional override endpoint for self-hosted / private SMS server (default is the public cloud URL) |
+| OPS_SMS_RECIPIENTS | Comma-separated E.164 numbers that receive PM-side alerts (new maintenance, lease signings, clause reviews) |
 
 **Do NOT set NEXTAUTH_URL on Vercel** — auto-detected from VERCEL_URL.
 
@@ -81,7 +82,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | format.ts | `formatZar(cents)`, `formatDate(d)` | 12 |
 | lease-template.ts | `LeaseTemplateData`, `LeaseSection`, `renderLeaseAgreement(data)` — generic SA residential lease generator (15 sections) | 200 |
 | email.ts | `sendTenantInvite({to, tenantName, orgName, tempPassword, appUrl})`, `SendResult` — Gmail SMTP (nodemailer) transactional email; no-ops gracefully if `GMAIL_USER`/`GMAIL_APP_PASSWORD` missing | 112 |
-| sms.ts | `sendTenantInviteSms({to, tenantName, orgName, tempPassword, appUrl})`, `SendResult` — SMS via SMS Gateway for Android (cloud mode by default); normalizes ZA local numbers to E.164; no-ops if `SMS_GATEWAY_*` missing | — |
+| sms.ts | `sendTenantInviteSms`, `sendMaintenanceCreatedOpsSms`, `sendMaintenanceCreatedTenantSms`, `sendMaintenanceStatusTenantSms`, `sendLeaseSignedOpsSms`, `sendReviewRequestOpsSms`, `sendReviewResponseTenantSms`, `sendInvoicePaidTenantSms`, `SendResult` — SMS via SMS Gateway for Android (cloud mode); normalizes ZA local numbers to E.164; ops messages go to `OPS_SMS_RECIPIENTS`; no-ops if unconfigured | — |
 | blob.ts | `validateFile(file)` (20MB, pdf/png/jpeg/webp), `uploadBlob(path, file)`, `deleteBlob(pathname)` | 13 |
 | utils.ts | `cn()` — clsx + tailwind-merge | 6 |
 

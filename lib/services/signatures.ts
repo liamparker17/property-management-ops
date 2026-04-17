@@ -1,5 +1,10 @@
 import { db } from '@/lib/db';
 import { ApiError } from '@/lib/errors';
+import {
+  sendLeaseSignedOpsSms,
+  sendReviewRequestOpsSms,
+  sendReviewResponseTenantSms,
+} from '@/lib/sms';
 import type { RouteCtx } from '@/lib/auth/with-org';
 import type { z } from 'zod';
 import type {
@@ -43,7 +48,7 @@ export async function signLeaseAsTenant(
   });
   if (existing) throw ApiError.conflict('You have already signed this lease');
 
-  return db.leaseSignature.create({
+  const signature = await db.leaseSignature.create({
     data: {
       leaseId,
       tenantId: tenant.id,
@@ -55,6 +60,20 @@ export async function signLeaseAsTenant(
       locationText: input.locationText ?? null,
     },
   });
+
+  const lease = await db.lease.findUnique({
+    where: { id: leaseId },
+    select: { unit: { select: { label: true, property: { select: { name: true } } } } },
+  });
+  if (lease) {
+    const unitLabel = `${lease.unit.property.name} · ${lease.unit.label}`;
+    await sendLeaseSignedOpsSms({
+      tenantName: `${tenant.firstName} ${tenant.lastName}`.trim(),
+      unitLabel,
+    });
+  }
+
+  return signature;
 }
 
 export async function getTenantSignatureForLease(userId: string, leaseId: string) {
@@ -83,7 +102,7 @@ export async function createReviewRequest(
 ) {
   const tenant = await getTenantForUser(userId);
   await assertTenantOnLease(tenant.id, leaseId);
-  return db.leaseReviewRequest.create({
+  const request = await db.leaseReviewRequest.create({
     data: {
       leaseId,
       tenantId: tenant.id,
@@ -91,6 +110,20 @@ export async function createReviewRequest(
       tenantNote: input.tenantNote,
     },
   });
+
+  const lease = await db.lease.findUnique({
+    where: { id: leaseId },
+    select: { unit: { select: { label: true, property: { select: { name: true } } } } },
+  });
+  if (lease) {
+    await sendReviewRequestOpsSms({
+      tenantName: `${tenant.firstName} ${tenant.lastName}`.trim(),
+      unitLabel: `${lease.unit.property.name} · ${lease.unit.label}`,
+      clauseExcerpt: input.clauseExcerpt,
+    });
+  }
+
+  return request;
 }
 
 export async function listTenantReviewRequests(userId: string, leaseId: string) {
@@ -133,7 +166,7 @@ export async function respondToReviewRequest(
     select: { id: true },
   });
   if (!existing) throw ApiError.notFound('Review request not found');
-  return db.leaseReviewRequest.update({
+  const updated = await db.leaseReviewRequest.update({
     where: { id },
     data: {
       status: input.status,
@@ -141,4 +174,18 @@ export async function respondToReviewRequest(
       respondedAt: new Date(),
     },
   });
+
+  const tenant = await db.tenant.findUnique({
+    where: { id: updated.tenantId },
+    select: { firstName: true, lastName: true, phone: true },
+  });
+  if (tenant?.phone) {
+    await sendReviewResponseTenantSms({
+      to: tenant.phone,
+      tenantName: `${tenant.firstName} ${tenant.lastName}`.trim(),
+      status: updated.status,
+    });
+  }
+
+  return updated;
 }

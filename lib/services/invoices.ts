@@ -1,6 +1,8 @@
 import { InvoiceStatus } from '@prisma/client';
 import { db } from '@/lib/db';
 import { ApiError } from '@/lib/errors';
+import { formatZar } from '@/lib/format';
+import { sendInvoicePaidTenantSms } from '@/lib/sms';
 import type { RouteCtx } from '@/lib/auth/with-org';
 import type { z } from 'zod';
 import type { markInvoicePaidSchema } from '@/lib/zod/invoice';
@@ -117,10 +119,11 @@ export async function markInvoicePaid(
 ) {
   const invoice = await db.invoice.findFirst({
     where: { id: invoiceId, orgId: ctx.orgId },
-    select: { id: true, amountCents: true },
+    select: { id: true, amountCents: true, status: true },
   });
   if (!invoice) throw ApiError.notFound('Invoice not found');
-  return db.invoice.update({
+  const wasAlreadyPaid = invoice.status === InvoiceStatus.PAID;
+  const updated = await db.invoice.update({
     where: { id: invoiceId },
     data: {
       status: InvoiceStatus.PAID,
@@ -128,7 +131,36 @@ export async function markInvoicePaid(
       paidAmountCents: input.paidAmountCents ?? invoice.amountCents,
       paidNote: input.paidNote ?? null,
     },
+    include: {
+      lease: {
+        select: {
+          tenants: {
+            where: { isPrimary: true },
+            include: { tenant: { select: { firstName: true, lastName: true, phone: true } } },
+          },
+        },
+      },
+    },
   });
+
+  if (!wasAlreadyPaid) {
+    const primary = updated.lease.tenants[0]?.tenant;
+    if (primary?.phone) {
+      const periodLabel = updated.periodStart.toLocaleString('en-ZA', {
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC',
+      });
+      await sendInvoicePaidTenantSms({
+        to: primary.phone,
+        tenantName: `${primary.firstName} ${primary.lastName}`.trim(),
+        amountZar: formatZar(updated.paidAmountCents ?? updated.amountCents),
+        periodLabel,
+      });
+    }
+  }
+
+  return updated;
 }
 
 export async function markInvoiceUnpaid(ctx: RouteCtx, invoiceId: string) {

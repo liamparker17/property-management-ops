@@ -5,7 +5,6 @@ import { Menu, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 
 import { SidebarBody, getStaffNavItems } from './sidebar';
 import { getTenantNavItems } from './tenant-sidebar';
@@ -49,48 +48,39 @@ export function MobileNav({ variant, role, email, orgName }: MobileNavProps) {
       >
         <Menu className="size-5" />
       </Button>
-      <div
-        className={cn(
-          'fixed inset-0 z-50 lg:hidden',
-          open ? 'pointer-events-auto' : 'pointer-events-none',
-        )}
-        aria-hidden={!open}
-      >
-        <div
-          className={cn(
-            'absolute inset-0 bg-foreground/40 backdrop-blur-sm transition-opacity duration-200',
-            open ? 'opacity-100' : 'opacity-0',
-          )}
-          onClick={() => setOpen(false)}
-        />
-        <div
-          className={cn(
-            'absolute inset-y-0 left-0 flex h-full w-72 flex-col bg-sidebar shadow-elevated transition-transform duration-300 ease-out',
-            open ? 'translate-x-0' : '-translate-x-full',
-          )}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Navigation"
-        >
-          <div className="absolute right-2 top-3 z-10">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setOpen(false)}
-              aria-label="Close navigation menu"
-              className="h-8 w-8 text-sidebar-foreground/70 hover:text-sidebar-foreground"
-            >
-              <X className="size-4" />
-            </Button>
-          </div>
-          <SidebarBody
-            items={items}
-            brand={brand}
-            footerLine={footerLine}
-            onNavigate={() => setOpen(false)}
+      {open ? (
+        <div className="fixed inset-0 z-[100] lg:hidden">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setOpen(false)}
           />
+          <div
+            className="absolute inset-y-0 left-0 flex h-full w-72 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground shadow-2xl animate-in slide-in-from-left duration-300"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation"
+            style={{ backgroundColor: 'var(--sidebar)' }}
+          >
+            <div className="absolute right-2 top-3 z-10">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setOpen(false)}
+                aria-label="Close navigation menu"
+                className="h-8 w-8 text-sidebar-foreground/70 hover:text-sidebar-foreground"
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
+            <SidebarBody
+              items={items}
+              brand={brand}
+              footerLine={footerLine}
+              onNavigate={() => setOpen(false)}
+            />
+          </div>
         </div>
-      </div>
+      ) : null}
     </>
   );
 }

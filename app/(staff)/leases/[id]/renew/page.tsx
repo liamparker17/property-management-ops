@@ -1,8 +1,13 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
+
 import { auth } from '@/lib/auth';
 import { getLease } from '@/lib/services/leases';
 import { listTenants } from '@/lib/services/tenants';
 import { LeaseForm } from '@/components/forms/lease-form';
+import { PageHeader } from '@/components/page-header';
+import { Card, CardContent } from '@/components/ui/card';
 import { formatDate } from '@/lib/format';
 
 export default async function RenewLeasePage({ params }: { params: Promise<{ id: string }> }) {
@@ -24,28 +29,40 @@ export default async function RenewLeasePage({ params }: { params: Promise<{ id:
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Renew lease</h1>
-      <p className="text-sm text-muted-foreground">
-        Renewing {formatDate(lease.startDate)} → {formatDate(lease.endDate)} on {lease.unit.property.name} · {lease.unit.label}.
-      </p>
-      <LeaseForm
-        mode="renew"
-        units={[{ id: lease.unit.id, label: lease.unit.label, propertyName: lease.unit.property.name }]}
-        tenants={tenants.map((t) => ({ id: t.id, firstName: t.firstName, lastName: t.lastName }))}
-        initial={{
-          unitId: lease.unit.id,
-          tenantIds: lease.tenants.map((t) => t.tenantId),
-          primaryTenantId: lease.tenants.find((t) => t.isPrimary)?.tenantId ?? lease.tenants[0].tenantId,
-          startDate: formatDate(defaultStart),
-          endDate: formatDate(defaultEnd),
-          rentAmountCents: lease.rentAmountCents,
-          depositAmountCents: lease.depositAmountCents,
-          heldInTrustAccount: lease.heldInTrustAccount,
-          paymentDueDay: lease.paymentDueDay,
-          notes: lease.notes,
-        }}
-        postUrl={`/api/leases/${id}/renew`}
+      <Link
+        href={`/leases/${id}`}
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeft className="size-3.5" />
+        Back to lease
+      </Link>
+      <PageHeader
+        eyebrow="Renew lease"
+        title={`${lease.unit.property.name} · ${lease.unit.label}`}
+        description={`Renewing ${formatDate(lease.startDate)} → ${formatDate(lease.endDate)}. Defaults are pre-filled from the existing lease.`}
       />
+      <Card className="max-w-3xl">
+        <CardContent className="p-6">
+          <LeaseForm
+            mode="renew"
+            units={[{ id: lease.unit.id, label: lease.unit.label, propertyName: lease.unit.property.name }]}
+            tenants={tenants.map((t) => ({ id: t.id, firstName: t.firstName, lastName: t.lastName }))}
+            initial={{
+              unitId: lease.unit.id,
+              tenantIds: lease.tenants.map((t) => t.tenantId),
+              primaryTenantId: lease.tenants.find((t) => t.isPrimary)?.tenantId ?? lease.tenants[0].tenantId,
+              startDate: formatDate(defaultStart),
+              endDate: formatDate(defaultEnd),
+              rentAmountCents: lease.rentAmountCents,
+              depositAmountCents: lease.depositAmountCents,
+              heldInTrustAccount: lease.heldInTrustAccount,
+              paymentDueDay: lease.paymentDueDay,
+              notes: lease.notes,
+            }}
+            postUrl={`/api/leases/${id}/renew`}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }

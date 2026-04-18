@@ -1,6 +1,9 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { Trash2 } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
 
 export function DeleteTenantButton({ id, name }: { id: string; name: string }) {
   const router = useRouter();
@@ -21,12 +24,9 @@ export function DeleteTenantButton({ id, name }: { id: string; name: string }) {
     router.push('/tenants');
   }
   return (
-    <button
-      onClick={onClick}
-      disabled={busy}
-      className="rounded-md border border-red-300 bg-red-50 px-3 py-1.5 text-sm text-red-700 hover:bg-red-100 disabled:opacity-50"
-    >
+    <Button onClick={onClick} disabled={busy} variant="destructive" size="sm">
+      <Trash2 className="size-4" />
       {busy ? 'Deleting…' : 'Delete permanently'}
-    </button>
+    </Button>
   );
 }

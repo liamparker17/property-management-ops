@@ -2,7 +2,15 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Send } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+
+const NATIVE_SELECT =
+  'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50';
 
 export function NewRepairForm() {
   const router = useRouter();
@@ -34,36 +42,30 @@ export function NewRepairForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4 rounded-lg border bg-card p-5">
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="title" className="text-sm font-medium">Title</label>
-        <input
+    <form onSubmit={onSubmit} className="space-y-5">
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="title">Title</Label>
+        <Input
           id="title"
           name="title"
           required
           minLength={3}
           maxLength={120}
           placeholder="e.g. Kitchen tap is leaking"
-          className="h-10 rounded-md border bg-card px-3 text-sm"
         />
       </div>
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="priority" className="text-sm font-medium">Priority</label>
-        <select
-          id="priority"
-          name="priority"
-          defaultValue="MEDIUM"
-          className="h-10 rounded-md border bg-card px-3 text-sm"
-        >
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="priority">Priority</Label>
+        <select id="priority" name="priority" defaultValue="MEDIUM" className={NATIVE_SELECT}>
           <option value="LOW">Low — minor issue</option>
           <option value="MEDIUM">Medium</option>
           <option value="HIGH">High — urgent but not emergency</option>
           <option value="URGENT">Urgent — safety or major damage</option>
         </select>
       </div>
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="description" className="text-sm font-medium">Describe the issue</label>
-        <textarea
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="description">Describe the issue</Label>
+        <Textarea
           id="description"
           name="description"
           required
@@ -71,18 +73,17 @@ export function NewRepairForm() {
           maxLength={4000}
           rows={6}
           placeholder="When did it start? What have you noticed?"
-          className="rounded-md border bg-card px-3 py-2 text-sm"
         />
       </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <button
-        type="submit"
-        disabled={pending}
-        className="inline-flex h-10 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
-      >
-        {pending && <Loader2 className="h-4 w-4 animate-spin" />}
+      {error && (
+        <div className="rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+      <Button type="submit" disabled={pending} className="w-full sm:w-auto">
+        {pending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
         Submit request
-      </button>
+      </Button>
     </form>
   );
 }

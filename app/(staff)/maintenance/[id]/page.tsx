@@ -1,8 +1,12 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { ArrowLeft, Building2, User2, CheckCircle2 } from 'lucide-react';
+
 import { auth } from '@/lib/auth';
 import { getMaintenanceRequest } from '@/lib/services/maintenance';
 import { MaintenanceStatusBadge, MaintenancePriorityBadge } from '@/components/maintenance-badges';
+import { PageHeader } from '@/components/page-header';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatDate } from '@/lib/format';
 import { MaintenanceUpdateForm } from './update-form';
 
@@ -23,53 +27,79 @@ export default async function MaintenanceDetail({ params }: { params: Promise<{ 
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">{req.title}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Submitted {formatDate(req.createdAt)} by {req.tenant.firstName} {req.tenant.lastName}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <MaintenancePriorityBadge priority={req.priority} />
-          <MaintenanceStatusBadge status={req.status} />
-        </div>
-      </div>
+      <Link
+        href="/maintenance"
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeft className="size-3.5" />
+        Maintenance
+      </Link>
+
+      <PageHeader
+        eyebrow="Maintenance request"
+        title={req.title}
+        description={`Submitted ${formatDate(req.createdAt)} by ${req.tenant.firstName} ${req.tenant.lastName}`}
+        actions={
+          <div className="flex items-center gap-2">
+            <MaintenancePriorityBadge priority={req.priority} />
+            <MaintenanceStatusBadge status={req.status} />
+          </div>
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Unit</p>
-          <p className="mt-1 text-sm font-medium">
-            <Link href={`/units/${req.unit.id}`} className="hover:text-primary">
-              {req.unit.property.name} · {req.unit.label}
-            </Link>
-          </p>
-        </div>
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Tenant</p>
-          <p className="mt-1 text-sm font-medium">
-            <Link href={`/tenants/${req.tenant.id}`} className="hover:text-primary">
-              {req.tenant.firstName} {req.tenant.lastName}
-            </Link>
-          </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {req.tenant.email ?? '—'} · {req.tenant.phone ?? '—'}
-          </p>
-        </div>
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Resolved</p>
-          <p className="mt-1 text-sm font-medium">
-            {req.resolvedAt ? formatDate(req.resolvedAt) : '—'}
-          </p>
-        </div>
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <Building2 className="size-3.5" />
+              Unit
+            </div>
+            <p className="mt-2 text-sm font-medium">
+              <Link href={`/units/${req.unit.id}`} className="hover:text-primary">
+                {req.unit.property.name} · {req.unit.label}
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <User2 className="size-3.5" />
+              Tenant
+            </div>
+            <p className="mt-2 text-sm font-medium">
+              <Link href={`/tenants/${req.tenant.id}`} className="hover:text-primary">
+                {req.tenant.firstName} {req.tenant.lastName}
+              </Link>
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {req.tenant.email ?? '—'} · {req.tenant.phone ?? '—'}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <CheckCircle2 className="size-3.5" />
+              Resolved
+            </div>
+            <p className="mt-2 text-sm font-medium">
+              {req.resolvedAt ? formatDate(req.resolvedAt) : '—'}
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="rounded-lg border bg-card p-5">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Description
-        </h2>
-        <p className="mt-3 whitespace-pre-wrap text-sm">{req.description}</p>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Description
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="whitespace-pre-wrap text-sm leading-relaxed">{req.description}</p>
+        </CardContent>
+      </Card>
 
       {canEdit ? (
         <MaintenanceUpdateForm
@@ -79,12 +109,16 @@ export default async function MaintenanceDetail({ params }: { params: Promise<{ 
           internalNotes={req.internalNotes}
         />
       ) : req.internalNotes ? (
-        <div className="rounded-lg border bg-card p-5">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Internal notes
-          </h2>
-          <p className="mt-3 whitespace-pre-wrap text-sm">{req.internalNotes}</p>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Internal notes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed">{req.internalNotes}</p>
+          </CardContent>
+        </Card>
       ) : null}
     </div>
   );

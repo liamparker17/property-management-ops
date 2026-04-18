@@ -1,5 +1,8 @@
 'use client';
 import { useRouter } from 'next/navigation';
+import { Archive, ArchiveRestore } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
 
 export function ArchiveTenantButton({ id, archived }: { id: string; archived: boolean }) {
   const router = useRouter();
@@ -14,8 +17,9 @@ export function ArchiveTenantButton({ id, archived }: { id: string; archived: bo
     router.refresh();
   }
   return (
-    <button onClick={onClick} className="rounded-md border px-3 py-1.5 text-sm">
+    <Button onClick={onClick} variant="outline" size="sm">
+      {archived ? <ArchiveRestore className="size-4" /> : <Archive className="size-4" />}
       {archived ? 'Unarchive' : 'Archive'}
-    </button>
+    </Button>
   );
 }

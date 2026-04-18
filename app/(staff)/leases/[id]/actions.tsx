@@ -2,6 +2,9 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { CheckCircle2, RefreshCw, XCircle } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
 
 export function LeaseActions({
   id,
@@ -40,31 +43,29 @@ export function LeaseActions({
   }
 
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap gap-2">
       {state === 'DRAFT' && (
-        <button
-          onClick={activate}
-          disabled={busy}
-          className="rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground disabled:opacity-50"
-        >
+        <Button onClick={activate} disabled={busy} size="sm">
+          <CheckCircle2 className="size-4" />
           Activate
-        </button>
+        </Button>
       )}
       {state === 'ACTIVE' && (
         <>
-          <button
-            onClick={() => router.push(`/leases/${id}/renew`)}
-            className="rounded-md border px-3 py-1.5 text-sm"
-          >
+          <Button onClick={() => router.push(`/leases/${id}/renew`)} variant="outline" size="sm">
+            <RefreshCw className="size-4" />
             Renew
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={terminate}
             disabled={busy}
-            className="rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-700 disabled:opacity-50"
+            variant="outline"
+            size="sm"
+            className="border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
           >
+            <XCircle className="size-4" />
             Terminate
-          </button>
+          </Button>
         </>
       )}
     </div>

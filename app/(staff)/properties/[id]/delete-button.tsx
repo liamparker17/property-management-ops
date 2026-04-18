@@ -1,5 +1,8 @@
 'use client';
 import { useRouter } from 'next/navigation';
+import { Trash2 } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
 
 export function DeletePropertyButton({ id }: { id: string }) {
   const router = useRouter();
@@ -25,8 +28,9 @@ export function DeletePropertyButton({ id }: { id: string }) {
     router.refresh();
   }
   return (
-    <button onClick={onClick} className="rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-700">
+    <Button onClick={onClick} variant="outline" size="sm" className="border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive">
+      <Trash2 className="size-4" />
       Delete
-    </button>
+    </Button>
   );
 }

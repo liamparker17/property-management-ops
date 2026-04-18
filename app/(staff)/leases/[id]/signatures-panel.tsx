@@ -43,13 +43,13 @@ function fmt(d: Date | string) {
 function statusClasses(status: ReviewStatus) {
   switch (status) {
     case 'OPEN':
-      return 'bg-amber-50 text-amber-700 ring-amber-200';
+      return 'bg-amber-500/10 text-amber-700 ring-amber-500/20 dark:text-amber-400';
     case 'ACCEPTED':
-      return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      return 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/20 dark:text-emerald-400';
     case 'REJECTED':
-      return 'bg-red-50 text-red-700 ring-red-200';
+      return 'bg-destructive/10 text-destructive ring-destructive/20';
     case 'RESOLVED':
-      return 'bg-slate-100 text-slate-700 ring-slate-200';
+      return 'bg-muted text-muted-foreground ring-border';
   }
 }
 
@@ -167,27 +167,27 @@ export function SignaturesPanel({ signatures, reviewRequests, tenantNameMap }: P
                           type="button"
                           onClick={() => respond(r.id, 'ACCEPTED')}
                           disabled={isBusy}
-                          className="inline-flex h-8 items-center gap-1 rounded-md bg-emerald-600 px-3 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+                          className="inline-flex h-8 items-center gap-1 rounded-md bg-emerald-600 px-3 text-xs font-medium text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:opacity-60 dark:bg-emerald-500 dark:hover:bg-emerald-600"
                         >
-                          {busyId === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                          {busyId === r.id ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />}
                           Accept
                         </button>
                         <button
                           type="button"
                           onClick={() => respond(r.id, 'REJECTED')}
                           disabled={isBusy}
-                          className="inline-flex h-8 items-center gap-1 rounded-md bg-red-600 px-3 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-60"
+                          className="inline-flex h-8 items-center gap-1 rounded-md bg-destructive px-3 text-xs font-medium text-destructive-foreground shadow-sm transition-colors hover:bg-destructive/90 disabled:opacity-60"
                         >
-                          {busyId === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
+                          {busyId === r.id ? <Loader2 className="size-3 animate-spin" /> : <X className="size-3" />}
                           Reject
                         </button>
                         <button
                           type="button"
                           onClick={() => respond(r.id, 'RESOLVED')}
                           disabled={isBusy}
-                          className="inline-flex h-8 items-center gap-1 rounded-md bg-slate-600 px-3 text-xs font-medium text-white hover:bg-slate-700 disabled:opacity-60"
+                          className="inline-flex h-8 items-center gap-1 rounded-md border bg-card px-3 text-xs font-medium text-foreground shadow-sm transition-colors hover:bg-muted disabled:opacity-60"
                         >
-                          {busyId === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCheck className="h-3 w-3" />}
+                          {busyId === r.id ? <Loader2 className="size-3 animate-spin" /> : <CheckCheck className="size-3" />}
                           Mark resolved
                         </button>
                       </div>

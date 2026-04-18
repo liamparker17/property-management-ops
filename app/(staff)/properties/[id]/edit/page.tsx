@@ -1,7 +1,10 @@
 import { notFound } from 'next/navigation';
+
 import { auth } from '@/lib/auth';
 import { getProperty } from '@/lib/services/properties';
 import { PropertyForm } from '@/components/forms/property-form';
+import { Card, CardContent } from '@/components/ui/card';
+import { PageHeader } from '@/components/page-header';
 
 export default async function EditPropertyPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -15,8 +18,12 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
   }
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Edit property</h1>
-      <PropertyForm mode="edit" initial={p} />
+      <PageHeader eyebrow="Property" title={`Edit ${p.name}`} description="Update the property details." />
+      <Card className="max-w-3xl">
+        <CardContent className="p-6">
+          <PropertyForm mode="edit" initial={p} />
+        </CardContent>
+      </Card>
     </div>
   );
 }

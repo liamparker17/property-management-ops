@@ -3,6 +3,12 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
+
 type Initial = Partial<{
   id: string;
   name: string;
@@ -54,33 +60,46 @@ export function PropertyForm({ mode, initial }: { mode: 'create' | 'edit'; initi
       <Field name="addressLine2" label="Address line 2" defaultValue={initial?.addressLine2 ?? ''} className="col-span-2" />
       <Field name="suburb" label="Suburb" required defaultValue={initial?.suburb} />
       <Field name="city" label="City" required defaultValue={initial?.city} />
-      <label className="flex flex-col gap-1">
-        Province
-        <select name="province" required defaultValue={initial?.province ?? 'GP'} className="rounded-md border px-3 py-2">
+      <div className="space-y-2">
+        <Label htmlFor="province">Province</Label>
+        <select
+          id="province"
+          name="province"
+          required
+          defaultValue={initial?.province ?? 'GP'}
+          className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+        >
           {PROVINCES.map((p) => (
             <option key={p} value={p}>{p}</option>
           ))}
         </select>
-      </label>
+      </div>
       <Field name="postalCode" label="Postal code" required defaultValue={initial?.postalCode} />
-      <label className="col-span-2 flex flex-col gap-1">
-        Notes
-        <textarea name="notes" defaultValue={initial?.notes ?? ''} rows={3} className="rounded-md border px-3 py-2" />
-      </label>
+      <div className="col-span-2 space-y-2">
+        <Label htmlFor="notes">Notes</Label>
+        <Textarea id="notes" name="notes" defaultValue={initial?.notes ?? ''} rows={3} />
+      </div>
       {mode === 'create' && (
-        <label className="col-span-2 flex items-center gap-2">
-          <input type="checkbox" name="autoCreateMainUnit" defaultChecked />
-          Auto-create a single &quot;Main&quot; unit (for standalone houses)
+        <label className="col-span-2 flex items-center gap-2.5 rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-sm">
+          <input
+            type="checkbox"
+            name="autoCreateMainUnit"
+            defaultChecked
+            className="size-4 rounded border-input accent-primary"
+          />
+          <span>Auto-create a single &quot;Main&quot; unit (for standalone houses)</span>
         </label>
       )}
-      {error && <p className="col-span-2 text-red-600">{error}</p>}
-      <button
-        type="submit"
-        disabled={pending}
-        className="col-span-2 rounded-md bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50"
-      >
-        {pending ? 'Saving…' : mode === 'create' ? 'Create property' : 'Save changes'}
-      </button>
+      {error && (
+        <div className="col-span-2 rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+      <div className="col-span-2 pt-2">
+        <Button type="submit" disabled={pending} size="lg" className="w-full sm:w-auto">
+          {pending ? 'Saving…' : mode === 'create' ? 'Create property' : 'Save changes'}
+        </Button>
+      </div>
     </form>
   );
 }
@@ -99,14 +118,9 @@ function Field({
   className?: string;
 }) {
   return (
-    <label className={`flex flex-col gap-1 ${className ?? ''}`}>
-      {label}
-      <input
-        name={name}
-        required={required}
-        defaultValue={defaultValue ?? ''}
-        className="rounded-md border px-3 py-2"
-      />
-    </label>
+    <div className={cn('space-y-2', className)}>
+      <Label htmlFor={name}>{label}{required ? <span className="text-destructive">*</span> : null}</Label>
+      <Input id={name} name={name} required={required} defaultValue={defaultValue ?? ''} />
+    </div>
   );
 }

@@ -2,6 +2,8 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { Button } from '@/components/ui/button';
+
 type Row = {
   id: string;
   email: string;
@@ -9,6 +11,9 @@ type Row = {
   role: 'ADMIN' | 'PROPERTY_MANAGER' | 'FINANCE' | 'TENANT';
   disabledAt: Date | null;
 };
+
+const NATIVE_SELECT =
+  'flex h-7 w-full rounded-lg border border-input bg-transparent px-2 py-0.5 text-xs transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30';
 
 export function TeamRow({ row }: { row: Row }) {
   const router = useRouter();
@@ -29,10 +34,10 @@ export function TeamRow({ row }: { row: Row }) {
   }
 
   return (
-    <tr className="border-b">
-      <td className="p-2">{row.email}</td>
-      <td className="p-2">{row.name ?? '—'}</td>
-      <td className="p-2">
+    <tr className="transition-colors duration-150 hover:bg-muted/40">
+      <td className="px-4 py-3 font-medium text-foreground">{row.email}</td>
+      <td className="px-4 py-3 text-muted-foreground">{row.name ?? '—'}</td>
+      <td className="px-4 py-3">
         <select
           value={role}
           disabled={busy}
@@ -40,22 +45,37 @@ export function TeamRow({ row }: { row: Row }) {
             setRole(e.target.value as Row['role']);
             save({ role: e.target.value });
           }}
-          className="rounded-md border px-2 py-1"
+          className={NATIVE_SELECT}
         >
-          <option value="ADMIN">ADMIN</option>
-          <option value="PROPERTY_MANAGER">PROPERTY_MANAGER</option>
-          <option value="FINANCE">FINANCE</option>
-          <option value="TENANT">TENANT</option>
+          <option value="ADMIN">Admin</option>
+          <option value="PROPERTY_MANAGER">Property manager</option>
+          <option value="FINANCE">Finance</option>
+          <option value="TENANT">Tenant</option>
         </select>
       </td>
-      <td className="p-2">
-        <button
+      <td className="px-4 py-3">
+        {row.disabledAt ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-500/10 px-2.5 py-0.5 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/20 dark:text-slate-300">
+            <span className="h-2 w-2 rounded-full bg-slate-400" />
+            Disabled
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-500/20 dark:text-emerald-400">
+            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+            Active
+          </span>
+        )}
+      </td>
+      <td className="px-4 py-3 text-right">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
           onClick={() => save({ disabled: !row.disabledAt })}
           disabled={busy}
-          className="rounded-md border px-2 py-1 text-xs"
         >
           {row.disabledAt ? 'Enable' : 'Disable'}
-        </button>
+        </Button>
       </td>
     </tr>
   );

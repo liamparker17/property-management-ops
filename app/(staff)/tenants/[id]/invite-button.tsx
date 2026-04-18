@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { CheckCircle2, Copy, KeyRound, Loader2, UserPlus } from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
+
 type Result = { email: string; tempPassword: string };
 
 export function InvitePortalButton({ tenantId, hasAccount }: { tenantId: string; hasAccount: boolean }) {
@@ -13,7 +15,7 @@ export function InvitePortalButton({ tenantId, hasAccount }: { tenantId: string;
 
   if (hasAccount) {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-500/20 dark:text-emerald-400">
         <CheckCircle2 className="h-3.5 w-3.5" />
         Portal access
       </span>
@@ -44,15 +46,11 @@ export function InvitePortalButton({ tenantId, hasAccount }: { tenantId: string;
 
   return (
     <div className="flex flex-col items-end gap-2">
-      <button
-        onClick={invite}
-        disabled={pending}
-        className="inline-flex h-9 items-center gap-1.5 rounded-md border bg-card px-3.5 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-60"
-      >
-        {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+      <Button onClick={invite} disabled={pending} variant="outline" size="sm">
+        {pending ? <Loader2 className="size-4 animate-spin" /> : <UserPlus className="size-4" />}
         {pending ? 'Inviting…' : 'Invite to portal'}
-      </button>
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      </Button>
+      {error && <p className="text-xs text-destructive">{error}</p>}
       {result && (
         <div className="w-80 rounded-lg border bg-card p-4 shadow-sm">
           <div className="flex items-center gap-2">
@@ -66,15 +64,12 @@ export function InvitePortalButton({ tenantId, hasAccount }: { tenantId: string;
             <code className="flex-1 rounded-md bg-muted px-2 py-1.5 font-mono text-sm">
               {result.tempPassword}
             </code>
-            <button
-              onClick={copy}
-              className="inline-flex h-8 items-center gap-1 rounded-md border bg-card px-2 text-xs font-medium transition-colors hover:bg-muted"
-            >
-              {copied ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+            <Button onClick={copy} variant="outline" size="sm" className="h-8 px-2 text-xs">
+              {copied ? <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="size-3.5" />}
               {copied ? 'Copied' : 'Copy'}
-            </button>
+            </Button>
           </div>
-          <p className="mt-3 text-xs text-amber-700">
+          <p className="mt-3 text-xs text-amber-700 dark:text-amber-400">
             This password is shown once — copy it now.
           </p>
         </div>

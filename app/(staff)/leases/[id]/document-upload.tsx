@@ -1,6 +1,9 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { Upload } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
 
 export function DocumentUpload({ leaseId }: { leaseId: string }) {
   const router = useRouter();
@@ -28,16 +31,19 @@ export function DocumentUpload({ leaseId }: { leaseId: string }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex items-center gap-3 text-sm">
-      <input name="file" type="file" accept="application/pdf,image/png,image/jpeg,image/webp" required />
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-md bg-primary px-3 py-1.5 text-primary-foreground disabled:opacity-50"
-      >
+    <form onSubmit={onSubmit} className="flex flex-wrap items-center gap-3 text-sm">
+      <input
+        name="file"
+        type="file"
+        accept="application/pdf,image/png,image/jpeg,image/webp"
+        required
+        className="block w-full max-w-xs cursor-pointer rounded-md border border-input bg-background text-sm text-foreground file:mr-3 file:cursor-pointer file:border-0 file:border-r file:border-input file:bg-muted file:px-3 file:py-2 file:text-sm file:font-medium file:text-foreground hover:file:bg-muted/70"
+      />
+      <Button type="submit" disabled={pending} size="sm">
+        <Upload className="size-4" />
         {pending ? 'Uploading…' : 'Upload'}
-      </button>
-      {error && <span className="text-red-600">{error}</span>}
+      </Button>
+      {error && <span className="text-destructive">{error}</span>}
     </form>
   );
 }

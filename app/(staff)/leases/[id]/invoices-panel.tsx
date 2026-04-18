@@ -3,6 +3,8 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle2, Loader2, Undo2 } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
 import { formatZar, formatDate } from '@/lib/format';
 
 type Invoice = {
@@ -62,31 +64,33 @@ export function InvoicesPanel({ invoices }: { invoices: Invoice[] }) {
               <td className="px-4 py-3 text-muted-foreground">{formatDate(new Date(i.dueDate))}</td>
               <td className="px-4 py-3">
                 {i.status === 'PAID' ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
-                    <CheckCircle2 className="h-3 w-3" />
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-500/20 dark:text-emerald-400">
+                    <CheckCircle2 className="size-3" />
                     Paid {i.paidAt ? formatDate(new Date(i.paidAt)) : ''}
                   </span>
                 ) : (
-                  <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
+                  <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-500/20 dark:text-amber-400">
                     Due
                   </span>
                 )}
               </td>
               <td className="px-4 py-3 text-right">
-                <button
+                <Button
                   onClick={() => toggle(i)}
                   disabled={busyId === i.id || pending}
-                  className="inline-flex h-8 items-center gap-1 rounded-md border bg-card px-2.5 text-xs font-medium hover:bg-muted disabled:opacity-60"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-2.5 text-xs"
                 >
                   {busyId === i.id ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
+                    <Loader2 className="size-3 animate-spin" />
                   ) : i.status === 'PAID' ? (
-                    <Undo2 className="h-3 w-3" />
+                    <Undo2 className="size-3" />
                   ) : (
-                    <CheckCircle2 className="h-3 w-3" />
+                    <CheckCircle2 className="size-3" />
                   )}
                   {i.status === 'PAID' ? 'Unpay' : 'Mark paid'}
-                </button>
+                </Button>
               </td>
             </tr>
           ))}

@@ -2,7 +2,15 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { CheckCircle2, Copy, Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { CheckCircle2, Copy, Loader2, UserPlus, Home, Mail } from 'lucide-react';
+
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
 type UnitOption = { id: string; label: string; propertyName: string };
 
@@ -18,6 +26,9 @@ type Result = {
   smsSent: boolean;
   smsError?: string;
 };
+
+const NATIVE_SELECT =
+  'flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30';
 
 export function OnboardTenantForm({ units }: Props) {
   const router = useRouter();
@@ -73,233 +84,205 @@ export function OnboardTenantForm({ units }: Props) {
 
   if (result) {
     return (
-      <div className="max-w-2xl rounded-lg border border-emerald-200 bg-emerald-50 p-6">
-        <div className="flex items-center gap-2 text-emerald-900">
-          <CheckCircle2 className="h-5 w-5" />
-          <h2 className="text-lg font-semibold">Tenant onboarded</h2>
-        </div>
-        <p className="mt-1 text-sm text-emerald-900">
-          {result.emailSent
-            ? `Draft lease created and an invite email with login details has been sent to ${result.email}.`
-            : `Draft lease created. Share the login details below with the tenant.`}
-        </p>
-        {result.tempPassword && !result.emailSent && result.emailError && (
-          <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-            Email not sent: {result.emailError}. You can share the password manually below.
-          </p>
-        )}
-        {result.smsSent && (
-          <p className="mt-2 rounded-md border border-emerald-200 bg-white px-3 py-2 text-xs text-emerald-900">
-            SMS invite sent.
-          </p>
-        )}
-        {!result.smsSent && result.smsError && (
-          <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-            SMS not sent: {result.smsError}.
-          </p>
-        )}
-        <dl className="mt-4 space-y-3 text-sm">
-          <div className="flex items-center justify-between gap-4 rounded-md border border-emerald-200 bg-white px-3 py-2">
+      <Card className="max-w-2xl border-emerald-500/30 bg-gradient-to-br from-emerald-500/5 to-transparent animate-scale-in">
+        <CardContent className="space-y-4 p-6">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
             <div>
-              <dt className="text-xs font-medium text-muted-foreground">Login email</dt>
-              <dd className="font-mono text-sm">{result.email}</dd>
+              <h2 className="text-lg font-semibold">Tenant onboarded</h2>
+              <p className="text-sm text-muted-foreground">
+                {result.emailSent
+                  ? `Invite email sent to ${result.email}`
+                  : 'Draft lease created. Share the login details below.'}
+              </p>
             </div>
           </div>
-          {result.tempPassword && (
-            <div className="flex items-center justify-between gap-4 rounded-md border border-emerald-200 bg-white px-3 py-2">
-              <div>
-                <dt className="text-xs font-medium text-muted-foreground">Temporary password</dt>
-                <dd className="font-mono text-sm">{result.tempPassword}</dd>
-              </div>
-              <button
-                type="button"
-                onClick={copyPassword}
-                className="inline-flex h-8 items-center gap-1 rounded-md border bg-card px-2 text-xs font-medium hover:bg-muted"
-              >
-                <Copy className="h-3 w-3" />
-                {copied ? 'Copied' : 'Copy'}
-              </button>
+          {result.tempPassword && !result.emailSent && result.emailError && (
+            <div className="rounded-md border border-amber-500/25 bg-amber-500/5 px-3 py-2 text-xs text-amber-900 dark:text-amber-200">
+              Email not sent: {result.emailError}. You can share the password manually below.
             </div>
           )}
-        </dl>
-        <div className="mt-5 flex items-center gap-2">
-          <a
-            href={`/leases/${result.leaseId}`}
-            className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90"
-          >
-            Open draft lease
-          </a>
-          <a
-            href={`/tenants/${result.tenantId}`}
-            className="inline-flex h-9 items-center rounded-md border bg-card px-3 text-sm font-medium hover:bg-muted"
-          >
-            View tenant profile
-          </a>
-          <button
-            type="button"
-            onClick={() => setResult(null)}
-            className="inline-flex h-9 items-center rounded-md border bg-card px-3 text-sm font-medium hover:bg-muted"
-          >
-            Onboard another
-          </button>
-        </div>
-      </div>
+          {result.smsSent && (
+            <div className="rounded-md border border-emerald-500/25 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-400">
+              SMS invite sent.
+            </div>
+          )}
+          {!result.smsSent && result.smsError && (
+            <div className="rounded-md border border-amber-500/25 bg-amber-500/5 px-3 py-2 text-xs text-amber-900 dark:text-amber-200">
+              SMS not sent: {result.smsError}.
+            </div>
+          )}
+          <dl className="space-y-2.5">
+            <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-card px-3 py-2.5">
+              <div>
+                <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Login email</dt>
+                <dd className="font-mono text-sm">{result.email}</dd>
+              </div>
+            </div>
+            {result.tempPassword && (
+              <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-card px-3 py-2.5">
+                <div>
+                  <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Temporary password</dt>
+                  <dd className="font-mono text-sm">{result.tempPassword}</dd>
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={copyPassword} className="gap-1.5">
+                  <Copy className="h-3 w-3" />
+                  {copied ? 'Copied' : 'Copy'}
+                </Button>
+              </div>
+            )}
+          </dl>
+          <div className="flex flex-wrap items-center gap-2 pt-2">
+            <Link href={`/leases/${result.leaseId}`} className={cn(buttonVariants(), 'gap-1.5')}>
+              Open draft lease
+            </Link>
+            <Link href={`/tenants/${result.tenantId}`} className={cn(buttonVariants({ variant: 'outline' }), 'gap-1.5')}>
+              View tenant profile
+            </Link>
+            <Button type="button" variant="ghost" onClick={() => setResult(null)}>
+              Onboard another
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
     <form onSubmit={onSubmit} className="max-w-2xl space-y-6">
-      <section className="rounded-lg border bg-card p-5">
-        <h3 className="text-sm font-semibold">Tenant details</h3>
-        <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-          <label className="flex flex-col gap-1">
-            First name
-            <input name="firstName" required className="h-9 rounded-md border bg-card px-3" />
+      <Card>
+        <CardHeader className="flex-row items-center gap-2.5 space-y-0">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <UserPlus className="h-4 w-4" />
+          </div>
+          <CardTitle className="text-base">Tenant details</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="space-y-2">
+              <Label htmlFor="firstName">First name<span className="text-destructive">*</span></Label>
+              <Input id="firstName" name="firstName" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Last name<span className="text-destructive">*</span></Label>
+              <Input id="lastName" name="lastName" required />
+            </div>
+            <div className="col-span-2 space-y-2">
+              <Label htmlFor="email">Email <span className="text-muted-foreground">(used for portal login)</span><span className="text-destructive">*</span></Label>
+              <Input id="email" type="email" name="email" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone</Label>
+              <Input id="phone" name="phone" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="idNumber">ID number</Label>
+              <Input id="idNumber" name="idNumber" />
+            </div>
+            <div className="col-span-2 space-y-2">
+              <Label htmlFor="tenantNotes">Internal notes</Label>
+              <Textarea id="tenantNotes" name="tenantNotes" rows={2} />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex-row items-center gap-2.5 space-y-0">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400">
+            <Home className="h-4 w-4" />
+          </div>
+          <CardTitle className="text-base">Lease details</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="col-span-2 space-y-2">
+              <Label htmlFor="unitId">Unit<span className="text-destructive">*</span></Label>
+              <select id="unitId" name="unitId" required className={NATIVE_SELECT}>
+                <option value="">Select a unit…</option>
+                {units.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.propertyName} · {u.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="startDate">Start date<span className="text-destructive">*</span></Label>
+              <Input type="date" id="startDate" name="startDate" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="endDate">End date<span className="text-destructive">*</span></Label>
+              <Input type="date" id="endDate" name="endDate" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="rentAmount">Monthly rent (ZAR)<span className="text-destructive">*</span></Label>
+              <Input type="number" id="rentAmount" name="rentAmount" step="0.01" min="0" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="depositAmount">Deposit (ZAR)<span className="text-destructive">*</span></Label>
+              <Input type="number" id="depositAmount" name="depositAmount" step="0.01" min="0" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="paymentDueDay">Payment due day<span className="text-destructive">*</span></Label>
+              <Input type="number" id="paymentDueDay" name="paymentDueDay" min="1" max="31" defaultValue={1} required />
+            </div>
+            <label className="flex items-center gap-2.5 self-end rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-sm">
+              <input type="checkbox" name="heldInTrustAccount" className="size-4 rounded border-input accent-primary" />
+              <span>Deposit held in trust account</span>
+            </label>
+            <div className="col-span-2 space-y-2">
+              <Label htmlFor="leaseNotes">Lease notes <span className="text-muted-foreground">(shown in the agreement as additional terms)</span></Label>
+              <Textarea
+                id="leaseNotes"
+                name="leaseNotes"
+                rows={3}
+                placeholder="e.g. Parking bay #12 included; geyser serviced annually"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex-row items-center gap-2.5 space-y-0">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400">
+            <Mail className="h-4 w-4" />
+          </div>
+          <CardTitle className="text-base">Portal access</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <label className="flex items-start gap-2.5 rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-sm">
+            <input type="checkbox" name="sendInvite" defaultChecked className="mt-0.5 size-4 rounded border-input accent-primary" />
+            <span>
+              Create a tenant portal login now. You&rsquo;ll be shown a one-time temporary password to
+              share with the tenant so they can sign in, review the lease, and sign.
+            </span>
           </label>
-          <label className="flex flex-col gap-1">
-            Last name
-            <input name="lastName" required className="h-9 rounded-md border bg-card px-3" />
+          <label className="flex items-start gap-2.5 rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-sm">
+            <input type="checkbox" name="sendSmsInvite" className="mt-0.5 size-4 rounded border-input accent-primary" />
+            <span>
+              Also send an SMS invite (requires a phone number above, and{' '}
+              <code className="rounded bg-muted px-1 py-0.5 text-xs">SMS_GATEWAY_*</code> env vars
+              configured).
+            </span>
           </label>
-          <label className="col-span-2 flex flex-col gap-1">
-            Email (used for portal login)
-            <input
-              type="email"
-              name="email"
-              required
-              className="h-9 rounded-md border bg-card px-3"
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            Phone
-            <input name="phone" className="h-9 rounded-md border bg-card px-3" />
-          </label>
-          <label className="flex flex-col gap-1">
-            ID number
-            <input name="idNumber" className="h-9 rounded-md border bg-card px-3" />
-          </label>
-          <label className="col-span-2 flex flex-col gap-1">
-            Internal notes
-            <textarea
-              name="tenantNotes"
-              rows={2}
-              className="rounded-md border bg-card px-3 py-2"
-            />
-          </label>
+        </CardContent>
+      </Card>
+
+      {error && (
+        <div className="rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          {error}
         </div>
-      </section>
+      )}
 
-      <section className="rounded-lg border bg-card p-5">
-        <h3 className="text-sm font-semibold">Lease details</h3>
-        <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-          <label className="col-span-2 flex flex-col gap-1">
-            Unit
-            <select name="unitId" required className="h-9 rounded-md border bg-card px-3">
-              <option value="">Select a unit…</option>
-              {units.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.propertyName} · {u.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1">
-            Start date
-            <input
-              type="date"
-              name="startDate"
-              required
-              className="h-9 rounded-md border bg-card px-3"
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            End date
-            <input
-              type="date"
-              name="endDate"
-              required
-              className="h-9 rounded-md border bg-card px-3"
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            Monthly rent (ZAR)
-            <input
-              type="number"
-              name="rentAmount"
-              step="0.01"
-              min="0"
-              required
-              className="h-9 rounded-md border bg-card px-3"
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            Deposit (ZAR)
-            <input
-              type="number"
-              name="depositAmount"
-              step="0.01"
-              min="0"
-              required
-              className="h-9 rounded-md border bg-card px-3"
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            Payment due day
-            <input
-              type="number"
-              name="paymentDueDay"
-              min="1"
-              max="31"
-              defaultValue={1}
-              required
-              className="h-9 rounded-md border bg-card px-3"
-            />
-          </label>
-          <label className="flex items-center gap-2 pt-6">
-            <input type="checkbox" name="heldInTrustAccount" className="h-4 w-4" />
-            Deposit held in trust account
-          </label>
-          <label className="col-span-2 flex flex-col gap-1">
-            Lease notes (shown in the agreement as additional terms)
-            <textarea
-              name="leaseNotes"
-              rows={3}
-              className="rounded-md border bg-card px-3 py-2"
-              placeholder="e.g. Parking bay #12 included; geyser serviced annually"
-            />
-          </label>
-        </div>
-      </section>
-
-      <section className="rounded-lg border bg-card p-5">
-        <h3 className="text-sm font-semibold">Portal access</h3>
-        <label className="mt-3 flex items-start gap-2 text-sm">
-          <input type="checkbox" name="sendInvite" defaultChecked className="mt-0.5 h-4 w-4" />
-          <span>
-            Create a tenant portal login now. You&rsquo;ll be shown a one-time temporary password to
-            share with the tenant so they can sign in, review the lease, and sign.
-          </span>
-        </label>
-        <label className="mt-3 flex items-start gap-2 text-sm">
-          <input type="checkbox" name="sendSmsInvite" className="mt-0.5 h-4 w-4" />
-          <span>
-            Also send an SMS invite (requires a phone number above, and{' '}
-            <code className="rounded bg-muted px-1 py-0.5 text-xs">SMS_GATEWAY_*</code> env vars
-            configured).
-          </span>
-        </label>
-      </section>
-
-      {error && <p className="text-sm text-red-600">{error}</p>}
-
-      <div className="flex items-center gap-2">
-        <button
-          type="submit"
-          disabled={pending}
-          className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-60"
-        >
+      <div>
+        <Button type="submit" disabled={pending} size="lg" className="gap-2">
           {pending && <Loader2 className="h-4 w-4 animate-spin" />}
           Onboard tenant
-        </button>
+        </Button>
       </div>
     </form>
   );

@@ -1,5 +1,5 @@
 import { auth, signOut } from '@/lib/auth';
-import { Sidebar } from '@/components/nav/sidebar';
+import { DesktopSidebar } from '@/components/nav/sidebar';
 import { TopBar } from '@/components/nav/top-bar';
 import { redirect } from 'next/navigation';
 
@@ -10,19 +10,25 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   if (!session) redirect('/login');
   if (session.user.role === 'TENANT') redirect('/tenant');
 
+  const email = session.user.email ?? '';
+
   return (
-    <div className="flex min-h-screen">
-      <Sidebar role={session.user.role} />
-      <div className="flex flex-1 flex-col">
+    <div className="flex min-h-screen bg-background">
+      <DesktopSidebar role={session.user.role} email={email} />
+      <div className="flex min-w-0 flex-1 flex-col">
         <TopBar
-          email={session.user.email ?? ''}
+          email={email}
+          variant="staff"
+          role={session.user.role}
           signOut={async () => {
             'use server';
             await signOut({ redirectTo: '/login' });
           }}
         />
-        <main className="flex-1 overflow-auto p-8">
-          <div className="mx-auto max-w-7xl">{children}</div>
+        <main className="flex-1 overflow-auto">
+          <div className="mx-auto max-w-7xl animate-fade-in-up px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+            {children}
+          </div>
         </main>
       </div>
     </div>

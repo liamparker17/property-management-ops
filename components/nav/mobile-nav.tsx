@@ -41,11 +41,11 @@ export function MobileNav({ variant, role, email, orgName }: MobileNavProps) {
   return (
     <>
       <Button
-        variant="ghost"
+        variant="outline"
         size="icon"
         onClick={() => setOpen(true)}
         aria-label="Open navigation menu"
-        className="lg:hidden"
+        className="lg:hidden text-foreground"
       >
         <Menu className="size-5" />
       </Button>

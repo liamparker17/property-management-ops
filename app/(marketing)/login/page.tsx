@@ -6,80 +6,84 @@ import { LoginForm } from '@/components/login-form';
 
 export default function LoginPage() {
   return (
-    <main className="relative isolate min-h-screen overflow-hidden bg-mesh-hero">
+    <main className="relative grid min-h-screen bg-background lg:grid-cols-2">
+      {/* Subtle glow behind the form — barely there, just enough warmth */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-grid-subtle opacity-30 [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_70%)]"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -top-32 -right-32 h-[36rem] w-[36rem] rounded-full bg-primary/15 blur-3xl"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -bottom-40 -left-32 h-[36rem] w-[36rem] rounded-full bg-violet-500/15 blur-3xl"
+        className="pointer-events-none absolute inset-y-0 right-0 w-1/2 bg-login-glow"
       />
 
-      <div className="relative z-10 grid min-h-screen lg:grid-cols-2">
-        <aside className="hidden flex-col justify-between p-10 lg:flex">
-          <Link href="/" className="inline-flex items-center gap-2.5 self-start">
-            <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-md">
-              <Home className="h-4 w-4" />
-            </div>
-            <div className="flex flex-col leading-tight">
-              <span className="text-base font-semibold tracking-tight">PMOps</span>
-              <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Property Ops</span>
-            </div>
-          </Link>
+      {/* Left panel */}
+      <aside className="relative hidden flex-col justify-between border-r border-border/50 bg-muted/25 px-12 py-10 lg:flex">
+        <Link href="/" className="inline-flex items-center gap-3 self-start">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-sm">
+            <Home className="h-4 w-4" />
+          </div>
+          <div className="flex flex-col leading-tight">
+            <span className="text-[15px] font-semibold tracking-tight">PMOps</span>
+            <span className="text-[10px] font-medium uppercase tracking-[0.15em] text-muted-foreground/80">
+              Property Management
+            </span>
+          </div>
+        </Link>
 
-          <div className="max-w-md space-y-6 animate-fade-in-up">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/70 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur">
-              <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
-              Trusted by South African landlords
-            </div>
-            <h2 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-              Your portfolio,
+        <div className="max-w-xs space-y-8">
+          <div className="space-y-4">
+            <h2 className="text-[2.15rem] font-semibold leading-[1.15] tracking-tight text-foreground">
+              Property management,
               <br />
-              <span className="bg-gradient-to-r from-primary via-violet-500 to-sky-500 bg-clip-text text-transparent">
-                always in motion.
+              <span className="bg-gradient-to-br from-primary to-violet-500 bg-clip-text text-transparent">
+                done properly.
               </span>
             </h2>
-            <p className="text-sm text-muted-foreground">
-              Track every lease, tenant, and maintenance ticket from a single calm dashboard built for SA rentals.
+            <p className="text-[15px] leading-relaxed text-muted-foreground">
+              Leases, tenants, and maintenance — unified in one focused workspace built for South African rentals.
             </p>
-            <ul className="space-y-3 text-sm text-muted-foreground">
-              <FeatureItem icon={Building2}>Properties &amp; units in one tree</FeatureItem>
-              <FeatureItem icon={Users}>Tenant onboarding in under 5 minutes</FeatureItem>
-              <FeatureItem icon={ShieldCheck}>Lease state safety, audit trail included</FeatureItem>
-            </ul>
           </div>
 
-          <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} PMOps</p>
-        </aside>
+          <ul className="space-y-5">
+            <FeatureItem
+              icon={Building2}
+              title="Properties & units"
+              description="Your entire portfolio in one clear, organised view."
+            />
+            <FeatureItem
+              icon={Users}
+              title="Tenant onboarding"
+              description="From application to signed lease in under 5 minutes."
+            />
+            <FeatureItem
+              icon={ShieldCheck}
+              title="Lease safety"
+              description="Every state transition logged. Full audit trail, always."
+            />
+          </ul>
+        </div>
 
-        <div className="flex items-center justify-center p-6 sm:p-10">
-          <div className="w-full max-w-md animate-scale-in">
-            <Link href="/" className="mb-6 inline-flex items-center gap-2 lg:hidden">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/70 text-primary-foreground">
-                <Home className="h-4 w-4" />
-              </div>
-              <span className="font-semibold tracking-tight">PMOps</span>
-            </Link>
-            <div className="rounded-2xl border border-border/60 bg-card/80 p-8 shadow-elevated backdrop-blur-xl">
-              <div className="mb-6">
-                <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Sign in to your workspace to continue.
-                </p>
-              </div>
-              <Suspense>
-                <LoginForm />
-              </Suspense>
+        <p className="text-[11px] text-muted-foreground/60">
+          © {new Date().getFullYear()} PMOps · Built for SA rentals
+        </p>
+      </aside>
+
+      {/* Right panel — form */}
+      <div className="relative flex items-center justify-center px-8 py-12 sm:px-16">
+        <div className="w-full max-w-[22rem]">
+          {/* Mobile logo */}
+          <Link href="/" className="mb-10 inline-flex items-center gap-2.5 lg:hidden">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/70 text-primary-foreground">
+              <Home className="h-4 w-4" />
             </div>
-            <p className="mt-6 text-center text-xs text-muted-foreground">
-              Secure property management for South African rentals.
-            </p>
+            <span className="font-semibold tracking-tight">PMOps</span>
+          </Link>
+
+          <div className="mb-8">
+            <h1 className="text-[1.6rem] font-semibold tracking-tight text-foreground">Sign in</h1>
+            <p className="mt-1.5 text-[15px] text-muted-foreground">Welcome back to your workspace.</p>
           </div>
+
+          <Suspense>
+            <LoginForm />
+          </Suspense>
         </div>
       </div>
     </main>
@@ -88,17 +92,22 @@ export default function LoginPage() {
 
 function FeatureItem({
   icon: Icon,
-  children,
+  title,
+  description,
 }: {
   icon: React.ComponentType<{ className?: string }>;
-  children: React.ReactNode;
+  title: string;
+  description: string;
 }) {
   return (
-    <li className="flex items-center gap-3">
-      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
-        <Icon className="h-3.5 w-3.5" />
+    <li className="flex items-start gap-3.5">
+      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <Icon className="h-4 w-4" />
       </span>
-      {children}
+      <div>
+        <div className="text-sm font-medium text-foreground">{title}</div>
+        <div className="mt-0.5 text-sm text-muted-foreground">{description}</div>
+      </div>
     </li>
   );
 }

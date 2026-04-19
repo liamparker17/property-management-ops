@@ -40,9 +40,11 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex w-full flex-col gap-4">
-      <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+    <form onSubmit={onSubmit} className="flex w-full flex-col gap-5">
+      <div className="space-y-1.5">
+        <Label htmlFor="email" className="text-[13px] font-medium text-foreground/80">
+          Email
+        </Label>
         <Input
           id="email"
           name="email"
@@ -50,16 +52,19 @@ export function LoginForm() {
           required
           autoComplete="email"
           placeholder="you@company.com"
-          className="h-10"
+          className="h-10 bg-background text-[15px] placeholder:text-muted-foreground/50"
         />
       </div>
-      <div className="space-y-2">
+
+      <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password" className="text-[13px] font-medium text-foreground/80">
+            Password
+          </Label>
           <span
             aria-disabled
             title="Contact your administrator to reset your password"
-            className="cursor-not-allowed text-xs font-medium text-muted-foreground/70 opacity-70"
+            className="cursor-not-allowed text-[12px] text-muted-foreground/50"
           >
             Forgot password?
           </span>
@@ -71,19 +76,18 @@ export function LoginForm() {
           required
           autoComplete="current-password"
           placeholder="••••••••"
-          className="h-10"
+          className="h-10 bg-background text-[15px] placeholder:text-muted-foreground/50"
         />
       </div>
+
       {error && (
-        <div className="rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-          {error}
-        </div>
+        <p className="text-[13px] text-destructive">{error}</p>
       )}
+
       <Button
         type="submit"
         disabled={pending}
-        size="lg"
-        className="mt-2 h-11 gap-2 shadow-md shadow-primary/20 transition-shadow hover:shadow-primary/30"
+        className="mt-1 h-10 w-full gap-2 text-[15px] font-medium shadow-sm shadow-primary/25"
       >
         {pending && <Loader2 className="h-4 w-4 animate-spin" />}
         {pending ? 'Signing in…' : 'Sign in'}

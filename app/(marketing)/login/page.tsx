@@ -14,10 +14,9 @@ export default function LoginPage() {
         className="pointer-events-none absolute inset-0 bg-grid-subtle opacity-60 [mask-image:radial-gradient(ellipse_120%_100%_at_50%_0%,black_40%,transparent_100%)]"
       />
 
-      {/* Color — centered behind the content, not hiding in corners */}
-      <div aria-hidden className="animate-orb-float pointer-events-none absolute top-[-10%] left-[10%] h-[55rem] w-[55rem] rounded-full bg-primary/25 blur-[120px]" />
-      <div aria-hidden className="animate-orb-drift pointer-events-none absolute top-[20%] right-[-5%] h-[40rem] w-[40rem] rounded-full bg-violet-500/20 blur-[100px]" style={{ animationDelay: '-7s' }} />
-      <div aria-hidden className="animate-orb-float pointer-events-none absolute bottom-[-5%] left-[30%] h-[35rem] w-[35rem] rounded-full bg-sky-400/15 blur-[90px]" style={{ animationDelay: '-4s' }} />
+      {/* Atmospheric orbs */}
+      <div aria-hidden className="animate-orb-float pointer-events-none absolute -top-32 -right-32 h-[44rem] w-[44rem] rounded-full bg-primary/22 blur-3xl" />
+      <div aria-hidden className="animate-orb-drift pointer-events-none absolute -bottom-40 -left-32 h-[44rem] w-[44rem] rounded-full bg-violet-500/20 blur-3xl" style={{ animationDelay: '-6s' }} />
 
       <div className="relative z-10 grid min-h-screen lg:grid-cols-[1.1fr_0.9fr]">
 

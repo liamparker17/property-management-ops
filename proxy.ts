@@ -38,12 +38,23 @@ export default auth((req) => {
     pathname.startsWith('/settings') ||
     pathname.startsWith('/profile');
   const isTenantArea = pathname === '/tenant' || pathname.startsWith('/tenant/');
+  const isLandlordArea = pathname === '/landlord' || pathname.startsWith('/landlord/');
+  const isAgentArea = pathname === '/agent' || pathname.startsWith('/agent/');
   const isAdminArea = pathname.startsWith('/settings');
 
   if (isStaffArea && (!role || !STAFF_ROLES.includes(role))) {
-    return NextResponse.redirect(new URL('/tenant', req.url));
+    if (role === 'TENANT') return NextResponse.redirect(new URL('/tenant', req.url));
+    if (role === 'LANDLORD') return NextResponse.redirect(new URL('/landlord', req.url));
+    if (role === 'MANAGING_AGENT') return NextResponse.redirect(new URL('/agent', req.url));
+    return NextResponse.redirect(new URL('/login', req.url));
   }
   if (isTenantArea && role !== 'TENANT') {
+    return NextResponse.redirect(new URL('/dashboard', req.url));
+  }
+  if (isLandlordArea && role !== 'LANDLORD') {
+    return NextResponse.redirect(new URL('/dashboard', req.url));
+  }
+  if (isAgentArea && role !== 'MANAGING_AGENT') {
     return NextResponse.redirect(new URL('/dashboard', req.url));
   }
   if (isAdminArea && role !== 'ADMIN') {

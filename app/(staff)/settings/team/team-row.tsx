@@ -8,7 +8,7 @@ type Row = {
   id: string;
   email: string;
   name: string | null;
-  role: 'ADMIN' | 'PROPERTY_MANAGER' | 'FINANCE' | 'TENANT';
+  role: 'ADMIN' | 'PROPERTY_MANAGER' | 'FINANCE' | 'TENANT' | 'LANDLORD' | 'MANAGING_AGENT';
   disabledAt: Date | null;
 };
 
@@ -51,6 +51,8 @@ export function TeamRow({ row }: { row: Row }) {
           <option value="PROPERTY_MANAGER">Property manager</option>
           <option value="FINANCE">Finance</option>
           <option value="TENANT">Tenant</option>
+          <option value="LANDLORD">Landlord</option>
+          <option value="MANAGING_AGENT">Managing Agent</option>
         </select>
       </td>
       <td className="px-4 py-3">

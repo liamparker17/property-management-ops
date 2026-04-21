@@ -57,6 +57,8 @@ export function NewUserForm() {
           <option value="PROPERTY_MANAGER">Property manager</option>
           <option value="FINANCE">Finance</option>
           <option value="TENANT">Tenant</option>
+          <option value="LANDLORD">Landlord</option>
+          <option value="MANAGING_AGENT">Managing Agent</option>
         </select>
       </div>
       <div className="space-y-2">

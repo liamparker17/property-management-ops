@@ -23,7 +23,14 @@ export default async function OrgSettingsPage() {
           <CardTitle className="text-base">Organisation details</CardTitle>
         </CardHeader>
         <CardContent>
-          <OrgForm initial={{ name: org.name, expiringWindowDays: org.expiringWindowDays }} />
+          <OrgForm
+            initial={{
+              name: org.name,
+              expiringWindowDays: org.expiringWindowDays,
+              ownerType: org.ownerType,
+              landlordApprovalThresholdCents: org.landlordApprovalThresholdCents,
+            }}
+          />
         </CardContent>
       </Card>
     </div>

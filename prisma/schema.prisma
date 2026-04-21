@@ -14,6 +14,29 @@ enum Role {
   PROPERTY_MANAGER
   FINANCE
   TENANT
+  LANDLORD
+  MANAGING_AGENT
+}
+
+enum OrgOwnerType {
+  PM_AGENCY
+  LANDLORD_DIRECT
+}
+
+enum ApprovalKind {
+  MAINTENANCE_COMMIT
+  LEASE_CREATE
+  LEASE_RENEW
+  RENT_CHANGE
+  TENANT_EVICT
+  PROPERTY_REMOVE
+}
+
+enum ApprovalState {
+  PENDING
+  APPROVED
+  DECLINED
+  CANCELLED
 }
 
 enum LeaseState {
@@ -69,11 +92,13 @@ enum SAProvince {
 // ---------- Org & Auth ----------
 
 model Org {
-  id                  String    @id @default(cuid())
-  name                String
-  slug                String    @unique
-  expiringWindowDays  Int       @default(60)
-  createdAt           DateTime  @default(now())
+  id                             String       @id @default(cuid())
+  name                           String
+  slug                           String       @unique
+  ownerType                      OrgOwnerType @default(PM_AGENCY)
+  landlordApprovalThresholdCents Int          @default(500000)
+  expiringWindowDays             Int          @default(60)
+  createdAt                      DateTime     @default(now())
 
   users               User[]
   properties          Property[]
@@ -83,27 +108,76 @@ model Org {
   documents           Document[]
   maintenance         MaintenanceRequest[]
   invoices            Invoice[]
+  landlords           Landlord[]
+  managingAgents      ManagingAgent[]
+  approvals           Approval[]
+}
+
+model Landlord {
+  id          String    @id @default(cuid())
+  orgId       String
+  org         Org       @relation(fields: [orgId], references: [id])
+  name        String
+  email       String?
+  phone       String?
+  vatNumber   String?
+  notes       String?
+  archivedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  users       User[]
+  properties  Property[]
+  approvals   Approval[]
+
+  @@index([orgId, name])
+  @@index([orgId, archivedAt])
+}
+
+model ManagingAgent {
+  id                 String    @id @default(cuid())
+  orgId              String
+  org                Org       @relation(fields: [orgId], references: [id])
+  name               String
+  email              String?
+  phone              String?
+  notes              String?
+  archivedAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  users              User[]
+  assignedProperties Property[]
+
+  @@index([orgId, name])
+  @@index([orgId, archivedAt])
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  name          String?
-  passwordHash  String
-  role          Role
-  orgId         String
-  org           Org       @relation(fields: [orgId], references: [id])
-  emailVerified DateTime?
-  image         String?
-  disabledAt    DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id              String    @id @default(cuid())
+  email           String    @unique
+  name            String?
+  passwordHash    String
+  role            Role
+  orgId           String
+  org             Org       @relation(fields: [orgId], references: [id])
+  landlordId      String?
+  landlord        Landlord?      @relation(fields: [landlordId], references: [id])
+  managingAgentId String?
+  managingAgent   ManagingAgent? @relation(fields: [managingAgentId], references: [id])
+  emailVerified   DateTime?
+  image           String?
+  disabledAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   accounts      Account[]
   sessions      Session[]
   uploaded      Document[] @relation("DocumentUploader")
 
   @@index([orgId])
+  @@index([landlordId])
+  @@index([managingAgentId])
 }
 
 model Account {
@@ -143,26 +217,32 @@ model VerificationToken {
 // ---------- Portfolio ----------
 
 model Property {
-  id            String     @id @default(cuid())
-  orgId         String
-  org           Org        @relation(fields: [orgId], references: [id])
-  name          String
-  addressLine1  String
-  addressLine2  String?
-  suburb        String
-  city          String
-  province      SAProvince
-  postalCode    String
-  notes         String?
-  deletedAt     DateTime?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  id               String     @id @default(cuid())
+  orgId            String
+  org              Org        @relation(fields: [orgId], references: [id])
+  landlordId       String?
+  landlord         Landlord?      @relation(fields: [landlordId], references: [id])
+  assignedAgentId  String?
+  assignedAgent    ManagingAgent? @relation(fields: [assignedAgentId], references: [id])
+  name             String
+  addressLine1     String
+  addressLine2     String?
+  suburb           String
+  city             String
+  province         SAProvince
+  postalCode       String
+  notes            String?
+  deletedAt        DateTime?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
 
   units         Unit[]
   documents     Document[]
 
   @@index([orgId, name])
   @@index([orgId, deletedAt])
+  @@index([landlordId])
+  @@index([assignedAgentId])
 }
 
 model Unit {
@@ -353,4 +433,29 @@ model LeaseReviewRequest {
   respondedAt    DateTime?
 
   @@index([leaseId, status])
+}
+
+model Approval {
+  id             String        @id @default(cuid())
+  orgId          String
+  org            Org           @relation(fields: [orgId], references: [id])
+  landlordId     String
+  landlord       Landlord      @relation(fields: [landlordId], references: [id])
+  propertyId     String?
+  kind           ApprovalKind
+  subjectType    String?
+  subjectId      String?
+  payload        Json
+  state          ApprovalState @default(PENDING)
+  reason         String?
+  decisionNote   String?
+  requestedById  String
+  decidedById    String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  decidedAt      DateTime?
+
+  @@index([orgId, state])
+  @@index([landlordId, state])
+  @@index([subjectType, subjectId])
 }

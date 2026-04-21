@@ -22,15 +22,55 @@ export async function createTeamUser(ctx: RouteCtx, input: z.infer<typeof create
   const existing = await db.user.findUnique({ where: { email: input.email } });
   if (existing) throw ApiError.conflict('A user with this email already exists');
   const passwordHash = await bcrypt.hash(input.password, 10);
-  return db.user.create({
-    data: {
-      email: input.email,
-      name: input.name,
-      role: input.role,
-      orgId: ctx.orgId,
-      passwordHash,
-    },
-    select: { id: true, email: true, name: true, role: true },
+
+  return db.$transaction(async (tx) => {
+    let landlordId: string | null = null;
+    let managingAgentId: string | null = null;
+
+    if (input.role === 'LANDLORD') {
+      if (input.landlordId) {
+        const found = await tx.landlord.findFirst({
+          where: { id: input.landlordId, orgId: ctx.orgId },
+          select: { id: true },
+        });
+        if (!found) throw ApiError.validation({ landlordId: 'Landlord not found in this workspace' });
+        landlordId = found.id;
+      } else {
+        const created = await tx.landlord.create({
+          data: { orgId: ctx.orgId, name: input.name, email: input.email },
+          select: { id: true },
+        });
+        landlordId = created.id;
+      }
+    } else if (input.role === 'MANAGING_AGENT') {
+      if (input.managingAgentId) {
+        const found = await tx.managingAgent.findFirst({
+          where: { id: input.managingAgentId, orgId: ctx.orgId },
+          select: { id: true },
+        });
+        if (!found) throw ApiError.validation({ managingAgentId: 'Managing agent not found in this workspace' });
+        managingAgentId = found.id;
+      } else {
+        const created = await tx.managingAgent.create({
+          data: { orgId: ctx.orgId, name: input.name, email: input.email },
+          select: { id: true },
+        });
+        managingAgentId = created.id;
+      }
+    }
+
+    return tx.user.create({
+      data: {
+        email: input.email,
+        name: input.name,
+        role: input.role,
+        orgId: ctx.orgId,
+        passwordHash,
+        landlordId,
+        managingAgentId,
+      },
+      select: { id: true, email: true, name: true, role: true },
+    });
   });
 }
 

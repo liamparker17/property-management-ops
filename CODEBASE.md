@@ -33,14 +33,16 @@ Next.js 16.2 | React 19 | TypeScript strict | Prisma 7 + Neon Postgres | NextAut
 
 ## Database Schema (prisma/schema.prisma)
 
-**Enums:** Role (ADMIN, PROPERTY_MANAGER, FINANCE, TENANT) | LeaseState (DRAFT, ACTIVE, TERMINATED, RENEWED) | DocumentKind (LEASE_AGREEMENT) | SAProvince (GP, WC, KZN, EC, FS, LP, MP, NW, NC) | MaintenancePriority (LOW, MEDIUM, HIGH, URGENT) | MaintenanceStatus (OPEN, IN_PROGRESS, RESOLVED, CLOSED) | InvoiceStatus (DUE, PAID, OVERDUE) | ReviewRequestStatus (OPEN, ACCEPTED, REJECTED, RESOLVED)
+**Enums:** Role (ADMIN, PROPERTY_MANAGER, FINANCE, TENANT, LANDLORD, MANAGING_AGENT) | OrgOwnerType (PM_AGENCY, LANDLORD_DIRECT) | ApprovalKind (MAINTENANCE_COMMIT, LEASE_CREATE, LEASE_RENEW, RENT_CHANGE, TENANT_EVICT, PROPERTY_REMOVE) | ApprovalState (PENDING, APPROVED, DECLINED, CANCELLED) | LeaseState (DRAFT, ACTIVE, TERMINATED, RENEWED) | DocumentKind (LEASE_AGREEMENT) | SAProvince (GP, WC, KZN, EC, FS, LP, MP, NW, NC) | MaintenancePriority (LOW, MEDIUM, HIGH, URGENT) | MaintenanceStatus (OPEN, IN_PROGRESS, RESOLVED, CLOSED) | InvoiceStatus (DUE, PAID, OVERDUE) | ReviewRequestStatus (OPEN, ACCEPTED, REJECTED, RESOLVED)
 
 **Models:**
 | Model | Key Fields | Relations |
 |-------|-----------|-----------|
-| Org | name, slug, expiringWindowDays | users, properties, units, tenants, leases, documents |
-| User | email, passwordHash, role, orgId, disabledAt | org, accounts, sessions, documents |
-| Property | name, address*, suburb, city, province, postalCode, deletedAt | org, units, documents |
+| Org | name, slug, ownerType, landlordApprovalThresholdCents, expiringWindowDays | users, properties, units, tenants, leases, documents, landlords, managingAgents, approvals |
+| User | email, passwordHash, role, orgId, landlordId?, managingAgentId?, disabledAt | org, landlord?, managingAgent?, accounts, sessions, documents |
+| Landlord | orgId, name, email?, phone?, vatNumber?, archivedAt | org, users, properties, approvals |
+| ManagingAgent | orgId, name, email?, phone?, archivedAt | org, users, assignedProperties |
+| Property | name, address*, suburb, city, province, postalCode, landlordId?, assignedAgentId?, deletedAt | org, landlord?, assignedAgent?, units, documents |
 | Unit | propertyId, label, bedrooms, bathrooms, sizeSqm | property, leases, documents |
 | Tenant | firstName, lastName, email, phone, idNumber, userId, archivedAt | org, leases, documents |
 | Lease | unitId, startDate, endDate, rentAmountCents, depositAmountCents, state, renewedFromId | unit, tenants (M2M via LeaseTenant), documents |
@@ -51,6 +53,7 @@ Next.js 16.2 | React 19 | TypeScript strict | Prisma 7 + Neon Postgres | NextAut
 | Invoice | leaseId, periodStart, dueDate, amountCents, status, paidAt, paidAmountCents, paidNote | org, lease — unique(leaseId, periodStart) |
 | LeaseSignature | leaseId, tenantId, signedName, signedAt, ipAddress, userAgent, latitude, longitude, locationText | lease, tenant — unique(leaseId, tenantId) |
 | LeaseReviewRequest | leaseId, tenantId, clauseExcerpt, tenantNote, status, pmResponse, respondedAt | lease (no FK to tenant) |
+| Approval | orgId, landlordId, propertyId?, kind, subjectType?, subjectId?, payload (Json), state, reason?, decisionNote?, requestedById, decidedById?, decidedAt? | org, landlord |
 
 ## Auth Flow
 
@@ -85,6 +88,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | sms.ts | `sendTenantInviteSms`, `sendMaintenanceCreatedOpsSms`, `sendMaintenanceCreatedTenantSms`, `sendMaintenanceStatusTenantSms`, `sendLeaseSignedOpsSms`, `sendReviewRequestOpsSms`, `sendReviewResponseTenantSms`, `sendInvoicePaidTenantSms`, `SendResult` — SMS via SMS Gateway for Android (cloud mode); normalizes ZA local numbers to E.164; ops messages go to `OPS_SMS_RECIPIENTS`; no-ops if unconfigured | — |
 | blob.ts | `validateFile(file)` (20MB, pdf/png/jpeg/webp), `uploadBlob(path, file)`, `deleteBlob(pathname)` | 13 |
 | utils.ts | `cn()` — clsx + tailwind-merge | 6 |
+| permissions.ts | `landlordHasExecutiveAuthority(org)`, `requiresLandlordApproval(action, org)`, `orgOwnerTypeLabel()` — gates landlord actions based on Org.ownerType | — |
 
 ### lib/services/
 | File | Exports | Lines |
@@ -101,6 +105,10 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | onboarding.ts | `onboardTenant(ctx, input)` — single-transaction tenant + DRAFT lease + optional portal account with temp password | 94 |
 | maintenance.ts | `createTenantMaintenanceRequest()`, `listTenantMaintenanceRequests()`, `getTenantMaintenanceRequest()`, `listMaintenanceRequests()`, `getMaintenanceRequest()`, `updateMaintenanceRequest()` | 128 |
 | invoices.ts | `ensureInvoicesForLease()` (idempotent month-by-month generator, past→PAID, current/future→DUE), `listTenantInvoices()`, `listLeaseInvoices()`, `markInvoicePaid()`, `markInvoiceUnpaid()` | 135 |
+| landlords.ts | `listLandlords()`, `getLandlord()`, `createLandlord()`, `updateLandlord()` | — |
+| managing-agents.ts | `listManagingAgents()`, `getManagingAgent()`, `createManagingAgent()`, `updateManagingAgent()` | — |
+| landlord-portal.ts | `getLandlordProfile()`, `listLandlordProperties()`, `getLandlordPortfolioSummary()` — scoped by User.id → User.landlordId | — |
+| approvals.ts | `requestApproval()`, `listPendingForLandlord()`, `listApprovalsForOrg()`, `decideApproval()`, `cancelApproval()` — generic approval workflow (MAINTENANCE_COMMIT etc.) | — |
 
 ### lib/zod/
 | File | Exports | Lines |
@@ -109,7 +117,10 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | property.ts | `provinceEnum`, `createPropertySchema`, `updatePropertySchema` | 17 |
 | tenant.ts | `createTenantSchema`, `updateTenantSchema` | 12 |
 | unit.ts | `createUnitSchema`, `updateUnitSchema` | 12 |
-| team.ts | `roleEnum`, `createUserSchema`, `updateUserSchema`, `updateOrgSchema`, `changePasswordSchema` | 26 |
+| team.ts | `roleEnum`, `createUserSchema` (incl. optional landlordId/managingAgentId), `updateUserSchema`, `updateOrgSchema` (incl. ownerType, landlordApprovalThresholdCents), `changePasswordSchema` | — |
+| landlords.ts | `createLandlordSchema`, `updateLandlordSchema` | — |
+| managing-agents.ts | `createManagingAgentSchema`, `updateManagingAgentSchema` | — |
+| approvals.ts | `approvalKindEnum`, `decideApprovalSchema` | — |
 | document.ts | `documentKindEnum`, `documentUploadMetaSchema` | 4 |
 | maintenance.ts | `maintenancePriorityEnum`, `maintenanceStatusEnum`, `createMaintenanceRequestSchema`, `updateMaintenanceRequestSchema` | 18 |
 | invoice.ts | `markInvoicePaidSchema` | 8 |

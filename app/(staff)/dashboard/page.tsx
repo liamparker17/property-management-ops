@@ -33,6 +33,7 @@ type OverdueAccount = DashboardSummary['invoiceOverview']['overdueAccounts'][num
 type TrendPoint = DashboardSummary['invoiceOverview']['monthlyTrend'][number];
 type StatusSegment = DashboardSummary['invoiceOverview']['statusBreakdown'][number];
 type ExpiryBucket = DashboardSummary['expiryOverview']['buckets'][number];
+type UnitCashflow = DashboardSummary['invoiceOverview']['cashflowByUnit'][number];
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -78,70 +79,95 @@ export default async function DashboardPage() {
           description="Capacity, occupancy, and lease coverage across the organisation."
         />
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Properties" value={summary.totalProperties} icon={<Building2 />} tone="primary" />
-          <StatCard label="Units" value={summary.totalUnits} icon={<HomeIcon />} tone="violet" />
-          <StatCard label="Active leases" value={summary.activeLeases} icon={<FileText />} tone="emerald" />
-          <StatCard
-            label="Occupied"
-            value={summary.occupiedUnits}
-            hint={`${summary.vacantUnits} vacant`}
-            icon={<Users />}
-            tone="amber"
-          />
+          <CardLink href="/properties" label="Open properties">
+            <StatCard label="Properties" value={summary.totalProperties} icon={<Building2 />} tone="primary" />
+          </CardLink>
+          <CardLink href="/properties" label="Open unit portfolio">
+            <StatCard label="Units" value={summary.totalUnits} icon={<HomeIcon />} tone="violet" />
+          </CardLink>
+          <CardLink href="/leases?status=ACTIVE" label="Open active leases">
+            <StatCard label="Active leases" value={summary.activeLeases} icon={<FileText />} tone="emerald" />
+          </CardLink>
+          <CardLink href="/leases" label="Open lease portfolio">
+            <StatCard
+              label="Occupied"
+              value={summary.occupiedUnits}
+              hint={`${summary.vacantUnits} vacant`}
+              icon={<Users />}
+              tone="amber"
+            />
+          </CardLink>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <MiniStat label="Occupied" value={summary.occupiedUnits} tone="emerald" icon={<CheckCircle2 />} />
-          <MiniStat label="Vacant" value={summary.vacantUnits} tone="slate" icon={<HomeIcon />} />
-          <MiniStat label="Upcoming" value={summary.upcomingUnits} tone="violet" icon={<Clock />} />
-          <MiniStat
-            label="Expiring soon"
-            value={summary.expiringSoonLeases}
-            tone="amber"
-            icon={<CalendarClock />}
-          />
+          <CardLink href="/leases" label="Open occupied units">
+            <MiniStat label="Occupied" value={summary.occupiedUnits} tone="emerald" icon={<CheckCircle2 />} />
+          </CardLink>
+          <CardLink href="/properties" label="Open vacant units">
+            <MiniStat label="Vacant" value={summary.vacantUnits} tone="slate" icon={<HomeIcon />} />
+          </CardLink>
+          <CardLink href="/leases" label="Open upcoming leases">
+            <MiniStat label="Upcoming" value={summary.upcomingUnits} tone="violet" icon={<Clock />} />
+          </CardLink>
+          <CardLink href="#expiring-leases" label="Jump to expiring leases">
+            <MiniStat
+              label="Expiring soon"
+              value={summary.expiringSoonLeases}
+              tone="amber"
+              icon={<CalendarClock />}
+            />
+          </CardLink>
         </div>
       </section>
 
-      <section className="space-y-4">
+      <section id="collections" className="scroll-mt-28 space-y-4">
         <SectionLead
           eyebrow="Collections"
           title="Collections snapshot"
           description="How much has been invoiced, what has been collected, and where arrears are building up."
         />
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            label="Invoiced"
-            value={formatZar(summary.invoiceOverview.totalInvoicedCents)}
-            hint="Trailing 6 months"
-            icon={<Landmark />}
-            tone="primary"
-          />
-          <StatCard
-            label="Collected"
-            value={formatZar(summary.invoiceOverview.totalCollectedCents)}
-            hint={`${summary.invoiceOverview.collectionRatePct}% collection rate`}
-            icon={<TrendingUp />}
-            tone="emerald"
-          />
-          <StatCard
-            label="Outstanding"
-            value={formatZar(summary.invoiceOverview.outstandingCents)}
-            hint="Due + overdue"
-            icon={<CreditCard />}
-            tone="amber"
-          />
-          <StatCard
-            label="Overdue accounts"
-            value={summary.invoiceOverview.overdueCount}
-            hint={formatZar(summary.invoiceOverview.overdueAmountCents)}
-            icon={<FileClock />}
-            tone="rose"
-          />
+          <CardLink href="#collections-trend" label="Jump to invoiced versus paid trend">
+            <StatCard
+              label="Invoiced"
+              value={formatZar(summary.invoiceOverview.totalInvoicedCents)}
+              hint="Trailing 6 months"
+              icon={<Landmark />}
+              tone="primary"
+            />
+          </CardLink>
+          <CardLink href="#collections-trend" label="Jump to collections trend">
+            <StatCard
+              label="Collected"
+              value={formatZar(summary.invoiceOverview.totalCollectedCents)}
+              hint={`${summary.invoiceOverview.collectionRatePct}% collection rate`}
+              icon={<TrendingUp />}
+              tone="emerald"
+            />
+          </CardLink>
+          <CardLink href="#receivables-status" label="Jump to receivables status">
+            <StatCard
+              label="Outstanding"
+              value={formatZar(summary.invoiceOverview.outstandingCents)}
+              hint="Due + overdue"
+              icon={<CreditCard />}
+              tone="amber"
+            />
+          </CardLink>
+          <CardLink href="#overdue-accounts" label="Jump to overdue accounts">
+            <StatCard
+              label="Overdue accounts"
+              value={summary.invoiceOverview.overdueCount}
+              hint={formatZar(summary.invoiceOverview.overdueAmountCents)}
+              icon={<FileClock />}
+              tone="rose"
+            />
+          </CardLink>
         </div>
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.35fr_0.85fr]">
         <ChartCard
+          id="collections-trend"
           eyebrow="Trend"
           title="Accounts invoiced vs paid"
           description="Trailing six-month view of issued rent statements versus money actually collected."
@@ -150,6 +176,7 @@ export default async function DashboardPage() {
         </ChartCard>
 
         <ChartCard
+          id="receivables-status"
           eyebrow="Mix"
           title="Receivables status"
           description="Paid, due, and overdue split across all statements currently on the books."
@@ -158,8 +185,17 @@ export default async function DashboardPage() {
         </ChartCard>
       </section>
 
+      <ChartCard
+        id="cashflow-by-unit"
+        eyebrow="Units"
+        title="Cashflow per unit"
+        description="Trailing six-month billed, collected, and outstanding amounts by unit. Click a row to open the unit."
+      >
+        <UnitCashflowChart units={summary.invoiceOverview.cashflowByUnit} />
+      </ChartCard>
+
       <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <Card className="border border-border p-0">
+        <Card id="overdue-accounts" className="scroll-mt-28 border border-border p-0">
           <div className="border-b border-border/70 px-5 py-5">
             <div className="flex items-center justify-between gap-4">
               <div>
@@ -170,7 +206,7 @@ export default async function DashboardPage() {
                   Accounts overdue
                 </h2>
                 <p className="mt-2 max-w-xl text-sm leading-[1.7] text-muted-foreground">
-                  Statements that are past due and still unpaid, ordered by severity.
+                  Statements that are past due and still unpaid. Click a row to open the lease invoice panel.
                 </p>
               </div>
               <div className="text-right">
@@ -194,25 +230,29 @@ export default async function DashboardPage() {
           ) : (
             <ul className="divide-y divide-border/60">
               {summary.invoiceOverview.overdueAccounts.map((account: OverdueAccount) => (
-                <li
-                  key={account.id}
-                  className="grid gap-3 px-5 py-4 text-sm transition-colors hover:bg-[color:var(--muted)]/45 md:grid-cols-[1.2fr_0.8fr_auto]"
-                >
-                  <div>
-                    <div className="font-medium text-foreground">
-                      {account.propertyName} / {account.unitLabel}
+                <li key={account.id}>
+                  <Link
+                    href={`/leases/${account.leaseId}#invoices`}
+                    className="grid gap-3 px-5 py-4 text-sm transition-colors hover:bg-[color:var(--muted)]/45 md:grid-cols-[1.2fr_0.8fr_auto]"
+                  >
+                    <div>
+                      <div className="font-medium text-foreground">
+                        {account.propertyName} / {account.unitLabel}
+                      </div>
+                      <div className="mt-1 text-muted-foreground">
+                        {account.tenantName ?? 'Unassigned primary tenant'}
+                      </div>
                     </div>
-                    <div className="mt-1 text-muted-foreground">{account.tenantName ?? 'Unassigned primary tenant'}</div>
-                  </div>
-                  <div className="text-muted-foreground">
-                    <div>Due {account.dueDate}</div>
-                    <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em]">
-                      {account.daysOverdue} days overdue
+                    <div className="text-muted-foreground">
+                      <div>Due {account.dueDate}</div>
+                      <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em]">
+                        {account.daysOverdue} days overdue
+                      </div>
                     </div>
-                  </div>
-                  <div className="justify-self-start font-medium text-foreground md:justify-self-end">
-                    {formatZar(account.amountCents)}
-                  </div>
+                    <div className="justify-self-start font-medium text-foreground md:justify-self-end">
+                      {formatZar(account.amountCents)}
+                    </div>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -220,6 +260,7 @@ export default async function DashboardPage() {
         </Card>
 
         <ChartCard
+          id="expiry-pressure"
           eyebrow="Renewals"
           title="Expiring lease pressure"
           description="Active leases bucketed by proximity to expiry so PMs can prioritise renewals."
@@ -234,6 +275,7 @@ export default async function DashboardPage() {
 
       <section className="grid gap-6 xl:grid-cols-2">
         <LeaseListPanel
+          id="expiring-leases"
           eyebrow="Renewals"
           title="Expiring soon"
           description="Leases ending inside the configured warning window."
@@ -340,6 +382,22 @@ export default async function DashboardPage() {
   );
 }
 
+function CardLink({
+  href,
+  label,
+  children,
+}: {
+  href: string;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link href={href} aria-label={label} className="block">
+      {children}
+    </Link>
+  );
+}
+
 function SectionLead({
   eyebrow,
   title,
@@ -359,18 +417,20 @@ function SectionLead({
 }
 
 function ChartCard({
+  id,
   eyebrow,
   title,
   description,
   children,
 }: {
+  id?: string;
   eyebrow: string;
   title: string;
   description: string;
   children: React.ReactNode;
 }) {
   return (
-    <Card className="border border-border p-0">
+    <Card id={id} className="scroll-mt-28 border border-border p-0">
       <div className="border-b border-border/70 px-5 py-5">
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--accent)]">{eyebrow}</p>
         <h2 className="mt-2 font-serif text-[28px] font-light tracking-[-0.01em] text-foreground">{title}</h2>
@@ -382,6 +442,7 @@ function ChartCard({
 }
 
 function LeaseListPanel({
+  id,
   eyebrow,
   title,
   description,
@@ -389,6 +450,7 @@ function LeaseListPanel({
   actionLabel,
   children,
 }: {
+  id?: string;
   eyebrow: string;
   title: string;
   description: string;
@@ -397,7 +459,7 @@ function LeaseListPanel({
   children: React.ReactNode;
 }) {
   return (
-    <Card className="border border-border p-0">
+    <Card id={id} className="scroll-mt-28 border border-border p-0">
       <div className="flex items-start justify-between gap-4 border-b border-border/70 px-5 py-5">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--accent)]">{eyebrow}</p>
@@ -589,7 +651,11 @@ function ReceivablesDonut({ segments }: { segments: StatusSegment[] }) {
       </div>
       <div className="space-y-4">
         {segments.map((segment) => (
-          <div key={segment.label} className="flex items-start justify-between gap-4 border-b border-border/60 pb-4 last:border-b-0 last:pb-0">
+          <Link
+            key={segment.label}
+            href={segment.tone === 'destructive' ? '#overdue-accounts' : '#collections'}
+            className="flex items-start justify-between gap-4 border-b border-border/60 pb-4 transition-colors hover:text-foreground last:border-b-0 last:pb-0"
+          >
             <div className="flex items-center gap-3">
               <span
                 className={cn(
@@ -609,8 +675,104 @@ function ReceivablesDonut({ segments }: { segments: StatusSegment[] }) {
               </div>
             </div>
             <div className="text-right font-medium text-foreground">{formatZar(segment.amountCents)}</div>
-          </div>
+          </Link>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function UnitCashflowChart({ units }: { units: UnitCashflow[] }) {
+  if (units.length === 0) {
+    return (
+      <EmptyState
+        icon={<CreditCard className="size-5" />}
+        title="No unit cashflow yet"
+        description="Once invoices exist for active leases, unit-level cashflow will appear here."
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {units.map((unit) => {
+        const paidPct = unit.invoicedCents > 0 ? (unit.paidCents / unit.invoicedCents) * 100 : 0;
+        const outstandingPct =
+          unit.invoicedCents > 0 ? (unit.outstandingCents / unit.invoicedCents) * 100 : 0;
+
+        return (
+          <Link
+            key={unit.unitId}
+            href={`/units/${unit.unitId}`}
+            className="block border border-border bg-card px-4 py-4 transition-colors hover:bg-[color:var(--muted)]/45"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <div className="font-medium text-foreground">
+                  {unit.propertyName} / {unit.unitLabel}
+                </div>
+                <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                  {unit.collectionRatePct}% collected
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="font-serif text-[24px] font-light leading-none tracking-[-0.02em] text-foreground">
+                  {formatZar(unit.invoicedCents)}
+                </div>
+                <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                  billed
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 h-3 overflow-hidden bg-[color:var(--muted)]">
+              <div className="flex h-full">
+                <div className="bg-emerald-600/85" style={{ width: `${paidPct}%` }} />
+                <div className="bg-[color:var(--accent)]" style={{ width: `${outstandingPct}%` }} />
+              </div>
+            </div>
+
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              <UnitCashflowMetric label="Collected" value={formatZar(unit.paidCents)} tone="emerald" />
+              <UnitCashflowMetric
+                label="Outstanding"
+                value={formatZar(unit.outstandingCents)}
+                tone={unit.outstandingCents > 0 ? 'amber' : 'slate'}
+              />
+              <UnitCashflowMetric label="Lease view" value="Open unit" tone="primary" />
+            </div>
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
+function UnitCashflowMetric({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: 'emerald' | 'amber' | 'primary' | 'slate';
+}) {
+  return (
+    <div className="border border-border bg-[color:var(--muted)]/35 px-3 py-3">
+      <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
+      <div
+        className={cn(
+          'mt-2 text-sm font-medium',
+          tone === 'emerald'
+            ? 'text-emerald-700 dark:text-emerald-300'
+            : tone === 'amber'
+              ? 'text-[color:var(--accent)]'
+              : tone === 'primary'
+                ? 'text-primary'
+                : 'text-foreground',
+        )}
+      >
+        {value}
       </div>
     </div>
   );
@@ -630,8 +792,12 @@ function ExpiryPressureChart({
   return (
     <div className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
-        <MiniMetric label="Inside warning window" value={windowCount} tone="amber" />
-        <MiniMetric label="Already expired" value={expiredCount} tone="destructive" />
+        <CardLink href="#expiring-leases" label="Jump to leases inside warning window">
+          <MiniMetric label="Inside warning window" value={windowCount} tone="amber" />
+        </CardLink>
+        <CardLink href="/leases?status=EXPIRED" label="Open expired leases">
+          <MiniMetric label="Already expired" value={expiredCount} tone="destructive" />
+        </CardLink>
       </div>
       <div className="space-y-4">
         {buckets.map((bucket) => (

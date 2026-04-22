@@ -182,7 +182,7 @@ export default async function LeaseDetail({ params }: { params: Promise<{ id: st
       {showInvoices && (
         <>
           <Separator />
-          <section className="space-y-3">
+          <section id="invoices" className="scroll-mt-28 space-y-3">
             <h2 className="text-lg font-semibold tracking-tight">Invoices</h2>
             <InvoicesPanel invoices={invoices} />
           </section>

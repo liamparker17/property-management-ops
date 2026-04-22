@@ -39,7 +39,6 @@ export async function getDashboardSummary(ctx: RouteCtx) {
   const now = new Date();
   const currentMonth = monthStartUtc(now);
   const trailingMonths = Array.from({ length: 6 }, (_, index) => addUtcMonths(currentMonth, index - 5));
-  const trailingStart = trailingMonths[0];
   const trailingMonthKeys = new Set(trailingMonths.map(monthKey));
 
   const [totalProperties, units, activeLeaseIds] = await Promise.all([
@@ -152,6 +151,18 @@ export async function getDashboardSummary(ctx: RouteCtx) {
     paidCents: 0,
   }));
   const trendByKey = new Map(monthlyTrend.map((bucket) => [bucket.key, bucket]));
+  const unitCashflowMap = new Map<
+    string,
+    {
+      unitId: string;
+      leaseId: string;
+      propertyName: string;
+      unitLabel: string;
+      invoicedCents: number;
+      paidCents: number;
+      outstandingCents: number;
+    }
+  >();
 
   let totalInvoicedCents = 0;
   let totalCollectedCents = 0;
@@ -170,6 +181,8 @@ export async function getDashboardSummary(ctx: RouteCtx) {
       const daysOverdue = Math.ceil((now.getTime() - invoice.dueDate.getTime()) / (1000 * 60 * 60 * 24));
       return {
         id: invoice.id,
+        leaseId: invoice.leaseId,
+        unitId: invoice.lease.unit.id,
         propertyName: invoice.lease.unit.property.name,
         unitLabel: invoice.lease.unit.label,
         tenantName: primary ? `${primary.firstName} ${primary.lastName}` : null,
@@ -202,6 +215,24 @@ export async function getDashboardSummary(ctx: RouteCtx) {
       totalInvoicedCents += invoice.amountCents;
       const bucket = trendByKey.get(invoiceKey);
       if (bucket) bucket.invoicedCents += invoice.amountCents;
+
+      const unitKey = invoice.lease.unit.id;
+      const unitBucket =
+        unitCashflowMap.get(unitKey) ??
+        {
+          unitId: invoice.lease.unit.id,
+          leaseId: invoice.lease.id,
+          propertyName: invoice.lease.unit.property.name,
+          unitLabel: invoice.lease.unit.label,
+          invoicedCents: 0,
+          paidCents: 0,
+          outstandingCents: 0,
+        };
+
+      unitBucket.invoicedCents += invoice.amountCents;
+      if (status === 'PAID') unitBucket.paidCents += effectiveAmount;
+      else unitBucket.outstandingCents += invoice.amountCents;
+      unitCashflowMap.set(unitKey, unitBucket);
     }
 
     if (invoice.paidAt) {
@@ -253,6 +284,14 @@ export async function getDashboardSummary(ctx: RouteCtx) {
         { label: 'Due', amountCents: dueAmountCents, count: dueCount, tone: 'amber' as const },
         { label: 'Overdue', amountCents: overdueAmountCents, count: overdueCount, tone: 'destructive' as const },
       ],
+      cashflowByUnit: Array.from(unitCashflowMap.values())
+        .sort((a, b) => b.invoicedCents - a.invoicedCents || b.paidCents - a.paidCents)
+        .slice(0, 8)
+        .map((unit) => ({
+          ...unit,
+          collectionRatePct:
+            unit.invoicedCents > 0 ? Math.round((unit.paidCents / unit.invoicedCents) * 100) : 0,
+        })),
       overdueAccounts,
     },
     expiryOverview: {

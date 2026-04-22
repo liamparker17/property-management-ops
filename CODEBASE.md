@@ -93,7 +93,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 ### lib/services/
 | File | Exports | Lines |
 |------|---------|-------|
-| dashboard.ts | `getDashboardSummary(ctx)` → portfolio totals, occupancy, lease expiries, invoice overview (invoiced vs paid, overdue accounts, expiry buckets), recent leases | 287 |
+| dashboard.ts | `getDashboardSummary(ctx)` → portfolio totals, occupancy, lease expiries, invoice overview (invoiced vs paid, overdue accounts, cashflow by unit, expiry buckets), recent leases | 301 |
 | leases.ts | `DerivedStatus` type, `deriveStatus()`, `listLeases()`, `getLease()`, `createLease()`, `updateDraftLease()`, `activateLease()`, `terminateLease()`, `renewLease()`, `setPrimaryTenant()` | 348 |
 | properties.ts | `listProperties()`, `getProperty()`, `createProperty()`, `updateProperty()`, `softDeleteProperty()` | 51 |
 | tenants.ts | `listTenants()`, `getTenant()`, `detectDuplicates()`, `createTenant()`, `updateTenant()`, `archiveTenant()`, `unarchiveTenant()`, `deleteTenant()` (hard delete — requires archived; cascades LeaseTenant, MaintenanceRequest, LeaseSignature, LeaseReviewRequest, linked User; nulls Document.tenantId), `inviteTenantToPortal()` — creates a TENANT User, links via Tenant.userId, returns one-time temp password | 170 |
@@ -141,7 +141,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | — | (marketing)/layout.tsx | Public layout shell |
 | /login | (marketing)/login/page.tsx | Renders `<LoginForm>` in Suspense |
 | — | (staff)/layout.tsx | Auth guard + `<StaffNav>` |
-| /dashboard | (staff)/dashboard/page.tsx | Staff dashboard with portfolio KPIs, invoiced vs paid chart, receivables donut, overdue accounts, expiring leases |
+| /dashboard | (staff)/dashboard/page.tsx | Staff dashboard with portfolio KPIs, drill-through cards, invoiced vs paid chart, receivables donut, overdue accounts, cashflow by unit, expiring leases |
 | /properties | (staff)/properties/page.tsx | Property list |
 | /properties/new | (staff)/properties/new/page.tsx | Create property form |
 | /properties/[id] | (staff)/properties/[id]/page.tsx | Property detail + units list |

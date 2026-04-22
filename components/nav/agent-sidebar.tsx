@@ -20,7 +20,7 @@ interface AgentSidebarProps {
 }
 
 export function AgentSidebar({ email }: AgentSidebarProps = {}) {
-  return <SidebarBody items={NAV} brand="Agent Portal" footerLine={email} />;
+  return <SidebarBody items={NAV} brand="Regalis" subtitle="Agent Portal" footerLine={email} />;
 }
 
 export function DesktopAgentSidebar({ email }: AgentSidebarProps = {}) {

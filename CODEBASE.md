@@ -236,3 +236,21 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | forms/onboard-tenant-form.tsx | Client | `OnboardTenantForm` — full wizard form, POSTs to /api/onboarding/tenants, displays temp password result | — |
 | lease-agreement-document.tsx | Server | `LeaseAgreementDocument` — scrollable rendered lease from `renderLeaseAgreement()` | — |
 | ui/* | Client | shadcn: badge, button, card, checkbox, dialog, input, label, select, table, textarea | ~800 |
+ 
+**Manifest refresh (2026-04-22) — supersedes older line counts above where duplicated**
+
+| File | Type | Exports | Lines |
+|------|------|---------|-------|
+| empty-state.tsx | Client | `EmptyState` â€” shared empty-state panel with optional icon + action | 43 |
+| page-header.tsx | Client | `PageHeader` â€” shared eyebrow/title/description/action header shell | 46 |
+| stat-card.tsx | Client | `StatTone`, `StatCard` â€” editorial metric card with left accent rail | 64 |
+| lease-status-badge.tsx | Server | `LeaseStatusBadge` â€” lease state pill with editorial status colours | 39 |
+| occupancy-badge.tsx | Server | `OccupancyBadge` â€” occupancy pill (VACANT/OCCUPIED/UPCOMING/CONFLICT) | 33 |
+| maintenance-badges.tsx | Server | `MaintenanceStatusBadge`, `MaintenancePriorityBadge` â€” maintenance status/priority pills | 36 |
+| nav/breadcrumbs.tsx | Client | `Breadcrumbs` â€” pathname-based breadcrumb trail for internal layouts | 70 |
+| nav/mobile-nav.tsx | Client | `MobileNav` â€” mobile drawer nav wrapper around `SidebarBody` | 97 |
+| nav/sidebar.tsx | Client | `getStaffNavItems()`, `Sidebar`, `SidebarBody`, `DesktopSidebar` â€” shared editorial sidebar shell for portal nav | 143 |
+| nav/tenant-sidebar.tsx | Client | `getTenantNavItems()`, `TenantSidebar`, `DesktopTenantSidebar` â€” tenant portal nav config + wrappers | 34 |
+| nav/agent-sidebar.tsx | Client | `getAgentNavItems()`, `AgentSidebar`, `DesktopAgentSidebar` â€” agent portal nav config + wrappers | 32 |
+| nav/landlord-sidebar.tsx | Client | `getLandlordNavItems()`, `LandlordSidebar`, `DesktopLandlordSidebar` â€” landlord portal nav config + wrappers | 34 |
+| nav/top-bar.tsx | Server | `TopBar` â€” internal top bar with breadcrumbs, theme toggle, account, sign out | 53 |

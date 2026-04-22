@@ -1,12 +1,12 @@
-import { Receipt, CheckCircle2, CircleDot, AlertTriangle, CalendarClock, TrendingUp } from 'lucide-react';
+import { AlertTriangle, CalendarClock, CheckCircle2, CircleDot, Receipt, TrendingUp } from 'lucide-react';
 
-import { auth } from '@/lib/auth';
-import { listTenantInvoices } from '@/lib/services/invoices';
-import { formatZar, formatDate } from '@/lib/format';
+import { EmptyState } from '@/components/empty-state';
+import { PageHeader } from '@/components/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { PageHeader } from '@/components/page-header';
-import { EmptyState } from '@/components/empty-state';
+import { auth } from '@/lib/auth';
+import { formatDate, formatZar } from '@/lib/format';
+import { listTenantInvoices } from '@/lib/services/invoices';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,55 +17,54 @@ export default async function TenantInvoicesPage() {
   const today = new Date();
   const currentMonthStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
 
-  const upcoming = invoices.filter((i) => i.periodStart >= currentMonthStart);
-  const past = invoices.filter((i) => i.periodStart < currentMonthStart);
+  const upcoming = invoices.filter((invoice) => invoice.periodStart >= currentMonthStart);
+  const past = invoices.filter((invoice) => invoice.periodStart < currentMonthStart);
 
-  const nextDue = upcoming.find((i) => i.status !== 'PAID');
-  const paidTotalCents = past.reduce((sum, i) => sum + (i.paidAmountCents ?? 0), 0);
+  const nextDue = upcoming.find((invoice) => invoice.status !== 'PAID');
+  const paidTotalCents = past.reduce((sum, invoice) => sum + (invoice.paidAmountCents ?? 0), 0);
 
   return (
     <div className="space-y-8">
       <PageHeader eyebrow="Billing" title="Invoices" description="Rent statements for your lease." />
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className="relative overflow-hidden">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/8 via-transparent to-transparent"
-          />
+        <Card className="relative overflow-hidden border border-border">
+          <span aria-hidden className="absolute inset-x-0 top-0 h-0.5 bg-primary opacity-70" />
           <CardContent className="relative flex items-start gap-4 p-5">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <div className="flex h-11 w-11 items-center justify-center border border-primary/20 text-primary">
               <CalendarClock className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Next due</p>
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Next due</p>
               {nextDue ? (
                 <>
-                  <p className="mt-1 text-2xl font-semibold tracking-tight">{formatZar(nextDue.amountCents)}</p>
-                  <p className="mt-0.5 text-sm text-muted-foreground">
-                    Due {formatDate(nextDue.dueDate)} · {monthLabel(nextDue.periodStart)}
+                  <p className="mt-2 font-serif text-[30px] font-light leading-none tracking-[-0.02em]">
+                    {formatZar(nextDue.amountCents)}
+                  </p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Due {formatDate(nextDue.dueDate)} / {monthLabel(nextDue.periodStart)}
                   </p>
                 </>
               ) : (
-                <p className="mt-1 text-sm text-muted-foreground">Nothing outstanding.</p>
+                <p className="mt-2 text-sm text-muted-foreground">Nothing outstanding.</p>
               )}
             </div>
           </CardContent>
         </Card>
-        <Card className="relative overflow-hidden">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 bg-gradient-to-br from-emerald-500/8 via-transparent to-transparent"
-          />
+
+        <Card className="relative overflow-hidden border border-border">
+          <span aria-hidden className="absolute inset-x-0 top-0 h-0.5 bg-[color:var(--accent)] opacity-70" />
           <CardContent className="relative flex items-start gap-4 p-5">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+            <div className="flex h-11 w-11 items-center justify-center border border-[color:var(--accent)]/25 text-[color:var(--accent)]">
               <TrendingUp className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Paid to date</p>
-              <p className="mt-1 text-2xl font-semibold tracking-tight">{formatZar(paidTotalCents)}</p>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                Across {past.filter((i) => i.status === 'PAID').length} statements.
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Paid to date</p>
+              <p className="mt-2 font-serif text-[30px] font-light leading-none tracking-[-0.02em]">
+                {formatZar(paidTotalCents)}
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Across {past.filter((invoice) => invoice.status === 'PAID').length} statements.
               </p>
             </div>
           </CardContent>
@@ -81,29 +80,31 @@ export default async function TenantInvoicesPage() {
 
 type Invoice = Awaited<ReturnType<typeof listTenantInvoices>>[number];
 
-function monthLabel(d: Date) {
-  return d.toLocaleString('en-ZA', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+function monthLabel(date: Date) {
+  return date.toLocaleString('en-ZA', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 }
 
 function StatusPill({ status }: { status: Invoice['status'] }) {
   if (status === 'PAID') {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-500/20 dark:text-emerald-400">
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-emerald-800 ring-1 ring-inset ring-emerald-600/20 dark:text-emerald-300">
         <CheckCircle2 className="h-3 w-3" />
         Paid
       </span>
     );
   }
+
   if (status === 'OVERDUE') {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-medium text-destructive ring-1 ring-inset ring-destructive/25">
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-destructive/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-destructive ring-1 ring-inset ring-destructive/25">
         <AlertTriangle className="h-3 w-3" />
         Overdue
       </span>
     );
   }
+
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-500/25 dark:text-amber-300">
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-[color:var(--accent)]/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-foreground ring-1 ring-inset ring-[color:var(--accent)]/30">
       <CircleDot className="h-3 w-3" />
       Due
     </span>
@@ -113,18 +114,20 @@ function StatusPill({ status }: { status: Invoice['status'] }) {
 function Section({ title, items, emptyLabel }: { title: string; items: Invoice[]; emptyLabel: string }) {
   return (
     <section className="space-y-3">
-      <h2 className="flex items-center gap-2 text-base font-semibold tracking-tight">
-        <span className="h-5 w-1 rounded-full bg-primary" />
-        {title}
-      </h2>
+      <div>
+        <h2 className="font-serif text-[28px] font-light tracking-[-0.01em] text-foreground">{title}</h2>
+        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+          {title === 'Upcoming' ? 'Statements still to be settled.' : 'Previously issued rent statements.'}
+        </p>
+      </div>
       {items.length === 0 ? (
         <EmptyState icon={<Receipt className="size-5" />} title={emptyLabel} />
       ) : (
-        <Card className="overflow-hidden p-0">
+        <Card className="overflow-hidden border border-border p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border/60 bg-muted/40 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <tr className="border-b border-border/60 bg-muted/40 text-left font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
                   <th className="px-4 py-3">Period</th>
                   <th className="px-4 py-3">Property</th>
                   <th className="px-4 py-3">Amount</th>
@@ -134,19 +137,22 @@ function Section({ title, items, emptyLabel }: { title: string; items: Invoice[]
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
-                {items.map((i) => (
-                  <tr key={i.id} className="transition-colors duration-150 even:bg-muted/15 hover:bg-muted/40">
-                    <td className="px-4 py-3 font-medium">{monthLabel(i.periodStart)}</td>
+                {items.map((invoice) => (
+                  <tr
+                    key={invoice.id}
+                    className="transition-colors duration-150 even:bg-muted/15 hover:bg-[color:var(--muted)]/45"
+                  >
+                    <td className="px-4 py-3 font-medium">{monthLabel(invoice.periodStart)}</td>
                     <td className="px-4 py-3 text-muted-foreground">
-                      {i.lease.unit.property.name} · {i.lease.unit.label}
+                      {invoice.lease.unit.property.name} / {invoice.lease.unit.label}
                     </td>
-                    <td className="px-4 py-3 font-medium">{formatZar(i.amountCents)}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{formatDate(i.dueDate)}</td>
+                    <td className="px-4 py-3 font-medium">{formatZar(invoice.amountCents)}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{formatDate(invoice.dueDate)}</td>
                     <td className="px-4 py-3 text-muted-foreground">
-                      {i.paidAt ? formatDate(i.paidAt) : '—'}
+                      {invoice.paidAt ? formatDate(invoice.paidAt) : '-'}
                     </td>
                     <td className="px-4 py-3">
-                      <StatusPill status={i.status} />
+                      <StatusPill status={invoice.status} />
                     </td>
                   </tr>
                 ))}

@@ -40,7 +40,8 @@ export function MobileNav({ variant, role, email, orgName }: MobileNavProps) {
 
   const items =
     variant === 'staff' ? getStaffNavItems(role ?? 'PROPERTY_MANAGER') : getTenantNavItems();
-  const brand = variant === 'staff' ? 'PMOps' : 'Tenant Portal';
+  const brand = 'Regalis';
+  const subtitle = variant === 'staff' ? 'Property Ops' : 'Tenant Portal';
   const footerLine = variant === 'staff' ? orgName ?? email : email;
 
   return (
@@ -82,6 +83,7 @@ export function MobileNav({ variant, role, email, orgName }: MobileNavProps) {
                 <SidebarBody
                   items={items}
                   brand={brand}
+                  subtitle={subtitle}
                   footerLine={footerLine}
                   onNavigate={() => setOpen(false)}
                 />

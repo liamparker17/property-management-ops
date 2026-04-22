@@ -64,7 +64,7 @@ function opsRecipients(): string[] {
 }
 
 function brand() {
-  return process.env.EMAIL_FROM_NAME?.trim() || 'PMOps';
+  return process.env.EMAIL_FROM_NAME?.trim() || 'Regalis';
 }
 
 function loginUrl(appUrl: string) {

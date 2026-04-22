@@ -19,7 +19,7 @@ function defaultFrom() {
   const explicit = process.env.EMAIL_FROM?.trim();
   if (explicit) return explicit;
   const user = process.env.GMAIL_USER;
-  const name = process.env.EMAIL_FROM_NAME?.trim() || 'PMOps';
+  const name = process.env.EMAIL_FROM_NAME?.trim() || 'Regalis';
   return user ? `"${name}" <${user}>` : name;
 }
 

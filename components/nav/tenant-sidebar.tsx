@@ -22,7 +22,7 @@ interface TenantSidebarProps {
 }
 
 export function TenantSidebar({ email }: TenantSidebarProps = {}) {
-  return <SidebarBody items={NAV} brand="Tenant Portal" footerLine={email} />;
+  return <SidebarBody items={NAV} brand="Regalis" subtitle="Tenant Portal" footerLine={email} />;
 }
 
 export function DesktopTenantSidebar({ email }: TenantSidebarProps = {}) {

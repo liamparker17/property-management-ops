@@ -1,72 +1,78 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
-import { Home } from 'lucide-react';
 
 import { LoginForm } from '@/components/login-form';
 
+const INK = '#001030';
+const TEAL = '#002060';
+const CREAM = '#f5f1ea';
+const GOLD = '#b8965a';
+const GOLD_LT = '#d4b07a';
+
 export default function LoginPage() {
   return (
-    <main className="relative isolate min-h-screen overflow-hidden bg-background">
+    <main className="grid min-h-screen grid-cols-1 font-sans lg:grid-cols-[1.1fr_0.9fr]">
+      {/* ── Editorial panel ── */}
+      <aside className="relative hidden flex-col justify-between overflow-hidden px-14 py-16 lg:flex" style={{ background: TEAL }}>
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-architect-grid" />
+        <div aria-hidden className="pointer-events-none absolute -top-10 -right-8 select-none font-serif text-[420px] font-light leading-none" style={{ color: 'rgba(184,150,90,0.07)' }}>R</div>
 
-      {/* Grid — visible across the whole page, fades at edges */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-grid-subtle opacity-60 [mask-image:radial-gradient(ellipse_120%_100%_at_50%_0%,black_40%,transparent_100%)]"
-      />
+        <Link href="/" className="relative z-[1] inline-flex items-center gap-3 self-start no-underline">
+          <span className="inline-flex overflow-hidden rounded-sm bg-white">
+            <img src="/regalis.svg" alt="Regalis" className="h-10 w-auto object-contain" />
+          </span>
+          <span className="flex flex-col leading-none">
+            <span className="font-serif text-[22px] font-normal uppercase tracking-[0.08em]" style={{ color: CREAM }}>Regalis</span>
+            <span className="mt-[2px] font-mono text-[9px] uppercase tracking-[0.2em]" style={{ color: GOLD }}>Property Ops</span>
+          </span>
+        </Link>
 
-      {/* Atmospheric orbs */}
-      <div aria-hidden className="animate-orb-float pointer-events-none absolute -top-32 -right-32 h-[44rem] w-[44rem] rounded-full bg-primary/22 blur-3xl" />
-      <div aria-hidden className="animate-orb-drift pointer-events-none absolute -bottom-40 -left-32 h-[44rem] w-[44rem] rounded-full bg-violet-500/20 blur-3xl" style={{ animationDelay: '-6s' }} />
-
-      <div className="relative z-10 grid min-h-screen lg:grid-cols-[1.1fr_0.9fr]">
-
-        {/* Left — stripped back, let the background do the talking */}
-        <aside className="hidden flex-col justify-between p-14 lg:flex">
-          <Link href="/" className="inline-flex items-center gap-3 self-start">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-violet-600 text-primary-foreground shadow-lg shadow-primary/30">
-              <Home className="h-4 w-4" />
-            </div>
-            <span className="text-[15px] font-semibold tracking-tight">PMOps</span>
-          </Link>
-
-          <div className="max-w-[22rem] space-y-6">
-            <h2 className="text-5xl font-semibold leading-[1.1] tracking-tight text-foreground">
-              Your portfolio,
-              <br />
-              <span className="bg-gradient-to-r from-primary via-violet-500 to-sky-400 bg-clip-text text-transparent">
-                always in motion.
-              </span>
-            </h2>
-            <p className="text-base leading-relaxed text-muted-foreground">
-              Leases, tenants, and maintenance — one focused workspace for South African property managers.
-            </p>
+        <div className="relative z-[1] max-w-[26rem] space-y-7">
+          <div className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.25em]" style={{ color: GOLD }}>
+            <span className="block h-px w-8" style={{ background: GOLD }} />
+            Welcome back
           </div>
-
-          <p className="text-[11px] text-muted-foreground/50">© {new Date().getFullYear()} PMOps</p>
-        </aside>
-
-        {/* Right — form, clean surface, the grid shows through */}
-        <div className="flex items-center justify-center p-6 sm:p-10">
-          <div className="w-full max-w-[21rem]">
-            <Link href="/" className="mb-8 inline-flex items-center gap-2.5 lg:hidden">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-violet-600 text-primary-foreground">
-                <Home className="h-4 w-4" />
-              </div>
-              <span className="font-semibold tracking-tight">PMOps</span>
-            </Link>
-
-            <div className="rounded-2xl border border-white/25 bg-background/70 px-8 py-9 shadow-2xl shadow-black/10 backdrop-blur-2xl">
-              <div className="mb-7">
-                <h1 className="text-[1.6rem] font-semibold tracking-tight">Sign in</h1>
-                <p className="mt-1.5 text-[15px] text-muted-foreground">Welcome back to your workspace.</p>
-              </div>
-              <Suspense>
-                <LoginForm />
-              </Suspense>
-            </div>
-          </div>
+          <h2 className="font-serif text-[48px] font-light leading-[1.08] tracking-[-0.01em] md:text-[60px]" style={{ color: CREAM }}>
+            Your portfolio,<br />
+            <em style={{ color: GOLD_LT }}>always in motion.</em>
+          </h2>
+          <p className="max-w-sm text-[14px] leading-[1.75]" style={{ color: 'rgba(245,241,234,0.65)' }}>
+            Leases, tenants, and maintenance — one focused workspace for South African property managers.
+          </p>
         </div>
 
+        <p className="relative z-[1] font-mono text-[10px] tracking-[0.15em]" style={{ color: 'rgba(245,241,234,0.3)' }}>
+          © {new Date().getFullYear()} Regalis
+        </p>
+      </aside>
+
+      {/* ── Form panel ── */}
+      <div className="flex items-center justify-center px-6 py-10 sm:px-10" style={{ background: CREAM }}>
+        <div className="w-full max-w-[22rem]">
+          <Link href="/" className="mb-10 inline-flex items-center gap-2.5 no-underline lg:hidden">
+            <span className="inline-flex overflow-hidden rounded-sm">
+              <img src="/regalis.svg" alt="Regalis" className="h-9 w-auto object-contain" />
+            </span>
+            <span className="font-serif text-[20px] uppercase tracking-[0.08em]" style={{ color: INK }}>Regalis</span>
+          </Link>
+
+          <div className="mb-8 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.25em]" style={{ color: GOLD }}>
+            <span className="block h-px w-8" style={{ background: GOLD }} />
+            Sign in
+          </div>
+
+          <h1 className="mb-3 font-serif text-[44px] font-light leading-[1.05] tracking-[-0.01em]" style={{ color: INK }}>
+            Enter the<br />
+            <em style={{ color: TEAL }}>workspace.</em>
+          </h1>
+          <p className="mb-9 text-[14px] leading-[1.7]" style={{ color: 'rgba(0,16,48,0.55)' }}>
+            Existing tenants and staff only.
+          </p>
+
+          <Suspense>
+            <LoginForm />
+          </Suspense>
+        </div>
       </div>
     </main>
   );

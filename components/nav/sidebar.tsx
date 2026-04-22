@@ -8,7 +8,6 @@ import {
   Users,
   FileText,
   Settings,
-  Home,
   Wrench,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -39,28 +38,46 @@ interface SidebarProps {
 
 export function Sidebar({ role, email, orgName }: SidebarProps) {
   const items = getStaffNavItems(role);
-  return <SidebarBody items={items} brand="PMOps" footerLine={orgName ?? email} />;
+  return (
+    <SidebarBody
+      items={items}
+      brand="Regalis"
+      subtitle="Property Ops"
+      footerLine={orgName ?? email}
+    />
+  );
 }
 
 interface SidebarBodyProps {
   items: NavItem[];
   brand: string;
+  subtitle: string;
   footerLine?: string;
   onNavigate?: () => void;
 }
 
-export function SidebarBody({ items, brand, footerLine, onNavigate }: SidebarBodyProps) {
+export function SidebarBody({
+  items,
+  brand,
+  subtitle,
+  footerLine,
+  onNavigate,
+}: SidebarBodyProps) {
   const pathname = usePathname();
 
   return (
     <div className="flex h-full w-full flex-col bg-sidebar text-sidebar-foreground">
-      <div className="flex h-16 items-center gap-2.5 border-b border-sidebar-border px-5">
-        <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-sm">
-          <Home className="h-4 w-4" />
-        </div>
-        <div className="flex flex-col leading-tight">
-          <span className="text-[15px] font-semibold tracking-tight">{brand}</span>
-          <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">Property Ops</span>
+      <div className="flex h-20 items-center gap-3 border-b border-sidebar-border px-5">
+        <span className="inline-flex overflow-hidden rounded-md dark:bg-white">
+          <img src="/regalis.svg" alt={brand} className="h-10 w-auto object-contain" />
+        </span>
+        <div className="min-w-0">
+          <div className="truncate font-serif text-[18px] uppercase tracking-[0.08em] text-sidebar-foreground">
+            {brand}
+          </div>
+          <div className="truncate font-mono text-[9px] uppercase tracking-[0.2em] text-sidebar-primary">
+            {subtitle}
+          </div>
         </div>
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-5">
@@ -73,38 +90,42 @@ export function SidebarBody({ items, brand, footerLine, onNavigate }: SidebarBod
               href={item.href}
               onClick={onNavigate}
               className={cn(
-                'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150',
+                'group relative flex items-center gap-3 border border-transparent px-3.5 py-3 text-[11px] uppercase tracking-[0.12em] transition-all duration-150',
                 active
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-card'
-                  : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
+                  ? 'border-sidebar-border bg-sidebar-accent/90 text-sidebar-accent-foreground'
+                  : 'text-sidebar-foreground/68 hover:border-sidebar-border/80 hover:bg-sidebar-accent/35 hover:text-sidebar-foreground',
               )}
             >
               {active ? (
                 <span
                   aria-hidden
-                  className="absolute -left-3 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-sidebar-primary"
+                  className="absolute left-0 top-1/2 h-8 w-0.5 -translate-y-1/2 bg-sidebar-primary"
                 />
               ) : null}
               <Icon
                 className={cn(
                   'h-4 w-4 transition-colors',
-                  active ? 'text-sidebar-primary' : 'text-sidebar-foreground/60 group-hover:text-sidebar-foreground',
+                  active ? 'text-sidebar-primary' : 'text-sidebar-foreground/55 group-hover:text-sidebar-primary',
                 )}
               />
-              <span className={active ? 'font-semibold' : ''}>{item.label}</span>
+              <span className={active ? 'font-semibold text-sidebar-accent-foreground' : 'font-medium'}>
+                {item.label}
+              </span>
             </Link>
           );
         })}
       </nav>
       {footerLine ? (
         <div className="border-t border-sidebar-border px-4 py-4">
-          <div className="flex items-center gap-3 rounded-lg px-2 py-1.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-xs font-semibold text-sidebar-accent-foreground">
+          <div className="flex items-center gap-3 border border-sidebar-border/80 bg-sidebar-accent/20 px-3 py-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-sidebar-primary/25 bg-sidebar-accent text-xs font-semibold text-sidebar-primary">
               {(footerLine?.[0] ?? 'P').toUpperCase()}
             </div>
             <div className="min-w-0 text-xs">
-              <div className="truncate font-medium text-sidebar-foreground">{footerLine}</div>
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Signed in</div>
+              <div className="truncate text-sm text-sidebar-foreground">{footerLine}</div>
+              <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-sidebar-foreground/45">
+                Signed in
+              </div>
             </div>
           </div>
         </div>

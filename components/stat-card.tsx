@@ -1,19 +1,18 @@
 import * as React from "react"
 
-import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 
-const TONE_STYLES = {
-  primary: "bg-primary/10 text-primary",
-  emerald: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-  rose: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
-  sky: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
-  violet: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
-  slate: "bg-slate-500/10 text-slate-600 dark:text-slate-300",
+const TONE_ACCENT = {
+  primary: "bg-[color:var(--primary)]",
+  emerald: "bg-emerald-600",
+  amber: "bg-[color:var(--accent)]",
+  rose: "bg-rose-600",
+  sky: "bg-[color:var(--accent)]",
+  violet: "bg-[color:var(--primary)]",
+  slate: "bg-border",
 } as const
 
-export type StatTone = keyof typeof TONE_STYLES
+export type StatTone = keyof typeof TONE_ACCENT
 
 interface StatCardProps {
   label: React.ReactNode
@@ -33,42 +32,33 @@ export function StatCard({
   className,
 }: StatCardProps) {
   return (
-    <Card
+    <div
       className={cn(
-        "group relative overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-elevated",
+        "group relative overflow-hidden border border-border bg-card p-5 transition hover:bg-[color:var(--muted)]",
         className,
       )}
     >
-      <div className="flex items-start justify-between gap-4 p-5">
-        <div className="space-y-1">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      <span aria-hidden className="absolute left-0 top-0 h-full w-0.5 opacity-70 transition-opacity group-hover:opacity-100">
+        <span className={cn("block h-full w-full", TONE_ACCENT[tone])} />
+      </span>
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-2">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
             {label}
           </p>
-          <p className="text-2xl font-semibold tracking-tight text-foreground">
+          <p className="font-serif text-[38px] font-light leading-none tracking-[-0.02em] text-foreground">
             {value}
           </p>
           {hint ? (
-            <p className="text-xs text-muted-foreground">{hint}</p>
+            <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">{hint}</p>
           ) : null}
         </div>
         {icon ? (
-          <div
-            className={cn(
-              "flex h-10 w-10 items-center justify-center rounded-xl transition-transform group-hover:scale-105 [&_svg]:size-5",
-              TONE_STYLES[tone],
-            )}
-          >
+          <div className="opacity-40 [&_svg]:size-5">
             {icon}
           </div>
         ) : null}
       </div>
-      <div
-        aria-hidden
-        className={cn(
-          "absolute inset-x-0 bottom-0 h-0.5 opacity-60",
-          TONE_STYLES[tone].split(" ")[0],
-        )}
-      />
-    </Card>
+    </div>
   )
 }

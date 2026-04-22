@@ -13,6 +13,7 @@ function isPublic(pathname: string) {
   if (pathname.startsWith('/api/auth')) return true;
   if (pathname.startsWith('/_next')) return true;
   if (pathname.startsWith('/favicon')) return true;
+  if (/\.(svg|png|jpe?g|webp|gif|ico|txt|xml|woff2?|ttf)$/i.test(pathname)) return true;
   return false;
 }
 

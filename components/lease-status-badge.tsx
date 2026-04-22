@@ -1,21 +1,21 @@
 type Status = 'DRAFT' | 'ACTIVE' | 'EXPIRING' | 'EXPIRED' | 'TERMINATED' | 'RENEWED';
 
 const STYLES: Record<Status, string> = {
-  DRAFT: 'bg-slate-500/10 text-slate-700 ring-slate-500/20 dark:text-slate-300',
-  ACTIVE: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/20 dark:text-emerald-400',
-  EXPIRING: 'bg-amber-500/10 text-amber-800 ring-amber-500/25 dark:text-amber-300',
+  DRAFT: 'bg-muted text-muted-foreground ring-border',
+  ACTIVE: 'bg-emerald-500/10 text-emerald-800 ring-emerald-600/20 dark:text-emerald-300',
+  EXPIRING: 'bg-[color:var(--accent)]/10 text-foreground ring-[color:var(--accent)]/30',
   EXPIRED: 'bg-destructive/10 text-destructive ring-destructive/25',
-  TERMINATED: 'bg-slate-500/10 text-slate-600 ring-slate-500/20 dark:text-slate-400',
-  RENEWED: 'bg-violet-500/10 text-violet-700 ring-violet-500/20 dark:text-violet-300',
+  TERMINATED: 'bg-secondary text-secondary-foreground ring-border',
+  RENEWED: 'bg-primary/10 text-primary ring-primary/20 dark:text-primary-foreground',
 };
 
 const DOTS: Record<Status, string> = {
-  DRAFT: 'bg-slate-400',
+  DRAFT: 'bg-muted-foreground/60',
   ACTIVE: 'bg-emerald-500',
-  EXPIRING: 'bg-amber-500',
+  EXPIRING: 'bg-[color:var(--accent)]',
   EXPIRED: 'bg-destructive',
-  TERMINATED: 'bg-slate-400',
-  RENEWED: 'bg-violet-500',
+  TERMINATED: 'bg-secondary-foreground/55',
+  RENEWED: 'bg-primary',
 };
 
 const LABELS: Record<Status, string> = {
@@ -30,7 +30,7 @@ const LABELS: Record<Status, string> = {
 export function LeaseStatusBadge({ status }: { status: Status }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset transition-colors duration-150 ${STYLES[status]}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] ring-1 ring-inset transition-colors duration-150 ${STYLES[status]}`}
     >
       <span className={`h-2 w-2 rounded-full ${DOTS[status]}`} />
       {LABELS[status]}

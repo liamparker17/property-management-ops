@@ -45,19 +45,19 @@ export function Breadcrumbs() {
   });
 
   return (
-    <nav aria-label="Breadcrumb" className="flex min-w-0 items-center text-sm">
+    <nav aria-label="Breadcrumb" className="flex min-w-0 items-center font-mono text-[10px] uppercase tracking-[0.16em]">
       <ol className="flex min-w-0 items-center gap-1.5">
         {crumbs.map((crumb, idx) => (
           <Fragment key={crumb.href}>
             {idx > 0 ? (
-              <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/60" />
+              <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/40" />
             ) : null}
             {crumb.last ? (
-              <span className="truncate font-semibold text-foreground">{crumb.label}</span>
+              <span className="truncate text-foreground">{crumb.label}</span>
             ) : (
               <Link
                 href={crumb.href}
-                className="truncate text-muted-foreground transition-colors hover:text-foreground"
+                className="truncate text-muted-foreground transition-colors hover:text-[color:var(--accent)]"
               >
                 {crumb.label}
               </Link>

@@ -4,22 +4,22 @@ import {
   CalendarDays,
   Coins,
   FileText,
-  Inbox,
   Home as HomeIcon,
+  Inbox,
   ShieldCheck,
 } from 'lucide-react';
 
+import { EmptyState } from '@/components/empty-state';
+import { PageHeader } from '@/components/page-header';
+import { buttonVariants } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { auth } from '@/lib/auth';
+import { formatDate, formatZar } from '@/lib/format';
 import {
   getActiveLeaseForTenant,
   getTenantProfile,
   listTenantDocuments,
 } from '@/lib/services/tenant-portal';
-import { formatDate, formatZar } from '@/lib/format';
-import { Card, CardContent } from '@/components/ui/card';
-import { buttonVariants } from '@/components/ui/button';
-import { PageHeader } from '@/components/page-header';
-import { EmptyState } from '@/components/empty-state';
 import { cn } from '@/lib/utils';
 
 function daysBetween(a: Date, b: Date) {
@@ -49,31 +49,33 @@ export default async function TenantHome() {
         />
       ) : (
         <>
-          <Card className="overflow-hidden p-0">
-            <div
-              aria-hidden
-              className="h-1 bg-gradient-to-r from-primary via-violet-500 to-sky-500"
-            />
+          <Card className="overflow-hidden border border-border p-0">
+            <div aria-hidden className="h-1 bg-gradient-to-r from-[color:var(--accent)] via-primary to-[color:var(--accent)]" />
             <CardContent className="p-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="flex items-start gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 text-primary">
+                  <div className="flex h-12 w-12 items-center justify-center border border-[color:var(--accent)]/25 text-[color:var(--accent)]">
                     <HomeIcon className="h-5 w-5" />
                   </div>
                   <div>
-                    <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                       Current residence
                     </div>
-                    <h2 className="mt-1 text-xl font-semibold tracking-tight">
-                      {lease.unit.property.name} · {lease.unit.label}
+                    <h2 className="mt-2 font-serif text-[30px] font-light leading-[1.05] tracking-[-0.01em] text-foreground">
+                      {lease.unit.property.name} / {lease.unit.label}
                     </h2>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {lease.unit.property.addressLine1}, {lease.unit.property.suburb},{' '}
-                      {lease.unit.property.city}
+                    <p className="mt-2 text-sm leading-[1.7] text-muted-foreground">
+                      {lease.unit.property.addressLine1}, {lease.unit.property.suburb}, {lease.unit.property.city}
                     </p>
                   </div>
                 </div>
-                <Link href="/tenant/lease" className={cn(buttonVariants({ variant: 'outline' }), 'gap-1.5')}>
+                <Link
+                  href="/tenant/lease"
+                  className={cn(
+                    buttonVariants({ variant: 'outline' }),
+                    'gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em]',
+                  )}
+                >
                   View lease <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </div>
@@ -89,7 +91,7 @@ export default async function TenantHome() {
                 <InfoTile
                   icon={<CalendarDays />}
                   label="Lease period"
-                  value={`${formatDate(lease.startDate)} → ${formatDate(lease.endDate)}`}
+                  value={`${formatDate(lease.startDate)} - ${formatDate(lease.endDate)}`}
                   tone="violet"
                 />
                 <InfoTile
@@ -110,12 +112,16 @@ export default async function TenantHome() {
       <section>
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold tracking-tight">Recent documents</h2>
-            <p className="text-sm text-muted-foreground">Lease agreements and supporting files.</p>
+            <h2 className="font-serif text-[28px] font-light tracking-[-0.01em] text-foreground">
+              Recent documents
+            </h2>
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              Lease agreements and supporting files.
+            </p>
           </div>
           <Link
             href="/tenant/documents"
-            className="flex items-center gap-1 text-sm font-medium text-primary transition-colors hover:text-primary/80"
+            className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--accent)] transition-colors hover:text-foreground"
           >
             View all <ArrowRight className="h-3.5 w-3.5" />
           </Link>
@@ -127,26 +133,25 @@ export default async function TenantHome() {
             description="Your property manager will upload them here."
           />
         ) : (
-          <Card className="overflow-hidden p-0">
+          <Card className="overflow-hidden border border-border p-0">
             <ul className="divide-y divide-border/60">
               {documents.slice(0, 5).map((doc) => (
                 <li
                   key={doc.id}
-                  className="flex items-center gap-4 px-4 py-3 text-sm transition-colors hover:bg-muted/40"
+                  className="flex items-center gap-4 px-5 py-4 text-sm transition-colors hover:bg-[color:var(--muted)]/50"
                 >
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                  <div className="flex h-9 w-9 items-center justify-center border border-[color:var(--accent)]/25 text-[color:var(--accent)]">
                     <FileText className="h-4 w-4" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-medium text-foreground">{doc.filename}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {doc.kind.replaceAll('_', ' ').toLowerCase()} ·{' '}
-                      {formatDate(doc.createdAt)}
+                    <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                      {doc.kind.replaceAll('_', ' ').toLowerCase()} / {formatDate(doc.createdAt)}
                     </div>
                   </div>
                   <Link
                     href={`/api/documents/${doc.id}/download`}
-                    className="text-sm font-medium text-primary transition-colors hover:text-primary/80"
+                    className="font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--accent)] transition-colors hover:text-foreground"
                   >
                     Download
                   </Link>
@@ -161,9 +166,9 @@ export default async function TenantHome() {
 }
 
 const TILE_TONE = {
-  emerald: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-  violet: 'bg-violet-500/10 text-violet-600 dark:text-violet-400',
-  sky: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',
+  emerald: 'border-emerald-600/20 text-emerald-700 dark:text-emerald-300',
+  violet: 'border-primary/20 text-primary dark:text-primary-foreground',
+  sky: 'border-[color:var(--accent)]/25 text-[color:var(--accent)]',
 } as const;
 
 function InfoTile({
@@ -180,56 +185,76 @@ function InfoTile({
   tone: keyof typeof TILE_TONE;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card/50 p-4 transition-all hover:-translate-y-0.5 hover:shadow-card">
+    <div className="group relative overflow-hidden border border-border bg-card p-4 transition-colors hover:bg-[color:var(--muted)]/50">
+      <span
+        aria-hidden
+        className={`absolute left-0 top-0 h-full w-0.5 ${tone === 'emerald' ? 'bg-emerald-500' : tone === 'violet' ? 'bg-primary' : 'bg-[color:var(--accent)]'}`}
+      />
       <div className="flex items-center gap-2.5">
-        <div
-          className={`flex h-8 w-8 items-center justify-center rounded-lg ${TILE_TONE[tone]} [&_svg]:size-4`}
-        >
+        <div className={`flex h-9 w-9 items-center justify-center border ${TILE_TONE[tone]} [&_svg]:size-4`}>
           {icon}
         </div>
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
           {label}
         </div>
       </div>
-      <div className="mt-2.5 text-base font-semibold text-foreground">{value}</div>
-      {hint && <div className="mt-0.5 text-xs text-muted-foreground">{hint}</div>}
+      <div className="mt-3 font-serif text-[24px] font-light leading-[1.15] tracking-[-0.01em] text-foreground">
+        {value}
+      </div>
+      {hint ? (
+        <div className="mt-1 text-xs uppercase tracking-[0.12em] text-muted-foreground">
+          {hint}
+        </div>
+      ) : null}
     </div>
   );
 }
 
 function RenewalBanner({ endDate }: { endDate: Date }) {
   const days = daysBetween(new Date(endDate), new Date());
+
   if (days < 0) {
     return (
-      <div className="flex items-start gap-3 rounded-xl border border-destructive/20 bg-destructive/5 p-4">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-destructive/15 text-destructive">
-          <CalendarDays className="h-4 w-4" />
-        </div>
-        <div className="text-sm">
-          <p className="font-medium text-destructive">Your lease has ended</p>
-          <p className="mt-0.5 text-destructive/80">
-            The end date was {formatDate(endDate)}. Please contact your property manager.
-          </p>
+      <div className="relative overflow-hidden border border-destructive/20 bg-card px-5 py-4">
+        <span aria-hidden className="absolute inset-y-0 left-0 w-1 bg-destructive" />
+        <div className="flex items-start gap-3 pl-2">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center border border-destructive/20 text-destructive">
+            <CalendarDays className="h-4 w-4" />
+          </div>
+          <div className="text-sm">
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-destructive">
+              Your lease has ended
+            </p>
+            <p className="mt-2 leading-[1.7] text-destructive/80">
+              The end date was {formatDate(endDate)}. Please contact your property manager.
+            </p>
+          </div>
         </div>
       </div>
     );
   }
+
   if (days <= 60) {
     return (
-      <div className="flex items-start gap-3 rounded-xl border border-amber-500/25 bg-amber-500/5 p-4">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400">
-          <CalendarDays className="h-4 w-4" />
-        </div>
-        <div className="text-sm">
-          <p className="font-medium text-amber-900 dark:text-amber-200">Renewal coming up</p>
-          <p className="mt-0.5 text-amber-800 dark:text-amber-300/90">
-            Your lease ends on {formatDate(endDate)} — that&rsquo;s in {days}{' '}
-            {days === 1 ? 'day' : 'days'}. Your property manager may be in touch about renewal.
-          </p>
+      <div className="relative overflow-hidden border border-[color:var(--accent)]/25 bg-card px-5 py-4">
+        <span aria-hidden className="absolute inset-y-0 left-0 w-1 bg-[color:var(--accent)]" />
+        <div className="flex items-start gap-3 pl-2">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center border border-[color:var(--accent)]/25 text-[color:var(--accent)]">
+            <CalendarDays className="h-4 w-4" />
+          </div>
+          <div className="text-sm">
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--accent)]">
+              Renewal coming up
+            </p>
+            <p className="mt-2 leading-[1.7] text-muted-foreground">
+              Your lease ends on {formatDate(endDate)} - that's in {days} {days === 1 ? 'day' : 'days'}. Your
+              property manager may be in touch about renewal.
+            </p>
+          </div>
         </div>
       </div>
     );
   }
+
   return null;
 }
-

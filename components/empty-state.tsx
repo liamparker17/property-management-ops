@@ -20,24 +20,24 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/80 bg-muted/30 px-6 py-12 text-center",
+        "flex flex-col items-center justify-center gap-4 border border-dashed border-border bg-[color:var(--muted)]/40 px-6 py-16 text-center",
         className,
       )}
     >
       {icon ? (
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <div className="flex h-10 w-10 items-center justify-center border border-[color:var(--accent)]/40 text-[color:var(--accent)]">
           {icon}
         </div>
       ) : null}
-      <div className="space-y-1">
-        <p className="text-sm font-semibold text-foreground">{title}</p>
+      <div className="space-y-2">
+        <p className="font-serif text-[22px] font-light text-foreground">{title}</p>
         {description ? (
-          <p className="mx-auto max-w-md text-sm text-muted-foreground">
+          <p className="mx-auto max-w-md text-sm leading-[1.7] text-muted-foreground">
             {description}
           </p>
         ) : null}
       </div>
-      {action ? <div className="mt-2">{action}</div> : null}
+      {action ? <div className="mt-1">{action}</div> : null}
     </div>
   )
 }

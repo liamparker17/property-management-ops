@@ -1,12 +1,12 @@
 import Link from 'next/link';
-import { Building2, Plus, MapPin, Home as HomeIcon, ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, Building2, Home as HomeIcon, MapPin, Plus } from 'lucide-react';
 
+import { EmptyState } from '@/components/empty-state';
+import { PageHeader } from '@/components/page-header';
+import { buttonVariants } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { auth } from '@/lib/auth';
 import { listProperties } from '@/lib/services/properties';
-import { Card } from '@/components/ui/card';
-import { buttonVariants } from '@/components/ui/button';
-import { PageHeader } from '@/components/page-header';
-import { EmptyState } from '@/components/empty-state';
 import { cn } from '@/lib/utils';
 
 export default async function PropertiesPage() {
@@ -21,7 +21,10 @@ export default async function PropertiesPage() {
         title="Properties"
         description={`${rows.length} ${rows.length === 1 ? 'property' : 'properties'} in your portfolio.`}
         actions={
-          <Link href="/properties/new" className={cn(buttonVariants(), 'gap-1.5')}>
+          <Link
+            href="/properties/new"
+            className={cn(buttonVariants(), 'gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em]')}
+          >
             <Plus className="h-4 w-4" />
             New property
           </Link>
@@ -34,7 +37,10 @@ export default async function PropertiesPage() {
           title="No properties yet"
           description="Add your first property to start tracking units and tenants."
           action={
-            <Link href="/properties/new" className={cn(buttonVariants(), 'gap-1.5')}>
+            <Link
+              href="/properties/new"
+              className={cn(buttonVariants(), 'gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em]')}
+            >
               <Plus className="h-4 w-4" />
               New property
             </Link>
@@ -42,33 +48,30 @@ export default async function PropertiesPage() {
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {rows.map((p) => (
-            <Link key={p.id} href={`/properties/${p.id}`} className="group block">
-              <Card className="relative h-full overflow-hidden p-0 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-elevated">
+          {rows.map((property) => (
+            <Link key={property.id} href={`/properties/${property.id}`} className="group block">
+              <Card className="relative h-full overflow-hidden border border-border p-0 transition-colors duration-200 hover:bg-[color:var(--muted)]/40">
+                <span aria-hidden className="absolute inset-x-0 top-0 h-0.5 bg-[color:var(--accent)] opacity-70" />
                 <div className="flex items-start justify-between p-5">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 text-primary">
+                  <div className="flex h-11 w-11 items-center justify-center border border-[color:var(--accent)]/25 text-[color:var(--accent)]">
                     <Building2 className="h-5 w-5" />
                   </div>
-                  <ArrowUpRight className="h-4 w-4 text-muted-foreground/60 transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-foreground" />
+                  <ArrowUpRight className="h-4 w-4 text-muted-foreground/55 transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-[color:var(--accent)]" />
                 </div>
-                <div className="space-y-2 px-5 pb-5">
-                  <h3 className="text-base font-semibold tracking-tight text-foreground transition-colors group-hover:text-primary">
-                    {p.name}
+                <div className="space-y-3 px-5 pb-5">
+                  <h3 className="font-serif text-[28px] font-light leading-[1.05] tracking-[-0.01em] text-foreground transition-colors group-hover:text-[color:var(--accent)]">
+                    {property.name}
                   </h3>
-                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
                     <MapPin className="h-3.5 w-3.5" />
-                    {p.city}
+                    {property.city}
                   </div>
-                  <div className="flex items-center gap-1.5 pt-1.5 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1.5 border-t border-border/70 pt-3 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
                     <HomeIcon className="h-3.5 w-3.5" />
-                    <span className="font-medium text-foreground">{p._count.units}</span>
-                    {p._count.units === 1 ? 'unit' : 'units'}
+                    <span className="text-foreground">{property._count.units}</span>
+                    {property._count.units === 1 ? 'unit' : 'units'}
                   </div>
                 </div>
-                <div
-                  aria-hidden
-                  className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-0 transition-opacity group-hover:opacity-100"
-                />
               </Card>
             </Link>
           ))}

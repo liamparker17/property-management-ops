@@ -5,11 +5,13 @@ import { authConfig } from './lib/auth.config';
 
 const { auth } = NextAuth(authConfig);
 
-const PUBLIC_PATHS = ['/', '/login'];
+const PUBLIC_PATHS = ['/', '/login', '/signup', '/about', '/product', '/pricing', '/contact'];
+const PUBLIC_PREFIXES = ['/legal/', '/api/public/'];
 const STAFF_ROLES: Role[] = ['ADMIN', 'PROPERTY_MANAGER', 'FINANCE'];
 
 function isPublic(pathname: string) {
   if (PUBLIC_PATHS.includes(pathname)) return true;
+  if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) return true;
   if (pathname.startsWith('/api/auth')) return true;
   if (pathname.startsWith('/_next')) return true;
   if (pathname.startsWith('/favicon')) return true;

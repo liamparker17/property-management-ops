@@ -6,6 +6,8 @@ import { sendInvoicePaidTenantSms } from '@/lib/sms';
 import type { RouteCtx } from '@/lib/auth/with-org';
 import type { z } from 'zod';
 import type { markInvoicePaidSchema } from '@/lib/zod/invoice';
+import { allocateReceipt, recordIncomingPayment, reverseAllocation } from '@/lib/services/payments';
+import { writeAudit } from '@/lib/services/audit';
 
 function monthStart(d: Date): Date {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1));
@@ -99,6 +101,30 @@ export async function listTenantInvoices(userId: string) {
   });
 }
 
+export async function getInvoiceForTenant(userId: string, invoiceId: string) {
+  const tenant = await getTenantForUser(userId);
+  const leaseTenants = await db.leaseTenant.findMany({
+    where: { tenantId: tenant.id },
+    select: { leaseId: true },
+  });
+  const leaseIds = leaseTenants.map((lt) => lt.leaseId);
+  if (leaseIds.length === 0) throw ApiError.notFound('Invoice not found');
+
+  const invoice = await db.invoice.findFirst({
+    where: { id: invoiceId, leaseId: { in: leaseIds } },
+    include: {
+      lineItems: { orderBy: [{ kind: 'asc' }, { createdAt: 'asc' }] },
+      lease: {
+        include: {
+          unit: { include: { property: { select: { name: true, addressLine1: true, suburb: true, city: true } } } },
+        },
+      },
+    },
+  });
+  if (!invoice) throw ApiError.notFound('Invoice not found');
+  return invoice;
+}
+
 export async function listLeaseInvoices(ctx: RouteCtx, leaseId: string) {
   const lease = await db.lease.findFirst({
     where: { id: leaseId, orgId: ctx.orgId },
@@ -119,16 +145,62 @@ export async function markInvoicePaid(
 ) {
   const invoice = await db.invoice.findFirst({
     where: { id: invoiceId, orgId: ctx.orgId },
-    select: { id: true, amountCents: true, status: true },
+    select: {
+      id: true,
+      amountCents: true,
+      totalCents: true,
+      status: true,
+      leaseId: true,
+      lease: {
+        select: {
+          tenants: { where: { isPrimary: true }, select: { tenantId: true } },
+        },
+      },
+      lineItems: { select: { id: true, amountCents: true } },
+    },
   });
   if (!invoice) throw ApiError.notFound('Invoice not found');
   const wasAlreadyPaid = invoice.status === InvoiceStatus.PAID;
+
+  if (!wasAlreadyPaid) {
+    // Total to record. Prefer line-item total when present (Phase B+ invoices), fall back to amountCents.
+    const lineTotal = invoice.lineItems.reduce((acc, li) => acc + li.amountCents, 0);
+    const receiptAmountCents = lineTotal > 0 ? lineTotal : invoice.amountCents;
+    const primaryTenantId = invoice.lease.tenants[0]?.tenantId ?? null;
+
+    const receipt = await recordIncomingPayment(ctx, {
+      tenantId: primaryTenantId,
+      leaseId: invoice.leaseId,
+      receivedAt: (input.paidAt ? new Date(input.paidAt) : new Date()).toISOString(),
+      amountCents: receiptAmountCents,
+      method: 'EFT',
+      source: 'MANUAL',
+      externalRef: `invoice:${invoice.id}`,
+      note: input.paidNote ?? null,
+    });
+
+    if (invoice.lineItems.length > 0) {
+      await allocateReceipt(ctx, receipt.id, {
+        allocations: invoice.lineItems.map((li) => ({
+          target: 'INVOICE_LINE_ITEM' as const,
+          invoiceLineItemId: li.id,
+          amountCents: li.amountCents,
+        })),
+      });
+    } else {
+      // Legacy invoices without line items: auto-allocate (oldest-first; will catch this invoice).
+      await allocateReceipt(ctx, receipt.id, {});
+    }
+  }
+
   const updated = await db.invoice.update({
     where: { id: invoiceId },
     data: {
       status: InvoiceStatus.PAID,
       paidAt: input.paidAt ? new Date(input.paidAt) : new Date(),
-      paidAmountCents: input.paidAmountCents ?? invoice.amountCents,
+      paidAmountCents:
+        input.paidAmountCents ??
+        (invoice.totalCents > 0 ? invoice.totalCents : invoice.amountCents),
       paidNote: input.paidNote ?? null,
     },
     include: {
@@ -144,6 +216,12 @@ export async function markInvoicePaid(
   });
 
   if (!wasAlreadyPaid) {
+    await writeAudit(ctx, {
+      entityType: 'Invoice',
+      entityId: invoice.id,
+      action: 'markPaid',
+      payload: { amountCents: updated.paidAmountCents },
+    });
     const primary = updated.lease.tenants[0]?.tenant;
     if (primary?.phone) {
       const periodLabel = updated.periodStart.toLocaleString('en-ZA', {
@@ -169,8 +247,35 @@ export async function markInvoiceUnpaid(ctx: RouteCtx, invoiceId: string) {
     select: { id: true },
   });
   if (!invoice) throw ApiError.notFound('Invoice not found');
-  return db.invoice.update({
+
+  // Reverse allocations on the auto-generated MANUAL receipt for this invoice (externalRef = "invoice:<id>").
+  const autoReceipt = await db.paymentReceipt.findFirst({
+    where: {
+      orgId: ctx.orgId,
+      source: 'MANUAL',
+      externalRef: `invoice:${invoiceId}`,
+    },
+    include: { allocations: true },
+  });
+
+  if (autoReceipt) {
+    for (const a of autoReceipt.allocations) {
+      if (a.reversedAt) continue;
+      await reverseAllocation(ctx, a.id, 'Invoice marked unpaid');
+    }
+    await db.paymentReceipt.delete({ where: { id: autoReceipt.id } });
+  }
+
+  const updated = await db.invoice.update({
     where: { id: invoiceId },
     data: { status: InvoiceStatus.DUE, paidAt: null, paidAmountCents: null, paidNote: null },
   });
+
+  await writeAudit(ctx, {
+    entityType: 'Invoice',
+    entityId: invoiceId,
+    action: 'markUnpaid',
+    payload: { reversedReceiptId: autoReceipt?.id ?? null },
+  });
+  return updated;
 }

@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
+import { randomBytes } from 'node:crypto';
 import { after, before, beforeEach, describe, it } from 'node:test';
 
 process.env.DATABASE_URL ??= 'postgresql://pmops:pmops@localhost:5432/pmops_test';
+process.env.INTEGRATION_SECRET_KEY ??= randomBytes(32).toString('hex');
 
 let db: any;
 let tpnAdapter: any;
@@ -14,6 +16,7 @@ let waiveTpnCheck: any;
 const applicationRows = new Map<string, any>();
 const applicantRows = new Map<string, any>();
 const tpnRows = new Map<string, any>();
+const orgIntegrationRows = new Map<string, any>();
 const auditCalls: any[] = [];
 
 let originalApplicationFindFirst: any;
@@ -24,6 +27,7 @@ let originalTpnFindUnique: any;
 let originalTpnUpsert: any;
 let originalAuditCreate: any;
 let originalSubmitCheck: any;
+let originalOrgIntegrationFindUnique: any;
 
 function hydrateApplication(row: any) {
   if (!row) return null;
@@ -47,6 +51,7 @@ before(async () => {
   originalTpnFindUnique = db.tpnCheck.findUnique;
   originalTpnUpsert = db.tpnCheck.upsert;
   originalAuditCreate = db.auditLog.create;
+  originalOrgIntegrationFindUnique = db.orgIntegration.findUnique;
 
   db.application.findFirst = async ({ where }: any) =>
     hydrateApplication(
@@ -89,6 +94,10 @@ before(async () => {
     auditCalls.push(data);
     return { id: `audit-${auditCalls.length}`, ...data };
   };
+  db.orgIntegration.findUnique = async ({ where }: any) =>
+    orgIntegrationRows.get(
+      `${where.orgId_provider.orgId}:${where.orgId_provider.provider}`,
+    ) ?? null;
 
   const adapterModule = (await import('@/lib/integrations/tpn/adapter')) as any;
   tpnAdapter = adapterModule.tpnAdapter;
@@ -113,9 +122,9 @@ after(async () => {
   db.tpnCheck.findUnique = originalTpnFindUnique;
   db.tpnCheck.upsert = originalTpnUpsert;
   db.auditLog.create = originalAuditCreate;
+  db.orgIntegration.findUnique = originalOrgIntegrationFindUnique;
   tpnAdapter.submitCheck = originalSubmitCheck;
   delete process.env.TPN_API_URL;
-  delete process.env.TPN_API_KEY;
   await db.$disconnect();
 });
 
@@ -123,10 +132,10 @@ beforeEach(() => {
   applicationRows.clear();
   applicantRows.clear();
   tpnRows.clear();
+  orgIntegrationRows.clear();
   auditCalls.length = 0;
   tpnAdapter.submitCheck = originalSubmitCheck;
   delete process.env.TPN_API_URL;
-  delete process.env.TPN_API_KEY;
 
   applicantRows.set('applicant-1', {
     id: 'applicant-1',
@@ -196,14 +205,22 @@ describe('tpn service', () => {
     await assert.rejects(() => requestTpnCheck(ctx, 'app-1'), {
       code: 'CONFLICT',
       status: 409,
-      message: 'TPN not configured. Set TPN_API_URL and TPN_API_KEY to enable screening.',
+      message: 'TPN not configured for this org',
     });
   });
 
   it('creates a REQUESTED TPN row when the adapter accepts the request', async () => {
     applicantRows.get('applicant-1').tpnConsentGiven = true;
     process.env.TPN_API_URL = 'https://example.test/tpn';
-    process.env.TPN_API_KEY = 'tpn-key';
+    orgIntegrationRows.set('org-1:TPN', {
+      id: 'int-1',
+      orgId: 'org-1',
+      provider: 'TPN',
+      status: 'CONNECTED',
+      accessTokenCipher: 'x',
+      refreshTokenCipher: null,
+      tokenExpiresAt: null,
+    });
     tpnAdapter.submitCheck = async () => ({
       mode: 'async',
       referenceId: 'tpn-ref-1',

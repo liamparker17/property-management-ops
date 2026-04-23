@@ -9,6 +9,8 @@ import type {
   terminateLeaseSchema,
   leaseListQuerySchema,
 } from '@/lib/zod/lease';
+import { writeLedgerEntry } from '@/lib/services/trust';
+import { writeAudit } from '@/lib/services/audit';
 
 export type DerivedStatus = 'DRAFT' | 'ACTIVE' | 'EXPIRING' | 'EXPIRED' | 'TERMINATED' | 'RENEWED';
 
@@ -232,7 +234,10 @@ export async function activateLease(ctx: RouteCtx, id: string) {
   return db.$transaction(async (tx) => {
     const lease = await tx.lease.findFirst({
       where: { id, orgId: ctx.orgId },
-      include: { tenants: true },
+      include: {
+        tenants: true,
+        unit: { include: { property: { select: { landlordId: true } } } },
+      },
     });
     if (!lease) throw ApiError.notFound('Lease not found');
     if (lease.state !== 'DRAFT') throw ApiError.conflict(`Lease is ${lease.state}, cannot activate`);
@@ -242,7 +247,38 @@ export async function activateLease(ctx: RouteCtx, id: string) {
       throw ApiError.conflict('Lease must have exactly one primary tenant to activate');
     }
     await assertNoOverlap(tx, ctx.orgId, lease.unitId, lease.startDate, lease.endDate, lease.id);
-    return tx.lease.update({ where: { id }, data: { state: 'ACTIVE' } });
+    const updated = await tx.lease.update({ where: { id }, data: { state: 'ACTIVE' } });
+
+    if (lease.depositReceivedAt && lease.depositAmountCents > 0) {
+      const landlordId = lease.unit.property.landlordId;
+      if (!landlordId) {
+        await writeAudit(ctx, {
+          entityType: 'Lease',
+          entityId: lease.id,
+          action: 'activateLease.depositSkipped',
+          payload: { reason: 'Property has no landlord' },
+        });
+      } else {
+        const primary = lease.tenants.find((t) => t.isPrimary);
+        await writeLedgerEntry(
+          ctx,
+          {
+            landlordId,
+            occurredAt: lease.depositReceivedAt,
+            type: 'DEPOSIT_IN',
+            amountCents: lease.depositAmountCents,
+            tenantId: primary?.tenantId ?? null,
+            leaseId: lease.id,
+            sourceType: 'Lease',
+            sourceId: lease.id,
+            note: 'Deposit received on activation',
+          },
+          tx,
+        );
+      }
+    }
+
+    return updated;
   });
 }
 

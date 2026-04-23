@@ -6,6 +6,42 @@ import { CheckCircle2, RefreshCw, XCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 
+export function SelfManagedDebitOrderToggle({
+  leaseId,
+  initialActive,
+}: {
+  leaseId: string;
+  initialActive: boolean;
+}) {
+  const router = useRouter();
+  const [active, setActive] = useState(initialActive);
+  const [busy, setBusy] = useState(false);
+
+  async function toggle() {
+    setBusy(true);
+    const next = !active;
+    const res = await fetch(`/api/leases/${leaseId}/self-managed-debit-order`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ active: next }),
+    });
+    setBusy(false);
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}));
+      alert(json?.error?.message ?? 'Failed to update');
+      return;
+    }
+    setActive(next);
+    router.refresh();
+  }
+
+  return (
+    <Button onClick={toggle} disabled={busy} variant="outline" size="sm">
+      {active ? 'Disable self-managed debit order' : 'Enable self-managed debit order'}
+    </Button>
+  );
+}
+
 export function LeaseActions({
   id,
   state,

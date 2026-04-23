@@ -14,6 +14,7 @@
     "nav:validate": "tsx scripts/report-missing-pages.ts",
     "report:missing-pages": "tsx scripts/report-missing-pages.ts",
     "backfill:owners": "tsx scripts/backfill-property-owners.ts",
+    "backfill:invoice-lines": "tsx scripts/backfill-invoice-line-items.ts",
     "typecheck": "tsc --noEmit",
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",

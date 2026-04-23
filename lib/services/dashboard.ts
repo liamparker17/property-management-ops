@@ -249,7 +249,23 @@ export async function getDashboardSummary(ctx: RouteCtx) {
   const collectionRatePct = totalInvoicedCents > 0 ? Math.round((totalCollectedCents / totalInvoicedCents) * 100) : 0;
   const outstandingCents = dueAmountCents + overdueAmountCents;
 
+  const lineItems = await db.invoiceLineItem.findMany({
+    where: { invoice: { orgId: ctx.orgId } },
+    select: { kind: true, amountCents: true },
+  });
+  const incomeByKindMap = new Map<string, number>();
+  for (const line of lineItems) {
+    const bucket = line.kind === 'RENT' ? 'RENT' : line.kind.startsWith('UTILITY_') ? 'UTILITY' : 'OTHER';
+    incomeByKindMap.set(bucket, (incomeByKindMap.get(bucket) ?? 0) + line.amountCents);
+  }
+  const incomeByKind = {
+    rentCents: incomeByKindMap.get('RENT') ?? 0,
+    utilityCents: incomeByKindMap.get('UTILITY') ?? 0,
+    otherCents: incomeByKindMap.get('OTHER') ?? 0,
+  };
+
   return {
+    incomeByKind,
     totalProperties,
     totalUnits,
     occupiedUnits,

@@ -88,6 +88,20 @@ enum TpnRecommendation {
   UNKNOWN
 }
 
+enum IntegrationProvider {
+  STITCH_PAYMENTS
+  STITCH_DEBICHECK
+  STITCH_PAYOUTS
+  QUICKBOOKS
+  TPN
+}
+
+enum IntegrationStatus {
+  DISCONNECTED
+  CONNECTED
+  ERROR
+}
+
 enum DocumentKind {
   LEASE_AGREEMENT
 }
@@ -107,10 +121,45 @@ enum MaintenanceStatus {
 }
 
 enum InvoiceStatus {
+  DRAFT
   DUE
   PAID
   OVERDUE
 }
+
+enum InvoiceLineItemKind {
+  RENT
+  UTILITY_WATER
+  UTILITY_ELECTRICITY
+  UTILITY_GAS
+  UTILITY_SEWER
+  UTILITY_REFUSE
+  ADJUSTMENT
+  LATE_FEE
+  DEPOSIT_CHARGE
+}
+
+enum UtilityType {
+  WATER
+  ELECTRICITY
+  GAS
+  SEWER
+  REFUSE
+  OTHER
+}
+
+enum MeterReadingSource {
+  MANUAL
+  IMPORT
+  ESTIMATED
+  ROLLOVER
+}
+
+enum TariffStructure {
+  FLAT
+  TIERED
+}
+
 
 enum ReviewRequestStatus {
   OPEN
@@ -129,6 +178,51 @@ enum SAProvince {
   MP
   NW
   NC
+}
+
+enum PaymentMethod {
+  EFT
+  CASH
+  CHEQUE
+  CARD_MANUAL
+  OTHER
+}
+
+enum ReceiptSource {
+  MANUAL
+  CSV_IMPORT
+  STITCH
+  DEBICHECK
+}
+
+enum AllocationTarget {
+  INVOICE_LINE_ITEM
+  DEPOSIT
+  LATE_FEE
+  UNAPPLIED
+}
+
+enum LedgerEntryType {
+  RECEIPT
+  DISBURSEMENT
+  ALLOCATION
+  REVERSAL
+  DEPOSIT_IN
+  DEPOSIT_OUT
+  FEE
+}
+
+enum StatementType {
+  TENANT
+  LANDLORD
+  TRUST
+}
+
+enum DebiCheckMandateStatus {
+  PENDING_SIGNATURE
+  ACTIVE
+  REVOKED
+  FAILED
 }
 
 // ---------- Org & Auth ----------
@@ -154,10 +248,18 @@ model Org {
   managingAgents      ManagingAgent[]
   approvals           Approval[]
   orgFeatures         OrgFeature[]
+  orgIntegrations     OrgIntegration[]
+  reconciliationRuns  ReconciliationRun[]
+  statements          Statement[]
   auditLogs           AuditLog[]
   notifications       Notification[]
   applicants          Applicant[]
   applications        Application[]
+  meters              Meter[]
+  utilityTariffs      UtilityTariff[]
+  billingRuns         BillingRun[]
+  paymentReceipts     PaymentReceipt[]
+  trustAccounts       TrustAccount[]
 }
 
 model OrgFeature {
@@ -170,6 +272,24 @@ model OrgFeature {
   org       Org            @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@unique([orgId, key])
+}
+
+model OrgIntegration {
+  id                 String @id @default(cuid())
+  orgId              String
+  provider           IntegrationProvider
+  status             IntegrationStatus @default(DISCONNECTED)
+  externalAccountId  String?
+  accessTokenCipher  String?
+  refreshTokenCipher String?
+  tokenExpiresAt     DateTime?
+  connectedAt        DateTime?
+  connectedById      String?
+  lastError          String?
+  updatedAt          DateTime @updatedAt
+  org                Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, provider])
 }
 
 model AuditLog {
@@ -205,6 +325,8 @@ model Landlord {
   users       User[]
   properties  Property[]
   approvals   Approval[]
+  trustAccounts      TrustAccount[]
+  trustLedgerEntries TrustLedgerEntry[]
 
   @@index([orgId, name])
   @@index([orgId, archivedAt])
@@ -319,6 +441,7 @@ model Property {
   units         Unit[]
   documents     Document[]
   applications  Application[]
+  utilityTariffs UtilityTariff[]
 
   @@index([orgId, name])
   @@index([orgId, deletedAt])
@@ -344,6 +467,7 @@ model Unit {
   documents   Document[]
   maintenance MaintenanceRequest[]
   applications Application[]
+  meters      Meter[]
 
   @@unique([propertyId, label])
   @@index([orgId, propertyId])
@@ -389,6 +513,8 @@ model Tenant {
   documents   Document[]
   maintenance MaintenanceRequest[]
   convertedFromApplication Application? @relation("ConvertedApplication")
+  paymentReceipts PaymentReceipt[]
+  trustLedgerEntries TrustLedgerEntry[]
 
   @@index([orgId, email])
   @@index([orgId, archivedAt])
@@ -500,6 +626,8 @@ model Lease {
   renewedTo           Lease?        @relation("LeaseRenewal")
   terminatedAt        DateTime?
   terminatedReason    String?
+  depositReceivedAt   DateTime?
+  selfManagedDebitOrderActive Boolean @default(false)
   notes               String?
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
@@ -509,6 +637,9 @@ model Lease {
   invoices            Invoice[]
   signatures          LeaseSignature[]
   reviewRequests      LeaseReviewRequest[]
+  paymentReceipts     PaymentReceipt[]
+  depositAllocations  Allocation[]       @relation("LeaseDepositAllocations")
+  trustLedgerEntries  TrustLedgerEntry[]
 
   @@index([orgId, unitId, state])
   @@index([orgId, endDate])
@@ -583,17 +714,109 @@ model Invoice {
   periodStart     DateTime       @db.Date
   dueDate         DateTime       @db.Date
   amountCents     Int
+  subtotalCents   Int            @default(0)
+  taxCents        Int            @default(0)
+  totalCents      Int            @default(0)
   status          InvoiceStatus  @default(DUE)
   paidAt          DateTime?
   paidAmountCents Int?
   paidNote        String?
+  billingRunId    String?
+  billingRun      BillingRun?    @relation(fields: [billingRunId], references: [id])
+  lineItems       InvoiceLineItem[]
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
   @@unique([leaseId, periodStart])
   @@index([orgId, status])
   @@index([orgId, dueDate])
+  @@index([billingRunId])
 }
+
+model InvoiceLineItem {
+  id            String              @id @default(cuid())
+  invoiceId     String
+  kind          InvoiceLineItemKind
+  description   String
+  quantity      Decimal?
+  unitRateCents Int?
+  amountCents   Int
+  sourceType    String?
+  sourceId      String?
+  estimated     Boolean             @default(false)
+  createdAt     DateTime            @default(now())
+  invoice       Invoice             @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  allocations   Allocation[]
+
+  @@index([invoiceId])
+}
+
+model Meter {
+  id          String         @id @default(cuid())
+  orgId       String
+  unitId      String
+  type        UtilityType
+  serial      String?
+  installedAt DateTime?
+  retiredAt   DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  org         Org            @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  unit        Unit           @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  readings    MeterReading[]
+
+  @@index([orgId, unitId, type])
+}
+
+model MeterReading {
+  id           String             @id @default(cuid())
+  meterId      String
+  takenAt      DateTime
+  readingValue Decimal
+  source       MeterReadingSource
+  recordedById String?
+  createdAt    DateTime           @default(now())
+  meter        Meter              @relation(fields: [meterId], references: [id], onDelete: Cascade)
+
+  @@unique([meterId, takenAt])
+  @@index([meterId, takenAt])
+}
+
+model UtilityTariff {
+  id                String          @id @default(cuid())
+  orgId             String
+  propertyId        String?
+  type              UtilityType
+  structure         TariffStructure
+  effectiveFrom     DateTime
+  effectiveTo       DateTime?
+  flatUnitRateCents Int?
+  tieredJson        Json?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  org               Org             @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  property          Property?       @relation(fields: [propertyId], references: [id])
+
+  @@index([orgId, type, effectiveFrom])
+  @@index([propertyId])
+}
+
+model BillingRun {
+  id          String    @id @default(cuid())
+  orgId       String
+  periodStart DateTime
+  status      String
+  createdById String?
+  createdAt   DateTime  @default(now())
+  publishedAt DateTime?
+  summary     Json?
+  org         Org       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  invoices    Invoice[]
+
+  @@unique([orgId, periodStart])
+  @@index([orgId, status])
+}
+
 
 model LeaseSignature {
   id           String   @id @default(cuid())
@@ -650,4 +873,170 @@ model Approval {
   @@index([orgId, state])
   @@index([landlordId, state])
   @@index([subjectType, subjectId])
+}
+
+// ---------- Payments & Allocations ----------
+
+model PaymentReceipt {
+  id           String        @id @default(cuid())
+  orgId        String
+  tenantId     String?
+  leaseId      String?
+  receivedAt   DateTime
+  amountCents  Int
+  method       PaymentMethod
+  source       ReceiptSource
+  externalRef  String?
+  note         String?
+  recordedById String?
+  createdAt    DateTime      @default(now())
+  org          Org           @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  tenant       Tenant?       @relation(fields: [tenantId], references: [id])
+  lease        Lease?        @relation(fields: [leaseId], references: [id])
+  allocations  Allocation[]
+
+  @@index([orgId, receivedAt])
+  @@index([orgId, tenantId])
+  @@index([orgId, externalRef])
+}
+
+model Allocation {
+  id                String           @id @default(cuid())
+  receiptId         String
+  target            AllocationTarget
+  invoiceLineItemId String?
+  depositLeaseId    String?
+  amountCents       Int
+  reversedAt        DateTime?
+  reversedById      String?
+  createdAt         DateTime         @default(now())
+  receipt           PaymentReceipt   @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  invoiceLineItem   InvoiceLineItem? @relation(fields: [invoiceLineItemId], references: [id])
+  depositLease      Lease?           @relation("LeaseDepositAllocations", fields: [depositLeaseId], references: [id])
+
+  @@index([receiptId])
+  @@index([invoiceLineItemId])
+}
+
+// ---------- Trust Accounts (per-landlord) ----------
+
+model TrustAccount {
+  id         String             @id @default(cuid())
+  orgId      String
+  landlordId String
+  name       String
+  bankRef    String?
+  openedAt   DateTime           @default(now())
+  org        Org                @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  landlord   Landlord           @relation(fields: [landlordId], references: [id], onDelete: Cascade)
+  entries    TrustLedgerEntry[]
+
+  @@unique([orgId, landlordId])
+  @@index([landlordId])
+}
+
+model TrustLedgerEntry {
+  id             String          @id @default(cuid())
+  trustAccountId String
+  landlordId     String
+  occurredAt     DateTime
+  type           LedgerEntryType
+  amountCents    Int
+  tenantId       String?
+  leaseId        String?
+  sourceType     String?
+  sourceId       String?
+  note           String?
+  createdAt      DateTime        @default(now())
+  trustAccount   TrustAccount    @relation(fields: [trustAccountId], references: [id], onDelete: Cascade)
+  landlord       Landlord        @relation(fields: [landlordId], references: [id])
+  tenant         Tenant?         @relation(fields: [tenantId], references: [id])
+  lease          Lease?          @relation(fields: [leaseId], references: [id])
+
+  @@index([trustAccountId, occurredAt])
+  @@index([trustAccountId, tenantId])
+  @@index([landlordId, occurredAt])
+  @@index([sourceType, sourceId])
+}
+
+// ---------- Reconciliation & Statements ----------
+
+model ReconciliationRun {
+  id          String                    @id @default(cuid())
+  orgId       String
+  periodStart DateTime
+  periodEnd   DateTime
+  status      String
+  summary     Json?
+  createdAt   DateTime                  @default(now())
+  org         Org                       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  exceptions  ReconciliationException[]
+
+  @@index([orgId, periodStart])
+}
+
+model ReconciliationException {
+  id           String            @id @default(cuid())
+  runId        String
+  kind         String
+  entityType   String
+  entityId     String
+  detail       Json
+  resolvedAt   DateTime?
+  resolvedById String?
+  createdAt    DateTime          @default(now())
+  run          ReconciliationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+  @@index([kind])
+}
+
+model Statement {
+  id                  String          @id @default(cuid())
+  orgId               String
+  type                StatementType
+  subjectType         String
+  subjectId           String
+  periodStart         DateTime
+  periodEnd           DateTime
+  openingBalanceCents Int
+  closingBalanceCents Int
+  totalsJson          Json
+  storageKey          String?
+  generatedAt         DateTime        @default(now())
+  org                 Org             @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  lines               StatementLine[]
+
+  @@index([orgId, type, subjectId, periodStart])
+}
+
+model StatementLine {
+  id                  String    @id @default(cuid())
+  statementId         String
+  occurredAt          DateTime
+  description         String
+  debitCents          Int       @default(0)
+  creditCents         Int       @default(0)
+  runningBalanceCents Int
+  sourceType          String?
+  sourceId            String?
+  statement           Statement @relation(fields: [statementId], references: [id], onDelete: Cascade)
+
+  @@index([statementId, occurredAt])
+}
+
+model DebiCheckMandate {
+  id                String                 @id @default(cuid())
+  orgId             String
+  leaseId           String                 @unique
+  tenantId          String
+  mandateExternalId String?
+  upperCapCents     Int
+  status            DebiCheckMandateStatus @default(PENDING_SIGNATURE)
+  signedAt          DateTime?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  @@index([orgId, status])
+  @@index([tenantId])
 }

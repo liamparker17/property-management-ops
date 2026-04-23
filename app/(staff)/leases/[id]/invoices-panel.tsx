@@ -12,7 +12,7 @@ type Invoice = {
   periodStart: string;
   dueDate: string;
   amountCents: number;
-  status: 'DUE' | 'PAID' | 'OVERDUE';
+  status: 'DRAFT' | 'DUE' | 'PAID' | 'OVERDUE';
   paidAt: string | null;
   paidAmountCents: number | null;
 };

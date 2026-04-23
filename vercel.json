@@ -1,0 +1,7 @@
+{
+  "crons": [
+    { "path": "/api/cron/debicheck-retry", "schedule": "0 0 * * *" },
+    { "path": "/api/cron/reconciliation", "schedule": "0 4 * * *" },
+    { "path": "/api/cron/reconciliation", "schedule": "0 16 * * *" }
+  ]
+}

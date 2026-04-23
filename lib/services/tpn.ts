@@ -235,7 +235,7 @@ export async function requestTpnCheck(ctx: RouteCtx, applicationId: string) {
     throw ApiError.conflict('A TPN result has already been recorded for this application');
   }
 
-  const submitResult = await tpnAdapter.submitCheck(buildApplicantPayload(application));
+  const submitResult = await tpnAdapter.submitCheck(ctx, buildApplicantPayload(application));
   const requestedAt = new Date();
 
   const row = await db.tpnCheck.upsert({

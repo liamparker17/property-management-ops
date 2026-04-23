@@ -1,6 +1,8 @@
-import { TpnRecommendation } from '@prisma/client';
+import { IntegrationProvider, TpnRecommendation } from '@prisma/client';
 
+import type { RouteCtx } from '@/lib/auth/with-org';
 import { ApiError } from '@/lib/errors';
+import { readDecryptedTokens } from '@/lib/services/org-integrations';
 
 export type TpnApplicantPayload = {
   applicationId: string;
@@ -51,14 +53,12 @@ export type TpnMappedResponse = {
   reportBlobKey?: string;
 };
 
-export type TpnConfig = {
-  apiUrl: string | null;
-  apiKey: string | null;
-  webhookSecret: string | null;
+export type TpnResolvedConfig = {
+  apiUrl: string;
+  apiKey: string;
 };
 
-const NOT_CONFIGURED_MESSAGE =
-  'TPN not configured. Set TPN_API_URL and TPN_API_KEY to enable screening.';
+const NOT_CONFIGURED_MESSAGE = 'TPN not configured for this org';
 const LIVE_STUB_MESSAGE =
   'TPN live submission is still stubbed pending confirmed MRI/TPN API details.';
 const WEBHOOK_STUB_MESSAGE =
@@ -120,35 +120,26 @@ function buildSummary(
   return fragments.length > 0 ? fragments.join(' | ') : 'TPN response recorded';
 }
 
-export function getTpnConfig(): TpnConfig {
-  return {
-    apiUrl: readEnv('TPN_API_URL'),
-    apiKey: readEnv('TPN_API_KEY'),
-    webhookSecret: readEnv('TPN_WEBHOOK_SECRET'),
-  };
-}
-
-export function isTpnConfigured(config = getTpnConfig()) {
-  return Boolean(config.apiUrl && config.apiKey);
-}
-
-export function assertTpnConfigured(config = getTpnConfig()) {
-  if (!isTpnConfigured(config)) {
+export async function resolveTpnConfig(ctx: RouteCtx): Promise<TpnResolvedConfig> {
+  // TPN_API_URL remains a platform-level shared-endpoint fallback; per-org
+  // credentials live on OrgIntegration.
+  const apiUrl = readEnv('TPN_API_URL');
+  const tokens = await readDecryptedTokens(ctx, IntegrationProvider.TPN);
+  if (!apiUrl || !tokens?.accessToken) {
     throw ApiError.conflict(NOT_CONFIGURED_MESSAGE);
   }
-  return config;
+  return { apiUrl, apiKey: tokens.accessToken };
 }
 
-export function getTpnStubMessage(config = getTpnConfig()) {
-  return isTpnConfigured(config) ? LIVE_STUB_MESSAGE : NOT_CONFIGURED_MESSAGE;
+export function getTpnWebhookStubMessage() {
+  return WEBHOOK_STUB_MESSAGE;
 }
 
-export function getTpnWebhookStubMessage(config = getTpnConfig()) {
-  return isTpnConfigured(config) ? WEBHOOK_STUB_MESSAGE : NOT_CONFIGURED_MESSAGE;
-}
-
-export async function submitCheck(_payload: TpnApplicantPayload): Promise<TpnSubmitResult> {
-  assertTpnConfigured();
+export async function submitCheck(
+  ctx: RouteCtx,
+  _payload: TpnApplicantPayload,
+): Promise<TpnSubmitResult> {
+  await resolveTpnConfig(ctx);
   throw ApiError.conflict(LIVE_STUB_MESSAGE);
 }
 
@@ -176,10 +167,7 @@ export function mapResponse(rawResponse: unknown): TpnMappedResponse {
 }
 
 export const tpnAdapter = {
-  getConfig: getTpnConfig,
-  isConfigured: isTpnConfigured,
-  assertConfigured: assertTpnConfigured,
-  getStubMessage: getTpnStubMessage,
+  resolveConfig: resolveTpnConfig,
   getWebhookStubMessage: getTpnWebhookStubMessage,
   submitCheck,
   mapResponse,

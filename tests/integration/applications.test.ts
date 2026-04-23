@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
+import { randomBytes } from 'node:crypto';
 import { after, before, beforeEach, describe, it } from 'node:test';
 
 process.env.DATABASE_URL ??= 'postgresql://pmops:pmops@localhost:5432/pmops_test';
+process.env.INTEGRATION_SECRET_KEY ??= randomBytes(32).toString('hex');
 
 // End-to-end lifecycle test that stitches together the real service functions:
 // createApplication -> submitApplication -> (TPN PASS | waive | DECLINE) ->
@@ -29,6 +31,7 @@ const userRows = new Map<string, any>();
 const unitRows = new Map<string, any>();
 const propertyRows = new Map<string, any>();
 const orgRows = new Map<string, any>();
+const orgIntegrationRows = new Map<string, any>();
 const noteRows: any[] = [];
 const auditCalls: any[] = [];
 const notificationCalls: any[] = [];
@@ -74,6 +77,7 @@ before(async () => {
   original.unitFindFirst = db.unit.findFirst;
   original.propertyFindFirst = db.property?.findFirst;
   original.orgFindUnique = db.org.findUnique;
+  original.orgIntegrationFindUnique = db.orgIntegration.findUnique;
   original.auditCreate = db.auditLog.create;
   original.notificationCreate = db.notification.create;
   original.transaction = db.$transaction;
@@ -208,6 +212,11 @@ before(async () => {
 
   db.org.findUnique = async ({ where }: any) => orgRows.get(where.id) ?? null;
 
+  db.orgIntegration.findUnique = async ({ where }: any) =>
+    orgIntegrationRows.get(
+      `${where.orgId_provider.orgId}:${where.orgId_provider.provider}`,
+    ) ?? null;
+
   db.auditLog.create = async ({ data }: any) => {
     auditCalls.push(data);
     return { id: `audit-${auditCalls.length}`, ...data };
@@ -270,6 +279,7 @@ after(async () => {
     db.property.findFirst = original.propertyFindFirst;
   }
   db.org.findUnique = original.orgFindUnique;
+  db.orgIntegration.findUnique = original.orgIntegrationFindUnique;
   db.auditLog.create = original.auditCreate;
   db.notification.create = original.notificationCreate;
   db.$transaction = original.transaction;
@@ -286,6 +296,7 @@ beforeEach(() => {
   unitRows.clear();
   propertyRows.clear();
   orgRows.clear();
+  orgIntegrationRows.clear();
   noteRows.length = 0;
   auditCalls.length = 0;
   notificationCalls.length = 0;
@@ -315,6 +326,16 @@ beforeEach(() => {
     orgId: 'org-1',
     email: 'pm@example.com',
     role: 'ADMIN',
+  });
+  orgIntegrationRows.set('org-1:TPN', {
+    id: 'int-tpn-1',
+    orgId: 'org-1',
+    provider: 'TPN',
+    status: 'CONNECTED',
+    externalAccountId: null,
+    accessTokenCipher: 'x',
+    refreshTokenCipher: null,
+    tokenExpiresAt: null,
   });
 });
 

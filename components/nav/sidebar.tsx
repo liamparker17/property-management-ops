@@ -8,8 +8,14 @@ import {
   Users,
   ClipboardList,
   FileText,
+  FileSpreadsheet,
+  Gauge,
+  Plug,
+  Receipt,
   Settings,
+  ShieldCheck,
   SlidersHorizontal,
+  Wallet,
   Wrench,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -25,8 +31,19 @@ const NAV: NavItem[] = [
   { href: '/maintenance', label: 'Maintenance', icon: Wrench, match: (p) => p.startsWith('/maintenance') },
 ];
 
+const FINANCE_NAV: NavItem[] = [
+  { href: '/billing', label: 'Billing', icon: Receipt, match: (p) => p.startsWith('/billing') },
+  { href: '/utilities/meters', label: 'Utilities', icon: Gauge, match: (p) => p.startsWith('/utilities') },
+  { href: '/payments', label: 'Payments', icon: Wallet, match: (p) => p.startsWith('/payments') },
+  { href: '/trust', label: 'Trust', icon: ShieldCheck, match: (p) => p.startsWith('/trust') },
+  { href: '/statements', label: 'Statements', icon: FileSpreadsheet, match: (p) => p.startsWith('/statements') },
+];
+
 export function getStaffNavItems(role: string): NavItem[] {
   const items = [...NAV];
+  if (role === 'ADMIN' || role === 'PROPERTY_MANAGER' || role === 'FINANCE') {
+    items.push(...FINANCE_NAV);
+  }
   if (role === 'ADMIN') {
     items.push({
       href: '/settings/team',
@@ -39,6 +56,12 @@ export function getStaffNavItems(role: string): NavItem[] {
       label: 'Features',
       icon: SlidersHorizontal,
       match: (p) => p.startsWith('/settings/features'),
+    });
+    items.push({
+      href: '/settings/integrations',
+      label: 'Integrations',
+      icon: Plug,
+      match: (p) => p.startsWith('/settings/integrations'),
     });
   }
   return items;

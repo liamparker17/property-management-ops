@@ -23,6 +23,16 @@ enum OrgOwnerType {
   LANDLORD_DIRECT
 }
 
+enum FeatureFlagKey {
+  UTILITIES_BILLING
+  TRUST_ACCOUNTING
+  AREA_NOTICES
+  LANDLORD_APPROVALS
+  USAGE_ALERTS
+  PAYMENT_ALERTS
+  ANNUAL_PACKS
+}
+
 enum ApprovalKind {
   MAINTENANCE_COMMIT
   LEASE_CREATE
@@ -44,6 +54,38 @@ enum LeaseState {
   ACTIVE
   TERMINATED
   RENEWED
+}
+
+enum ApplicationStage {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  VETTING
+  APPROVED
+  DECLINED
+  CONVERTED
+  WITHDRAWN
+}
+
+enum ApplicationDecision {
+  PENDING
+  APPROVED
+  DECLINED
+}
+
+enum TpnCheckStatus {
+  NOT_STARTED
+  REQUESTED
+  RECEIVED
+  FAILED
+  WAIVED
+}
+
+enum TpnRecommendation {
+  PASS
+  CAUTION
+  DECLINE
+  UNKNOWN
 }
 
 enum DocumentKind {
@@ -111,6 +153,40 @@ model Org {
   landlords           Landlord[]
   managingAgents      ManagingAgent[]
   approvals           Approval[]
+  orgFeatures         OrgFeature[]
+  auditLogs           AuditLog[]
+  notifications       Notification[]
+  applicants          Applicant[]
+  applications        Application[]
+}
+
+model OrgFeature {
+  id        String         @id @default(cuid())
+  orgId     String
+  key       FeatureFlagKey
+  enabled   Boolean        @default(false)
+  config    Json?
+  updatedAt DateTime       @updatedAt
+  org       Org            @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, key])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  orgId       String
+  actorUserId String?
+  entityType  String
+  entityId    String
+  action      String
+  diff        Json?
+  payload     Json?
+  createdAt   DateTime @default(now())
+  org         Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  actor       User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([orgId, entityType, entityId])
+  @@index([orgId, createdAt])
 }
 
 model Landlord {
@@ -174,6 +250,10 @@ model User {
   accounts      Account[]
   sessions      Session[]
   uploaded      Document[] @relation("DocumentUploader")
+  auditLogs     AuditLog[]
+  notifications Notification[]
+  assignedApplications Application[] @relation("ApplicationReviewer")
+  applicationNotesAuthored ApplicationNote[]
 
   @@index([orgId])
   @@index([landlordId])
@@ -238,6 +318,7 @@ model Property {
 
   units         Unit[]
   documents     Document[]
+  applications  Application[]
 
   @@index([orgId, name])
   @@index([orgId, deletedAt])
@@ -262,9 +343,31 @@ model Unit {
   leases      Lease[]
   documents   Document[]
   maintenance MaintenanceRequest[]
+  applications Application[]
 
   @@unique([propertyId, label])
   @@index([orgId, propertyId])
+}
+
+model Applicant {
+  id                       String    @id @default(cuid())
+  orgId                    String
+  firstName                String
+  lastName                 String
+  email                    String
+  phone                    String
+  idNumber                 String?
+  employer                 String?
+  grossMonthlyIncomeCents  Int?
+  netMonthlyIncomeCents    Int?
+  tpnConsentGiven          Boolean   @default(false)
+  tpnConsentAt             DateTime?
+  tpnConsentCapturedById   String?
+  createdAt                DateTime  @default(now())
+  org                      Org       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  applications             Application[]
+
+  @@index([orgId, email])
 }
 
 model Tenant {
@@ -285,9 +388,98 @@ model Tenant {
   leases      LeaseTenant[]
   documents   Document[]
   maintenance MaintenanceRequest[]
+  convertedFromApplication Application? @relation("ConvertedApplication")
 
   @@index([orgId, email])
   @@index([orgId, archivedAt])
+}
+
+model Application {
+  id                 String              @id @default(cuid())
+  orgId              String
+  applicantId        String
+  propertyId         String?
+  unitId             String?
+  requestedMoveIn    DateTime?
+  affordabilityRatio Float?
+  sourceChannel      String?
+  assignedReviewerId String?
+  stage              ApplicationStage    @default(DRAFT)
+  decision           ApplicationDecision @default(PENDING)
+  decisionReason     String?
+  decidedAt          DateTime?
+  convertedTenantId  String?             @unique
+  convertedLeaseId   String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  org                Org                 @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  applicant          Applicant           @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  property           Property?           @relation(fields: [propertyId], references: [id])
+  unit               Unit?               @relation(fields: [unitId], references: [id])
+  reviewer           User?               @relation("ApplicationReviewer", fields: [assignedReviewerId], references: [id])
+  convertedTenant    Tenant?             @relation("ConvertedApplication", fields: [convertedTenantId], references: [id])
+  tpnCheck           TpnCheck?
+  documents          ApplicationDocument[]
+  notes              ApplicationNote[]
+
+  @@index([orgId, stage])
+}
+
+model TpnCheck {
+  id             String            @id @default(cuid())
+  applicationId  String            @unique
+  status         TpnCheckStatus    @default(NOT_STARTED)
+  requestedAt    DateTime?
+  receivedAt     DateTime?
+  tpnReferenceId String?
+  recommendation TpnRecommendation?
+  summary        String?
+  reportPayload  Json?
+  reportBlobKey  String?
+  waivedReason   String?
+  waivedById     String?
+  application    Application       @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
+model ApplicationDocument {
+  id            String      @id @default(cuid())
+  applicationId String
+  storageKey    String
+  filename      String
+  mimeType      String
+  sizeBytes     Int
+  uploadedById  String?
+  createdAt     DateTime    @default(now())
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
+model ApplicationNote {
+  id            String      @id @default(cuid())
+  applicationId String
+  authorId      String
+  body          String
+  createdAt     DateTime    @default(now())
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  author        User        @relation(fields: [authorId], references: [id])
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  orgId      String
+  userId     String?
+  role       Role?
+  type       String
+  subject    String
+  body       String
+  payload    Json?
+  entityType String?
+  entityId   String?
+  readAt     DateTime?
+  createdAt  DateTime @default(now())
+  org        Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, userId, readAt])
 }
 
 model Lease {

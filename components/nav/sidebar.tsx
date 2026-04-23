@@ -6,8 +6,10 @@ import {
   LayoutDashboard,
   Building2,
   Users,
+  ClipboardList,
   FileText,
   Settings,
+  SlidersHorizontal,
   Wrench,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -18,6 +20,7 @@ const NAV: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, match: (p) => p === '/dashboard' },
   { href: '/properties', label: 'Properties', icon: Building2, match: (p) => p.startsWith('/properties') },
   { href: '/tenants', label: 'Tenants', icon: Users, match: (p) => p.startsWith('/tenants') },
+  { href: '/applications', label: 'Applications', icon: ClipboardList, match: (p) => p.startsWith('/applications') },
   { href: '/leases', label: 'Leases', icon: FileText, match: (p) => p.startsWith('/leases') },
   { href: '/maintenance', label: 'Maintenance', icon: Wrench, match: (p) => p.startsWith('/maintenance') },
 ];
@@ -25,7 +28,18 @@ const NAV: NavItem[] = [
 export function getStaffNavItems(role: string): NavItem[] {
   const items = [...NAV];
   if (role === 'ADMIN') {
-    items.push({ href: '/settings/team', label: 'Settings', icon: Settings, match: (p) => p.startsWith('/settings') });
+    items.push({
+      href: '/settings/team',
+      label: 'Settings',
+      icon: Settings,
+      match: (p) => p.startsWith('/settings/team') || p.startsWith('/settings/org'),
+    });
+    items.push({
+      href: '/settings/features',
+      label: 'Features',
+      icon: SlidersHorizontal,
+      match: (p) => p.startsWith('/settings/features'),
+    });
   }
   return items;
 }

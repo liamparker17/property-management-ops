@@ -1,14 +1,13 @@
 'use client';
 
-import { LayoutDashboard, Building, Wrench, User } from 'lucide-react';
+import { LayoutDashboard } from 'lucide-react';
 
 import { SidebarBody } from './sidebar';
 
+// T-P0-10 / decision #7: keep agent nav on the dashboard route until later-milestone pages are built.
+// Missing destinations are reported by the planner script instead of being shipped as dead links.
 const NAV = [
   { href: '/agent', label: 'Operations Dash', icon: LayoutDashboard, match: (p: string) => p === '/agent' },
-  { href: '/agent/properties', label: 'Properties', icon: Building, match: (p: string) => p.startsWith('/agent/properties') },
-  { href: '/agent/repairs', label: 'Approvals Hub', icon: Wrench, match: (p: string) => p.startsWith('/agent/repairs') },
-  { href: '/agent/profile', label: 'Profile', icon: User, match: (p: string) => p.startsWith('/agent/profile') },
 ];
 
 export function getAgentNavItems() {

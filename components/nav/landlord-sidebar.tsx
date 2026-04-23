@@ -1,16 +1,13 @@
 'use client';
 
-import { Home, Building, FileText, Wrench, Receipt, User } from 'lucide-react';
+import { Home } from 'lucide-react';
 
 import { SidebarBody } from './sidebar';
 
+// T-P0-10 / decision #7: keep landlord nav to routes that already exist in this milestone.
+// The fuller landlord portal lands later, and dead links would be more misleading than helpful.
 const NAV = [
   { href: '/landlord', label: 'Portfolio', icon: Home, match: (p: string) => p === '/landlord' },
-  { href: '/landlord/properties', label: 'Properties', icon: Building, match: (p: string) => p.startsWith('/landlord/properties') },
-  { href: '/landlord/leases', label: 'Leases', icon: FileText, match: (p: string) => p.startsWith('/landlord/leases') },
-  { href: '/landlord/invoices', label: 'Financials', icon: Receipt, match: (p: string) => p.startsWith('/landlord/invoices') },
-  { href: '/landlord/repairs', label: 'Maintenance Hub', icon: Wrench, match: (p: string) => p.startsWith('/landlord/repairs') },
-  { href: '/landlord/profile', label: 'Profile', icon: User, match: (p: string) => p.startsWith('/landlord/profile') },
 ];
 
 export function getLandlordNavItems() {

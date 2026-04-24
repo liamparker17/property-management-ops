@@ -1,0 +1,18 @@
+export const MARKETING_THEME = {
+  ink: '#001030',
+  inkDeep: '#00081f',
+  inkSoft: '#17264b',
+  inkMid: '#2a3b63',
+  cream: '#f5f1ea',
+  creamAlt: '#ede7dd',
+  creamSoft: '#faf7f2',
+  gold: '#b8965a',
+  goldSoft: '#d4b07a',
+  border: 'rgba(0,16,48,0.12)',
+  borderStrong: 'rgba(0,16,48,0.18)',
+  textSoft: 'rgba(0,16,48,0.68)',
+  textMuted: 'rgba(0,16,48,0.56)',
+  textOnDark: 'rgba(245,241,234,0.72)',
+  textOnDarkMuted: 'rgba(245,241,234,0.56)',
+  surfaceTint: 'rgba(0,16,48,0.04)',
+} as const;

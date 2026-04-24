@@ -1,34 +1,209 @@
 import nodemailer from 'nodemailer';
 
 type Transporter = ReturnType<typeof nodemailer.createTransport>;
-let cached: Transporter | null = null;
 
-function getTransporter(): Transporter | null {
-  const user = process.env.GMAIL_USER;
-  const pass = process.env.GMAIL_APP_PASSWORD;
-  if (!user || !pass) return null;
-  if (cached) return cached;
-  cached = nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user, pass },
-  });
-  return cached;
-}
-
-function defaultFrom() {
-  const explicit = process.env.EMAIL_FROM?.trim();
-  if (explicit) return explicit;
-  const user = process.env.GMAIL_USER;
-  const name = process.env.EMAIL_FROM_NAME?.trim() || 'Regalis';
-  return user ? `"${name}" <${user}>` : name;
-}
-
-function defaultReplyTo() {
-  const v = process.env.EMAIL_REPLY_TO?.trim();
-  return v ? v : undefined;
-}
-
+export type EmailMailbox = 'default' | 'noreply' | 'updates';
 export type SendResult = { sent: boolean; reason?: string };
+
+type TransportConfig = {
+  kind: 'gmail' | 'smtp';
+  user: string;
+  pass: string;
+  host?: string;
+  port?: number;
+  secure?: boolean;
+};
+
+export type MailboxConfig = {
+  mailbox: EmailMailbox;
+  configured: boolean;
+  from: string;
+  replyTo?: string;
+  authUser?: string;
+  transport?: {
+    kind: 'gmail' | 'smtp';
+    host?: string;
+    port?: number;
+    secure?: boolean;
+  };
+};
+
+const MAILBOX_PREFIX: Record<EmailMailbox, string> = {
+  default: '',
+  noreply: 'EMAIL_NOREPLY_',
+  updates: 'EMAIL_UPDATES_',
+};
+
+const transportCache = new Map<string, Transporter>();
+
+function readEnv(name: string) {
+  const value = process.env[name]?.trim();
+  return value ? value : undefined;
+}
+
+function readMailboxEnv(mailbox: EmailMailbox, suffix: string) {
+  if (mailbox === 'default') return undefined;
+  return readEnv(`${MAILBOX_PREFIX[mailbox]}${suffix}`);
+}
+
+function parsePort(value?: string) {
+  if (!value) return undefined;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+function parseSecure(value?: string) {
+  if (!value) return undefined;
+  const normalized = value.toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+  return undefined;
+}
+
+function resolveTransport(mailbox: EmailMailbox): TransportConfig | null {
+  const host = readMailboxEnv(mailbox, 'SMTP_HOST') ?? readEnv('SMTP_HOST');
+  const port = parsePort(readMailboxEnv(mailbox, 'SMTP_PORT') ?? readEnv('SMTP_PORT'));
+  const secure = parseSecure(readMailboxEnv(mailbox, 'SMTP_SECURE') ?? readEnv('SMTP_SECURE'));
+  const user = readMailboxEnv(mailbox, 'SMTP_USER') ?? readEnv('SMTP_USER') ?? readEnv('GMAIL_USER');
+  const pass =
+    readMailboxEnv(mailbox, 'SMTP_PASSWORD') ??
+    readEnv('SMTP_PASSWORD') ??
+    readEnv('GMAIL_APP_PASSWORD');
+
+  if (!user || !pass) return null;
+
+  if (!host) {
+    return {
+      kind: 'gmail',
+      user,
+      pass,
+    };
+  }
+
+  const resolvedPort = port ?? (secure ? 465 : 587);
+  return {
+    kind: 'smtp',
+    host,
+    port: resolvedPort,
+    secure: secure ?? resolvedPort === 465,
+    user,
+    pass,
+  };
+}
+
+function resolveFrom(mailbox: EmailMailbox, user?: string) {
+  const explicitFrom = readMailboxEnv(mailbox, 'FROM') ?? readEnv('EMAIL_FROM');
+  if (explicitFrom) return explicitFrom;
+
+  const fromName = readMailboxEnv(mailbox, 'FROM_NAME') ?? readEnv('EMAIL_FROM_NAME') ?? 'Regalis';
+  return user ? `"${fromName}" <${user}>` : fromName;
+}
+
+function resolveReplyTo(mailbox: EmailMailbox) {
+  return readMailboxEnv(mailbox, 'REPLY_TO') ?? readEnv('EMAIL_REPLY_TO');
+}
+
+function transportCacheKey(config: TransportConfig) {
+  if (config.kind === 'gmail') {
+    return `gmail:${config.user}`;
+  }
+  return `smtp:${config.host}:${config.port}:${config.secure ? 'secure' : 'starttls'}:${config.user}`;
+}
+
+function getTransporter(mailbox: EmailMailbox) {
+  const config = resolveTransport(mailbox);
+  if (!config) return null;
+
+  const key = transportCacheKey(config);
+  const cached = transportCache.get(key);
+  if (cached) return cached;
+
+  const transporter =
+    config.kind === 'gmail'
+      ? nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: config.user,
+            pass: config.pass,
+          },
+        })
+      : nodemailer.createTransport({
+          host: config.host,
+          port: config.port,
+          secure: config.secure,
+          auth: {
+            user: config.user,
+            pass: config.pass,
+          },
+        });
+
+  transportCache.set(key, transporter);
+  return transporter;
+}
+
+function mailboxNotConfiguredReason(mailbox: EmailMailbox) {
+  return `Email mailbox "${mailbox}" is not configured`;
+}
+
+function normalizeRecipients(to: string | string[]) {
+  return Array.isArray(to) ? to.join(', ') : to;
+}
+
+function extractEmailAddress(value?: string) {
+  if (!value) return undefined;
+  const match = value.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+  return match?.[0]?.toLowerCase();
+}
+
+export function resolveMailboxConfig(mailbox: EmailMailbox = 'default'): MailboxConfig {
+  const transport = resolveTransport(mailbox);
+  return {
+    mailbox,
+    configured: transport !== null,
+    from: resolveFrom(mailbox, transport?.user),
+    replyTo: resolveReplyTo(mailbox),
+    authUser: transport?.user,
+    transport: transport
+      ? {
+          kind: transport.kind,
+          host: transport.host,
+          port: transport.port,
+          secure: transport.secure,
+        }
+      : undefined,
+  };
+}
+
+export async function sendEmail(args: {
+  mailbox?: EmailMailbox;
+  to: string | string[];
+  subject: string;
+  html: string;
+  text: string;
+  from?: string;
+  replyTo?: string;
+}): Promise<SendResult> {
+  const mailbox = args.mailbox ?? 'default';
+  const transporter = getTransporter(mailbox);
+  const config = resolveMailboxConfig(mailbox);
+  if (!transporter) return { sent: false, reason: mailboxNotConfiguredReason(mailbox) };
+
+  const replyTo = args.replyTo ?? config.replyTo;
+
+  try {
+    await transporter.sendMail({
+      from: args.from ?? config.from,
+      to: normalizeRecipients(args.to),
+      subject: args.subject,
+      html: args.html,
+      text: args.text,
+      ...(replyTo ? { replyTo } : {}),
+    });
+    return { sent: true };
+  } catch (e) {
+    return { sent: false, reason: e instanceof Error ? e.message : 'Unknown email error' };
+  }
+}
 
 export async function sendTenantInvite(args: {
   to: string;
@@ -37,11 +212,8 @@ export async function sendTenantInvite(args: {
   tempPassword: string;
   appUrl: string;
 }): Promise<SendResult> {
-  const transporter = getTransporter();
-  if (!transporter) return { sent: false, reason: 'GMAIL_USER / GMAIL_APP_PASSWORD not configured' };
-
   const loginUrl = `${args.appUrl.replace(/\/$/, '')}/login`;
-  const subject = `Welcome to ${args.orgName} — your tenant portal access`;
+  const subject = `Welcome to ${args.orgName} - your tenant portal access`;
 
   const html = `
   <div style="font-family:ui-sans-serif,system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0f172a;">
@@ -65,40 +237,147 @@ export async function sendTenantInvite(args: {
       </a>
     </p>
     <p style="margin:0;font-size:12px;color:#64748b;line-height:1.5;">
-      This is an automated message — please do not reply. If you need assistance, contact your property manager.
+      This is an automated message - please do not reply. If you need assistance, contact your property manager.
     </p>
   </div>
   `;
 
   const text = [
     `Welcome, ${args.tenantName}`,
-    ``,
+    '',
     `${args.orgName} has set up your tenant portal account.`,
-    ``,
+    '',
     `Login email: ${args.to}`,
     `Temporary password: ${args.tempPassword}`,
-    ``,
+    '',
     `Sign in: ${loginUrl}`,
-    ``,
+    '',
     `Please change your password after signing in.`,
-    ``,
-    `This is an automated message — please do not reply.`,
+    '',
+    `This is an automated message - please do not reply.`,
   ].join('\n');
 
-  try {
-    const replyTo = defaultReplyTo();
-    await transporter.sendMail({
-      from: defaultFrom(),
-      to: args.to,
-      subject,
-      html,
-      text,
-      ...(replyTo ? { replyTo } : {}),
-    });
-    return { sent: true };
-  } catch (e) {
-    return { sent: false, reason: e instanceof Error ? e.message : 'Unknown email error' };
+  return sendEmail({
+    mailbox: 'noreply',
+    to: args.to,
+    subject,
+    html,
+    text,
+  });
+}
+
+function opsRecipients(): string[] {
+  const ops = readEnv('OPS_EMAIL_RECIPIENTS');
+  if (ops) {
+    return ops
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
   }
+
+  const updatesMailbox = resolveMailboxConfig('updates');
+  const fallback = updatesMailbox.authUser ?? extractEmailAddress(updatesMailbox.from);
+  return fallback ? [fallback] : [];
+}
+
+export async function sendSignupRequest(args: {
+  name: string;
+  email: string;
+  company: string;
+  role: string;
+  portfolioSize: string;
+  message?: string | null;
+}): Promise<SendResult> {
+  const recipients = opsRecipients();
+  const mailbox = resolveMailboxConfig('updates');
+  if (!mailbox.configured || recipients.length === 0) {
+    // eslint-disable-next-line no-console
+    console.log('[signup-request] email not configured - payload logged only', {
+      name: args.name,
+      email: args.email,
+      company: args.company,
+      role: args.role,
+      portfolioSize: args.portfolioSize,
+    });
+    return { sent: false, reason: 'Email not configured - request logged only' };
+  }
+
+  const subject = `New Regalis signup request - ${args.company}`;
+  const rows: [string, string][] = [
+    ['Name', args.name],
+    ['Email', args.email],
+    ['Company', args.company],
+    ['Role', args.role],
+    ['Portfolio size', args.portfolioSize],
+  ];
+  if (args.message) rows.push(['Message', args.message]);
+
+  const html = `
+  <div style="font-family:ui-sans-serif,system-ui,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#0f172a;">
+    <h2 style="margin:0 0 16px;font-size:18px;">New signup request</h2>
+    <table style="border-collapse:collapse;width:100%;font-size:14px;">
+      ${rows
+        .map(
+          ([key, value]) => `
+      <tr>
+        <td style="padding:8px 12px 8px 0;color:#64748b;vertical-align:top;width:140px;">${escapeHtml(key)}</td>
+        <td style="padding:8px 0;vertical-align:top;">${escapeHtml(value)}</td>
+      </tr>`,
+        )
+        .join('')}
+    </table>
+  </div>
+  `;
+
+  const text = rows.map(([key, value]) => `${key}: ${value}`).join('\n');
+
+  return sendEmail({
+    mailbox: 'updates',
+    to: recipients,
+    subject,
+    html,
+    text,
+    replyTo: mailbox.replyTo ?? args.email,
+  });
+}
+
+export async function sendContactRequest(args: {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+}): Promise<SendResult> {
+  const recipients = opsRecipients();
+  const mailbox = resolveMailboxConfig('updates');
+  if (!mailbox.configured || recipients.length === 0) {
+    // eslint-disable-next-line no-console
+    console.log('[contact-request] email not configured - payload logged only', {
+      name: args.name,
+      email: args.email,
+      subject: args.subject,
+    });
+    return { sent: false, reason: 'Email not configured - request logged only' };
+  }
+
+  const subject = `Regalis contact - ${args.subject}`;
+  const html = `
+  <div style="font-family:ui-sans-serif,system-ui,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#0f172a;">
+    <h2 style="margin:0 0 16px;font-size:18px;">New contact message</h2>
+    <p style="margin:0 0 6px;font-size:14px;"><strong>From:</strong> ${escapeHtml(args.name)} &lt;${escapeHtml(args.email)}&gt;</p>
+    <p style="margin:0 0 16px;font-size:14px;"><strong>Subject:</strong> ${escapeHtml(args.subject)}</p>
+    <div style="white-space:pre-wrap;border-top:1px solid #e2e8f0;padding-top:16px;font-size:14px;line-height:1.6;">${escapeHtml(args.message)}</div>
+  </div>
+  `;
+  const text = `From: ${args.name} <${args.email}>\nSubject: ${args.subject}\n\n${args.message}`;
+
+  return sendEmail({
+    mailbox: 'updates',
+    to: recipients,
+    subject,
+    html,
+    text,
+    replyTo: args.email,
+  });
 }
 
 function escapeHtml(s: string) {

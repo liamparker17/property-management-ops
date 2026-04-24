@@ -6,28 +6,30 @@ const GOLD = '#b8965a';
 
 const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
   {
-    title: 'Product',
-      links: [
-        { href: '/product', label: 'Overview' },
-        { href: '/pricing', label: 'Pricing' },
-        { href: '/contact', label: 'Book a walkthrough' },
-        { href: '/login', label: 'Sign in' },
-      ],
-  },
-  {
-    title: 'Company',
+    title: 'Explore',
     links: [
-      { href: '/about', label: 'About us' },
-      { href: '/contact', label: 'Contact' },
-      { href: '/contact', label: 'Partnerships' },
+      { href: '/product#portfolio-structure', label: 'Portfolio structure' },
+      { href: '/product#tenant-onboarding', label: 'Onboarding path' },
+      { href: '/product#tenant-service', label: 'Tenant service layer' },
+      { href: '/pricing#who-its-for', label: 'Pricing profiles' },
     ],
   },
   {
-    title: 'Resources',
+    title: 'Read Next',
     links: [
-      { href: '/product', label: 'Features' },
-      { href: '/pricing#faq', label: 'FAQ' },
-      { href: '/contact', label: 'Support' },
+      { href: '/pricing#how-pricing-is-scoped', label: 'How pricing is scoped' },
+      { href: '/about#why-we-built-it', label: 'Why Regalis exists' },
+      { href: '/about#principles', label: 'Operating principles' },
+      { href: '/about#team', label: 'The team' },
+    ],
+  },
+  {
+    title: 'Start',
+    links: [
+      { href: '/contact#message', label: 'Write to the team' },
+      { href: '/contact#ways-to-reach-us', label: 'Contact details' },
+      { href: '/signup', label: 'Request access' },
+      { href: '/login', label: 'Sign in' },
     ],
   },
   {
@@ -98,7 +100,7 @@ export function MarketingFooter() {
             Regalis
           </span>
           <span className="font-mono text-[10px] tracking-[0.15em]" style={{ color: 'rgba(245,241,234,0.3)' }}>
-            © {year} · Property Ops Platform · South Africa
+            Â© {year} Â· Property Ops Platform Â· South Africa
           </span>
         </div>
       </div>

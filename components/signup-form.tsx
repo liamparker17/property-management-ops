@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { SIGNUP_PORTFOLIO_SIZES, SIGNUP_ROLES } from '@/lib/zod/signup';
+import { MARKETING_THEME as T } from '@/lib/marketing-theme';
 
 const ROLE_LABELS: Record<(typeof SIGNUP_ROLES)[number], string> = {
   PROPERTY_MANAGER: 'Property Manager',
@@ -26,9 +27,9 @@ const ROLE_LABELS: Record<(typeof SIGNUP_ROLES)[number], string> = {
 };
 
 const SIZE_LABELS: Record<(typeof SIGNUP_PORTFOLIO_SIZES)[number], string> = {
-  '1-10': '1–10 units',
-  '11-50': '11–50 units',
-  '51-250': '51–250 units',
+  '1-10': '1â€“10 units',
+  '11-50': '11â€“50 units',
+  '51-250': '51â€“250 units',
   '250+': '250+ units',
 };
 
@@ -92,25 +93,19 @@ export function SignupForm() {
 
   if (success) {
     return (
-      <div
-        className="flex flex-col gap-3 border p-6"
-        style={{ borderColor: '#00206033', background: 'rgba(0,32,96,0.04)' }}
-      >
-        <div
-          className="font-mono text-[10px] uppercase tracking-[0.25em]"
-          style={{ color: '#b8965a' }}
-        >
+      <div className="flex flex-col gap-3 border p-6" style={{ borderColor: T.borderStrong, background: T.creamSoft }}>
+        <div className="font-mono text-[10px] uppercase tracking-[0.25em]" style={{ color: T.gold }}>
           Request received
         </div>
-        <h2 className="font-serif text-[24px] leading-tight" style={{ color: '#001030' }}>
+        <h2 className="font-serif text-[24px] leading-tight" style={{ color: T.ink }}>
           We&apos;ll reach out within one business day.
         </h2>
-        <p className="text-[13px] leading-[1.7]" style={{ color: 'rgba(0,16,48,0.65)' }}>
+        <p className="text-[13px] leading-[1.7]" style={{ color: T.textSoft }}>
           Thanks for your interest in Regalis. A member of our team will be in touch to set up your
           workspace and walk you through onboarding.
         </p>
         <div className="mt-4 text-[13px]">
-          <Link href="/" className="underline" style={{ color: '#002060' }}>
+          <Link href="/" className="underline" style={{ color: T.inkSoft }}>
             Back to home
           </Link>
         </div>
@@ -215,11 +210,11 @@ export function SignupForm() {
         />
         <span>
           I agree to the{' '}
-          <Link href="/legal/terms" className="underline" style={{ color: '#002060' }}>
+          <Link href="/legal/terms" className="underline" style={{ color: T.inkSoft }}>
             Terms
           </Link>{' '}
           and{' '}
-          <Link href="/legal/privacy" className="underline" style={{ color: '#002060' }}>
+          <Link href="/legal/privacy" className="underline" style={{ color: T.inkSoft }}>
             Privacy Policy
           </Link>
           .
@@ -235,12 +230,12 @@ export function SignupForm() {
         className="mt-1 h-10 w-full gap-2 text-[15px] font-medium shadow-sm shadow-primary/25"
       >
         {pending && <Loader2 className="h-4 w-4 animate-spin" />}
-        {pending ? 'Sending…' : 'Request access'}
+        {pending ? 'Sendingâ€¦' : 'Request access'}
       </Button>
 
       <p className="text-center text-[13px]" style={{ color: 'rgba(0,16,48,0.55)' }}>
         Already have an account?{' '}
-        <Link href="/login" className="underline" style={{ color: '#002060' }}>
+        <Link href="/login" className="underline" style={{ color: T.inkSoft }}>
           Sign in
         </Link>
       </p>

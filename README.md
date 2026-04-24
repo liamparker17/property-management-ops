@@ -4,14 +4,14 @@ Multi-tenant SaaS for South African residential rentals. Landlords / property ma
 
 ## Stack
 
-Next.js 16 (App Router) · React 19 · Prisma 7 · Neon Postgres · NextAuth v5 (JWT + credentials) · Vercel Blob · Nodemailer (Gmail SMTP) · Tailwind 4 + shadcn/ui · Zod 4
+Next.js 16 (App Router) · React 19 · Prisma 7 · Neon Postgres · NextAuth v5 (JWT + credentials) · Vercel Blob · Nodemailer (SMTP / Gmail) · Tailwind 4 + shadcn/ui · Zod 4
 
 ## Setup
 
 ```bash
 cp .env.example .env.local
 # Fill DATABASE_URL, DIRECT_URL, NEXTAUTH_SECRET, BLOB_READ_WRITE_TOKEN
-# Optional: GMAIL_USER, GMAIL_APP_PASSWORD, EMAIL_FROM_NAME, EMAIL_REPLY_TO
+# Optional: SMTP_* plus EMAIL_NOREPLY_* / EMAIL_UPDATES_* for outbound email
 
 npm install
 npm run db:migrate
@@ -40,7 +40,7 @@ Open http://localhost:3000 and log in:
 - Team management and org settings for admins
 
 ### Tenant onboarding wizard
-`/tenants/onboard` creates a tenant, assigns them to a unit with a draft lease, and provisions a portal login — all in one submit. If Gmail SMTP is configured (`GMAIL_USER` + `GMAIL_APP_PASSWORD`), the tenant receives an invite email with their login details; otherwise the PM sees a one-time temp password in the UI to share manually.
+`/tenants/onboard` creates a tenant, assigns them to a unit with a draft lease, and provisions a portal login — all in one submit. If outbound email is configured, the tenant receives an invite email with their login details from the `noreply` mailbox; otherwise the PM sees a one-time temp password in the UI to share manually.
 
 ### Generated lease agreement
 `lib/lease-template.ts` renders a 15-section generic South African residential lease from stored data (rent, deposit, address, pets clause, governing law, etc.). Tenants read the full agreement inline in their portal — no PDF required. Uploaded lease PDFs still display for backwards compatibility.
@@ -57,25 +57,37 @@ If a tenant disagrees with a clause (e.g. pets), they can submit a review reques
 ### Maintenance tickets
 Tenants submit repair requests with priority and description. Staff triage on `/maintenance`: update status (OPEN → IN_PROGRESS → RESOLVED → CLOSED), change priority, add internal notes. Auto-stamps `resolvedAt` when resolved.
 
-### Transactional email (Gmail SMTP)
-Optional outbound email via Gmail SMTP using [nodemailer](https://nodemailer.com/). No domain required — sends to any recipient from your Gmail address, roughly 500 msgs/day on free personal accounts.
+### Transactional email (SMTP with named mailboxes)
+Outbound email uses [nodemailer](https://nodemailer.com/) and now supports named mailboxes so the app can send system mail from `noreply@regalis.co.za` while routing public enquiries and ops alerts through `updates@regalis.co.za`.
 
-**Setup (~2 minutes):**
-1. Enable [2-Step Verification](https://myaccount.google.com/security) on the Gmail account you want to send from.
-2. Generate an [App Password](https://myaccount.google.com/apppasswords) (select "Mail" → "Other" → name it "PMOps"). Google shows a 16-character password once.
-3. Set in `.env.local`:
+**Recommended setup for Regalis:**
+1. Add your provider SMTP details in `.env.local`. For Google Workspace use `smtp.gmail.com` / `587` / `false`. For Microsoft 365 use `smtp.office365.com` / `587` / `false`.
+2. Set the shared transport and mailbox routing:
    ```
-   GMAIL_USER="you@gmail.com"
-   GMAIL_APP_PASSWORD="xxxx xxxx xxxx xxxx"
-   EMAIL_FROM_NAME="PMOps"              # display name in From header
-   EMAIL_REPLY_TO=""                     # leave blank for no-reply; else e.g. "Support <support@yourdomain.co.za>"
+   SMTP_HOST="smtp.gmail.com"
+   SMTP_PORT="587"
+   SMTP_SECURE="false"
+   SMTP_USER="updates@regalis.co.za"
+   SMTP_PASSWORD="your-app-password-or-smtp-password"
+
+   EMAIL_UPDATES_FROM="Regalis Updates <updates@regalis.co.za>"
+   EMAIL_UPDATES_REPLY_TO="Updates <updates@regalis.co.za>"
+   EMAIL_NOREPLY_FROM="Regalis <noreply@regalis.co.za>"
+   EMAIL_NOREPLY_REPLY_TO="Updates <updates@regalis.co.za>"
+   OPS_EMAIL_RECIPIENTS="updates@regalis.co.za"
    ```
+3. If `noreply@regalis.co.za` has its own mailbox login, optionally add `EMAIL_NOREPLY_SMTP_USER` and `EMAIL_NOREPLY_SMTP_PASSWORD` so that mailbox authenticates separately. The same pattern is available for `EMAIL_UPDATES_SMTP_*`.
 4. Restart `npm run dev`.
 
-From header renders as `"PMOps" <you@gmail.com>`. Override with `EMAIL_FROM` if you need a fully custom value. Email failures degrade gracefully — the PM still sees the temp password in the UI.
+Behavior:
+- Tenant invites and other system mail use the `noreply` mailbox.
+- Public contact and signup requests use the `updates` mailbox.
+- If `OPS_EMAIL_RECIPIENTS` is blank, public enquiries fall back to the configured `updates` mailbox.
+
+Legacy `GMAIL_USER` + `GMAIL_APP_PASSWORD` still work as a fallback, so existing installs do not break.
 
 ### SMS invites (Android phone as gateway)
-Optional SMS invites use an Android phone as a zero-cost gateway via [SMS Gateway for Android](https://sms-gate.app) (Apache-2.0). Your Gmail SMTP already sends emails — SMS is additive for tenants who prefer text.
+Optional SMS invites use an Android phone as a zero-cost gateway via [SMS Gateway for Android](https://sms-gate.app) (Apache-2.0). Your outbound email setup already covers email delivery — SMS is additive for tenants who prefer text.
 
 **Setup (~3 minutes):**
 1. Install the [SMS Gateway APK](https://github.com/capcom6/android-sms-gateway/releases/latest/download/app-release.apk) on an Android phone (v5+). It's not on the Play Store — sideload the APK from [github.com/capcom6/android-sms-gateway](https://github.com/capcom6/android-sms-gateway) (enable "Install unknown apps" for your browser). Grant SMS send permissions on first launch.

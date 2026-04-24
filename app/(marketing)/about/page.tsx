@@ -1,114 +1,133 @@
 import Link from 'next/link';
 import { ArrowRight, Scale, Eye, Heart, ShieldCheck } from 'lucide-react';
 
-const INK = '#001030';
-const TEAL = '#002060';
-const CREAM = '#f5f1ea';
-const GOLD = '#b8965a';
-const GOLD_LT = '#d4b07a';
+import { MarketingJourneyGrid } from '@/components/marketing/marketing-journey-grid';
+import { MARKETING_THEME as T } from '@/lib/marketing-theme';
+
+const ABOUT_PATHS = [
+  {
+    href: '#why-we-built-it',
+    label: 'Start here',
+    title: 'Why this exists',
+    desc: 'A quick read on the gap we think rental teams in South Africa still deal with every day.',
+  },
+  {
+    href: '/product#portfolio-structure',
+    label: 'Product',
+    title: 'See how it shows up in the product',
+    desc: 'Move into the product page if you want to see how that thinking becomes actual workflow.',
+  },
+  {
+    href: '/pricing#how-pricing-is-scoped',
+    label: 'Commercials',
+    title: 'See how rollout is scoped',
+    desc: 'If the approach already feels right, the pricing page gives the next layer without turning into a hard sell.',
+  },
+];
 
 export default function AboutPage() {
   return (
-    <main style={{ background: '#fdfcfa', color: INK }} className="font-sans">
-      {/* HERO */}
+    <main style={{ background: T.creamSoft, color: T.ink }} className="font-sans">
       <section
         className="relative overflow-hidden px-6 pb-24 pt-36 md:px-14 md:pb-32 md:pt-48"
-        style={{ background: TEAL }}
+        style={{ background: `linear-gradient(180deg, ${T.inkDeep}, ${T.ink})` }}
       >
         <div aria-hidden className="pointer-events-none absolute inset-0 bg-architect-grid" />
         <div className="relative z-[1] mx-auto max-w-3xl">
           <div
             className="mb-6 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.25em]"
-            style={{ color: GOLD }}
+            style={{ color: T.gold }}
           >
-            <span className="block h-px w-8" style={{ background: GOLD }} />
+            <span className="block h-px w-8" style={{ background: T.gold }} />
             About Regalis
           </div>
           <h1
             className="font-serif text-[44px] font-light leading-[1.08] tracking-[-0.01em] sm:text-[64px] md:text-[80px]"
-            style={{ color: CREAM }}
+            style={{ color: T.cream }}
           >
-            We build the operating system for{' '}
-            <em style={{ color: GOLD_LT }}>South African property management.</em>
+            Regalis is built for{' '}
+            <em style={{ color: T.goldSoft }}>South African property management.</em>
           </h1>
         </div>
       </section>
 
-      {/* WHY WE BUILT IT */}
-      <section className="px-6 py-24 md:grid md:grid-cols-[1fr_2fr] md:gap-20 md:px-14 md:py-[120px]">
+      <MarketingJourneyGrid
+        eyebrow="Start here"
+        title="A little context goes a long way."
+        items={ABOUT_PATHS}
+      />
+
+      <section id="why-we-built-it" className="px-6 py-24 md:grid md:grid-cols-[1fr_2fr] md:gap-20 md:px-14 md:py-[120px]">
         <div className="mb-10 md:mb-0">
           <div
             className="mb-4 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.25em]"
-            style={{ color: GOLD }}
+            style={{ color: T.gold }}
           >
-            <span className="block h-px w-6" style={{ background: GOLD }} />
+            <span className="block h-px w-6" style={{ background: T.gold }} />
             Why we built it
           </div>
           <h2
             className="font-serif text-[32px] font-light leading-[1.12] tracking-[-0.01em] sm:text-[42px]"
-            style={{ color: INK }}
+            style={{ color: T.ink }}
           >
-            Because the current tools weren&apos;t built for <em style={{ color: TEAL }}>here.</em>
+            Because most rental software was not built for <em style={{ color: T.inkSoft }}>this market.</em>
           </h2>
         </div>
-        <div className="space-y-6 text-[15px] leading-[1.75]" style={{ color: 'rgba(0,16,48,0.75)' }}>
+        <div className="space-y-6 text-[15px] leading-[1.75]" style={{ color: T.textSoft }}>
           <p>
-            The property management software most South African agencies use was built somewhere else —
-            for someone else&apos;s laws, someone else&apos;s banking rails, and someone else&apos;s idea of
-            what &ldquo;trust accounting&rdquo; means. The result is predictable: every agency bolts on
-            spreadsheets, WhatsApp groups, and a Dropbox folder called &ldquo;STATEMENTS_FINAL_v3.&rdquo;
+            A lot of the property software used in South Africa was designed somewhere else, around someone
+            else&apos;s rules, banking rails, and reporting assumptions. So teams end up doing the real work
+            in spreadsheets, inboxes, and message threads.
           </p>
           <p>
-            We&apos;ve spent years inside that reality — managing portfolios, sitting through EAAB
-            audits, chasing DebiCheck mandates, and trying to explain to a landlord at 9pm on the 1st
-            why their statement still isn&apos;t in their inbox. Regalis is the software we wished
-            existed: one ledger of record, trust accounting that behaves, landlord and tenant portals
-            that work, and a maintenance workflow that governs itself.
+            We&apos;ve spent years inside that reality, managing portfolios, prepping for audits, working
+            through mandates, and feeling the drag created by software that never quite fits the way local
+            teams actually operate. Regalis is the platform we wanted to use ourselves: one clean record,
+            better flow across the team, and portals that do what they should.
           </p>
           <p>
-            We&apos;re building for the property manager running 12 units out of a home office, the
-            managing agent servicing 40 principals, and the agency closing 300+ doors every month.
-            Different scale, same problems — and all of them deserve better tools.
+            We&apos;re building for the property manager with a compact portfolio, the managing agent working
+            across multiple principals, and the agency handling serious monthly volume. Different scale,
+            same pressure.
           </p>
         </div>
       </section>
 
-      {/* WHAT WE BELIEVE */}
-      <section className="px-6 py-24 md:px-14 md:py-[120px]" style={{ background: CREAM }}>
+      <section id="principles" className="px-6 py-24 md:px-14 md:py-[120px]" style={{ background: T.cream }}>
         <div className="mx-auto mb-14 max-w-2xl text-center md:mb-20">
           <div
             className="mb-4 flex items-center justify-center gap-3 font-mono text-[10px] uppercase tracking-[0.25em]"
-            style={{ color: GOLD }}
+            style={{ color: T.gold }}
           >
-            <span className="block h-px w-6" style={{ background: GOLD }} />
+            <span className="block h-px w-6" style={{ background: T.gold }} />
             What we believe
-            <span className="block h-px w-6" style={{ background: GOLD }} />
+            <span className="block h-px w-6" style={{ background: T.gold }} />
           </div>
           <h2
             className="font-serif text-[32px] font-light leading-[1.12] tracking-[-0.01em] sm:text-[44px]"
-            style={{ color: INK }}
+            style={{ color: T.ink }}
           >
-            Four principles we&apos;re not prepared to compromise on.
+            The standards behind the product.
           </h2>
         </div>
 
-        <div className="grid gap-0 md:grid-cols-2" style={{ border: `1px solid ${INK}1f`, background: '#fdfcfa' }}>
+        <div className="grid gap-0 md:grid-cols-2" style={{ border: `1px solid ${T.borderStrong}`, background: T.creamSoft }}>
           {PRINCIPLES.map((p, i) => (
             <div
               key={p.title}
               className="p-9"
               style={{
-                borderRight: i % 2 === 0 ? `1px solid ${INK}1f` : 'none',
-                borderBottom: i < 2 ? `1px solid ${INK}1f` : 'none',
+                borderRight: i % 2 === 0 ? `1px solid ${T.borderStrong}` : 'none',
+                borderBottom: i < 2 ? `1px solid ${T.borderStrong}` : 'none',
               }}
             >
               <div className="mb-5 opacity-80">
-                <p.Icon size={28} color={TEAL} strokeWidth={1.5} />
+                <p.Icon size={28} color={T.inkSoft} strokeWidth={1.5} />
               </div>
-              <h3 className="mb-3 font-serif text-[22px] leading-tight" style={{ color: INK }}>
+              <h3 className="mb-3 font-serif text-[22px] leading-tight" style={{ color: T.ink }}>
                 {p.title}
               </h3>
-              <p className="text-[13px] leading-[1.7]" style={{ color: 'rgba(0,16,48,0.65)' }}>
+              <p className="text-[13px] leading-[1.7]" style={{ color: T.textSoft }}>
                 {p.desc}
               </p>
             </div>
@@ -116,67 +135,65 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* TEAM */}
-      <section className="px-6 py-24 md:px-14 md:py-[120px]">
+      <section id="team" className="px-6 py-24 md:px-14 md:py-[120px]">
         <div className="mx-auto max-w-3xl">
           <div
             className="mb-4 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.25em]"
-            style={{ color: GOLD }}
+            style={{ color: T.gold }}
           >
-            <span className="block h-px w-6" style={{ background: GOLD }} />
+            <span className="block h-px w-6" style={{ background: T.gold }} />
             The team
           </div>
           <h2
             className="mb-10 font-serif text-[32px] font-light leading-[1.12] tracking-[-0.01em] sm:text-[42px]"
-            style={{ color: INK }}
+            style={{ color: T.ink }}
           >
-            Founded by a team of property managers and engineers.
+            Built by people who know the work.
           </h2>
 
           <div
             className="flex flex-col gap-6 border p-8 md:flex-row md:items-center md:gap-10 md:p-10"
-            style={{ borderColor: `${INK}1f`, background: CREAM }}
+            style={{ borderColor: T.borderStrong, background: T.cream }}
           >
             <div
               className="h-20 w-20 flex-shrink-0 rounded-full"
-              style={{ background: TEAL, border: `1px solid ${GOLD}` }}
+              style={{ background: T.ink, border: `1px solid ${T.gold}` }}
             />
             <div>
-              <p className="mb-3 font-serif text-[20px] leading-[1.4]" style={{ color: INK }}>
-                Regalis is built by a small team that&apos;s split time between property management
-                operations and building software for financial services.
+              <p className="mb-3 font-serif text-[20px] leading-[1.4]" style={{ color: T.ink }}>
+                Regalis comes from a small team with experience across property operations and
+                financial-services software.
               </p>
-              <p className="text-[13px] leading-[1.7]" style={{ color: 'rgba(0,16,48,0.65)' }}>
-                We&apos;re based in South Africa, we know the Rental Housing Act, and we&apos;ve sat on
-                both sides of an EAAB audit. We build what we wish we&apos;d had.
+              <p className="text-[13px] leading-[1.7]" style={{ color: T.textSoft }}>
+                We&apos;re based in South Africa, we know the local regulatory shape, and we build for the
+                realities rental teams deal with every month.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="relative overflow-hidden px-6 py-24 text-center md:px-14 md:py-[120px]" style={{ background: INK }}>
+      <section className="relative overflow-hidden px-6 py-24 text-center md:px-14 md:py-[120px]" style={{ background: `linear-gradient(180deg, ${T.inkDeep}, ${T.ink})` }}>
         <div
           className="relative z-[1] mb-7 flex items-center justify-center gap-3 font-mono text-[10px] uppercase tracking-[0.25em]"
-          style={{ color: GOLD }}
+          style={{ color: T.gold }}
         >
-          <span className="block h-px w-8" style={{ background: GOLD }} />
-          Let&apos;s talk
-          <span className="block h-px w-8" style={{ background: GOLD }} />
+          <span className="block h-px w-8" style={{ background: T.gold }} />
+          Continue
+          <span className="block h-px w-8" style={{ background: T.gold }} />
         </div>
         <h2
           className="relative z-[1] mb-10 font-serif text-[32px] font-light leading-[1.1] tracking-[-0.01em] sm:text-[48px]"
-          style={{ color: CREAM }}
+          style={{ color: T.cream }}
         >
-          Questions about the platform, pricing, or onboarding?
+          If you want to see whether it fits your team, the next step is easy.
         </h2>
         <Link
-          href="/contact"
+          href="/contact#message"
           className="relative z-[1] inline-flex items-center gap-2 px-9 py-4 text-[12px] font-bold uppercase tracking-[0.14em] no-underline transition hover:brightness-110"
-          style={{ background: GOLD, color: INK }}
+          style={{ background: T.gold, color: T.ink }}
         >
-          Get in touch <ArrowRight size={14} />
+          Start a conversation <ArrowRight size={14} />
         </Link>
       </section>
     </main>
@@ -185,23 +202,23 @@ export default function AboutPage() {
 
 const PRINCIPLES = [
   {
-    title: 'Trust accounting is sacred',
-    desc: "Deposit money belongs to tenants. Landlord money belongs to landlords. We never blur the lines, and our ledgers make sure you don't either.",
+    title: 'Clean trust separation',
+    desc: 'Keep tenant money, landlord balances, and the operating record clearly separated so the financial picture stays easier to manage.',
     Icon: Scale,
   },
   {
-    title: 'Landlords deserve visibility',
-    desc: 'Statements, occupancy, and arrears should never be the property manager’s private knowledge. Landlords log in, see everything, and stop guessing.',
+    title: 'Shared visibility',
+    desc: 'Give landlords a clearer view of statements, occupancy, and arrears without turning every update into a manual follow-up.',
     Icon: Eye,
   },
   {
-    title: 'Tenants deserve respect',
-    desc: 'Tenants are not a support ticket. They get a real portal — for leases, repairs, and payments — that treats them like a person, not an inbox.',
+    title: 'Better tenant service',
+    desc: 'Give tenants one place for leases, repairs, and payments so routine admin moves faster and the office absorbs less noise.',
     Icon: Heart,
   },
   {
-    title: 'Compliance is non-negotiable',
-    desc: 'Rental Housing Act, POPIA, EAAB, SARS, FICA — we do the boring work so you can pass the audit without a weekend of spreadsheet archaeology.',
+    title: 'Compliance by default',
+    desc: 'Build rental, privacy, audit, and reporting requirements into the workflow from the start instead of layering them on later.',
     Icon: ShieldCheck,
   },
 ];

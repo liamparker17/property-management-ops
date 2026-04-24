@@ -67,8 +67,17 @@ async function sumInvoiceTotals(where: Prisma.InvoiceWhereInput) {
 }
 
 async function sumTrustBalance(where: Prisma.TrustLedgerEntryWhereInput) {
+  // Trust account under EAAB/PPRA rules holds **security deposits only**.
+  // Rent receipts flow tenant → landlord directly (or same-day pass-through
+  // via PM) and must not sit in trust. Accordingly, the trust balance is
+  // the net of DEPOSIT_IN minus DEPOSIT_OUT (plus any REVERSALs that touch
+  // those). Summing RECEIPT/DISBURSEMENT/FEE rows would commingle rent
+  // flow with the deposit book.
   const result = await db.trustLedgerEntry.aggregate({
-    where,
+    where: {
+      ...where,
+      type: { in: ['DEPOSIT_IN', 'DEPOSIT_OUT', 'REVERSAL'] },
+    },
     _sum: { amountCents: true },
   });
   return result._sum.amountCents ?? 0;

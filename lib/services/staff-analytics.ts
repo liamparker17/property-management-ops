@@ -6,7 +6,11 @@ import type { KpiId } from '@/lib/analytics/kpis';
 import type { RouteCtx } from '@/lib/auth/with-org';
 import { db } from '@/lib/db';
 import { withRoleScopeFilter } from '@/lib/services/role-scope';
-import { monthFloor } from '@/lib/services/snapshots';
+import {
+  monthFloor,
+  recomputeOrgSnapshot,
+  recomputePropertySnapshot,
+} from '@/lib/services/snapshots';
 
 type KpiMap = Record<KpiId, number>;
 
@@ -372,9 +376,19 @@ export async function getStaffCommandCenter(
 ): Promise<StaffCommandCenter> {
   const periodStart = monthFloor(filters?.periodStart ?? new Date());
   const priorPeriodStart = addMonths(periodStart, -1);
+  let currentSnapshotRow = await db.orgMonthlySnapshot.findFirst({
+    where: { orgId: ctx.orgId, periodStart },
+  });
+  if (!currentSnapshotRow) {
+    try {
+      currentSnapshotRow = await recomputeOrgSnapshot(ctx, periodStart);
+    } catch (err) {
+      console.error('[staff-analytics] lazy org snapshot hydrate failed', err);
+    }
+  }
   const [currentSnapshot, priorSnapshot, properties, expiringLeases, topArrears, openMaintenance, blockedApprovals, series] =
     await Promise.all([
-      db.orgMonthlySnapshot.findFirst({ where: { orgId: ctx.orgId, periodStart } }),
+      Promise.resolve(currentSnapshotRow),
       db.orgMonthlySnapshot.findFirst({ where: { orgId: ctx.orgId, periodStart: priorPeriodStart } }),
       getScopedProperties(ctx),
       getExpiringLeases(ctx, 30),
@@ -428,13 +442,32 @@ export async function getStaffPortfolio(
   const periodStart = monthFloor(new Date());
   const properties = await getScopedProperties(ctx, filters?.propertyId);
   const propertyIds = properties.map((row) => row.id);
-  const snapshots = await db.propertyMonthlySnapshot.findMany({
+  let snapshots = await db.propertyMonthlySnapshot.findMany({
     where: {
       orgId: ctx.orgId,
       periodStart,
       ...(propertyIds.length > 0 ? { propertyId: { in: propertyIds } } : {}),
     },
   });
+  const missing = propertyIds.filter(
+    (id) => !snapshots.some((row) => row.propertyId === id),
+  );
+  if (missing.length > 0) {
+    await Promise.all(
+      missing.map((id) =>
+        recomputePropertySnapshot(ctx, id, periodStart).catch((err) =>
+          console.error('[staff-analytics] lazy property snapshot hydrate failed', { id, err }),
+        ),
+      ),
+    );
+    snapshots = await db.propertyMonthlySnapshot.findMany({
+      where: {
+        orgId: ctx.orgId,
+        periodStart,
+        ...(propertyIds.length > 0 ? { propertyId: { in: propertyIds } } : {}),
+      },
+    });
+  }
   const snapshotMap = new Map(snapshots.map((row) => [row.propertyId, row]));
 
   return {

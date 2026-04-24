@@ -524,7 +524,7 @@ export async function getStaffFinance(
     }),
     db.invoice.findMany({
       where: { orgId: ctx.orgId, paidAt: null, status: { in: ['DUE', 'OVERDUE'] } },
-      select: { dueDate: true, totalCents: true },
+      select: { dueDate: true, totalCents: true, amountCents: true },
     }),
   ]);
 
@@ -546,10 +546,11 @@ export async function getStaffFinance(
   ];
   for (const invoice of invoices) {
     const days = Math.floor((Date.now() - invoice.dueDate.getTime()) / 86400000);
-    if (days <= 0) buckets[0].y += invoice.totalCents;
-    else if (days <= 14) buckets[1].y += invoice.totalCents;
-    else if (days <= 30) buckets[2].y += invoice.totalCents;
-    else buckets[3].y += invoice.totalCents;
+    const cents = invoice.totalCents > 0 ? invoice.totalCents : invoice.amountCents;
+    if (days <= 0) buckets[0].y += cents;
+    else if (days <= 14) buckets[1].y += cents;
+    else if (days <= 30) buckets[2].y += cents;
+    else buckets[3].y += cents;
   }
 
   return {

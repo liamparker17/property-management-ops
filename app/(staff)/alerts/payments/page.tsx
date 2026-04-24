@@ -33,6 +33,7 @@ export default async function PaymentAlertsPage() {
     .map((invoice) => ({
       ...invoice,
       daysPastDue: Math.floor((Date.now() - invoice.dueDate.getTime()) / 86400000),
+      displayCents: invoice.totalCents > 0 ? invoice.totalCents : invoice.amountCents,
     }))
     .filter((invoice) => invoice.daysPastDue >= -7);
 
@@ -40,26 +41,34 @@ export default async function PaymentAlertsPage() {
     <div className="space-y-8">
       <PageHeader eyebrow="Alerts" title="Payment alerts" description="Invoices currently inside reminder, overdue, and final-notice windows." />
       <Card className="overflow-hidden border border-border p-0">
-        <div className="divide-y divide-border/60">
-          {rows.map((row) => (
-            <Link key={row.id} href={`/leases/${row.leaseId}#invoices`} className="block px-5 py-4 hover:bg-[color:var(--muted)]/35">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <div className="font-medium text-foreground">
-                    {row.lease.unit.property.name} / {row.lease.unit.label}
+        {rows.length === 0 ? (
+          <div className="px-5 py-10 text-center text-sm text-muted-foreground">
+            No invoices currently in the reminder, overdue, or final-notice window. Generate a billing run from{' '}
+            <Link href="/billing" className="text-primary hover:underline">/billing</Link>{' '}
+            or wait for the daily cron to surface fresh ones.
+          </div>
+        ) : (
+          <div className="divide-y divide-border/60">
+            {rows.map((row) => (
+              <Link key={row.id} href={`/leases/${row.leaseId}#invoices`} className="block px-5 py-4 hover:bg-[color:var(--muted)]/35">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <div className="font-medium text-foreground">
+                      {row.lease.unit.property.name} / {row.lease.unit.label}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {row.lease.tenants[0]?.tenant ? `${row.lease.tenants[0].tenant.firstName} ${row.lease.tenants[0].tenant.lastName}` : 'Primary tenant missing'} · {bucketLabel(row.daysPastDue)}
+                    </div>
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {row.lease.tenants[0]?.tenant ? `${row.lease.tenants[0].tenant.firstName} ${row.lease.tenants[0].tenant.lastName}` : 'Primary tenant missing'} · {bucketLabel(row.daysPastDue)}
+                  <div className="text-right">
+                    <div className="font-medium text-foreground">{formatZar(row.displayCents)}</div>
+                    <div className="text-xs text-muted-foreground">Due {row.dueDate.toISOString().slice(0, 10)}</div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="font-medium text-foreground">{formatZar(row.totalCents)}</div>
-                  <div className="text-xs text-muted-foreground">Due {row.dueDate.toISOString().slice(0, 10)}</div>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </Card>
     </div>
   );

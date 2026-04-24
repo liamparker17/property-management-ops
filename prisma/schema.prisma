@@ -281,7 +281,10 @@ model Org {
   approvals           Approval[]
   orgFeatures         OrgFeature[]
   orgIntegrations     OrgIntegration[]
+  financialYears      FinancialYear[]
+  annualReconciliations AnnualReconciliation[]
   reconciliationRuns  ReconciliationRun[]
+  taxPacks            TaxPack[]
   statements          Statement[]
   auditLogs           AuditLog[]
   notifications       Notification[]
@@ -303,6 +306,8 @@ model Org {
   usageAlertRules     UsageAlertRule[]
   usageAlertEvents    UsageAlertEvent[]
   loadSheddingOutages LoadSheddingOutage[]
+  backupSnapshots     BackupSnapshot[]
+  backupVerificationRuns BackupVerificationRun[]
 }
 
 model OrgFeature {
@@ -418,6 +423,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   uploaded      Document[] @relation("DocumentUploader")
+  lockedFinancialYears FinancialYear[] @relation("FinancialYearLocker")
   auditLogs     AuditLog[]
   notifications Notification[]
   noticeDeliveries NoticeDelivery[]
@@ -739,13 +745,17 @@ model Document {
   propertyId    String?
   unitId        String?
   tenantId      String?
-  filename      String
-  mimeType      String
-  sizeBytes     Int
-  storageKey    String
-  uploadedById  String
-  uploadedBy    User         @relation("DocumentUploader", fields: [uploadedById], references: [id])
-  createdAt     DateTime     @default(now())
+  filename       String
+  mimeType       String
+  sizeBytes      Int
+  storageKey     String
+  checksum       String?
+  retentionDays  Int?
+  encryptionNote String?
+  archivedAt     DateTime?
+  uploadedById   String
+  uploadedBy     User         @relation("DocumentUploader", fields: [uploadedById], references: [id])
+  createdAt      DateTime     @default(now())
 
   lease         Lease?       @relation(fields: [leaseId], references: [id])
   property      Property?    @relation(fields: [propertyId], references: [id])
@@ -1058,6 +1068,106 @@ model ReconciliationRun {
   exceptions  ReconciliationException[]
 
   @@index([orgId, periodStart])
+}
+
+model BackupSnapshot {
+  id            String   @id @default(cuid())
+  orgId         String
+  takenAt       DateTime @default(now())
+  sizeBytes     BigInt
+  storageKey    String
+  checksum      String
+  kind          String
+  status        String   @default("OK")
+  errorMessage  String?
+  pgDumpVersion String?
+  org           Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, takenAt])
+  @@index([orgId, kind, takenAt])
+}
+
+model BackupVerificationRun {
+  id           String   @id @default(cuid())
+  orgId        String
+  startedAt    DateTime @default(now())
+  completedAt  DateTime?
+  status       String
+  missingCount Int      @default(0)
+  corruptCount Int      @default(0)
+  summary      Json?
+  details      Json?
+  org          Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, startedAt])
+}
+
+model FinancialYear {
+  id         String    @id @default(cuid())
+  orgId      String
+  startDate  DateTime  @db.Date
+  endDate    DateTime  @db.Date
+  lockedAt   DateTime?
+  lockedById String?
+  org        Org       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  lockedBy   User?     @relation("FinancialYearLocker", fields: [lockedById], references: [id])
+
+  reconciliations AnnualReconciliation[]
+  taxPacks        TaxPack[]
+
+  @@unique([orgId, startDate])
+  @@index([orgId, lockedAt])
+}
+
+model AnnualReconciliation {
+  id          String        @id @default(cuid())
+  orgId       String
+  yearId      String
+  scopeType   String
+  scopeId     String?
+  summary     Json
+  storageKey  String?
+  generatedAt DateTime      @default(now())
+  org         Org           @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  year        FinancialYear @relation(fields: [yearId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, yearId])
+  @@index([orgId, scopeType, scopeId])
+}
+
+model TaxPack {
+  id                  String        @id @default(cuid())
+  orgId               String
+  yearId              String
+  subjectType         String
+  subjectId           String
+  totalsJson          Json
+  storageKey          String?
+  csvKey              String?
+  previousStorageKeys Json          @default("[]")
+  previousCsvKeys     Json          @default("[]")
+  generatedAt         DateTime      @default(now())
+  regeneratedAt       DateTime?
+  regenerationCount   Int           @default(0)
+  transmissionAdapter String        @default("recordOnly")
+  transmissionResult  Json?
+  org                 Org           @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  year                FinancialYear @relation(fields: [yearId], references: [id], onDelete: Cascade)
+  lines               TaxPackLine[]
+
+  @@unique([orgId, yearId, subjectType, subjectId])
+}
+
+model TaxPackLine {
+  id          String   @id @default(cuid())
+  packId       String
+  category     String
+  subCategory  String?
+  amountCents  Int
+  evidenceRefs Json?
+  pack         TaxPack  @relation(fields: [packId], references: [id], onDelete: Cascade)
+
+  @@index([packId, category])
 }
 
 model ReconciliationException {

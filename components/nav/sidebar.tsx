@@ -12,6 +12,7 @@ import {
   DoorClosed,
   FileText,
   FileSpreadsheet,
+  Files,
   Gauge,
   Plug,
   Receipt,
@@ -50,6 +51,8 @@ const FINANCE_NAV: NavItem[] = [
   { href: '/payments', label: 'Payments', icon: Wallet, match: (p) => p.startsWith('/payments') },
   { href: '/trust', label: 'Trust', icon: ShieldCheck, match: (p) => p.startsWith('/trust') },
   { href: '/statements', label: 'Statements', icon: FileSpreadsheet, match: (p) => p.startsWith('/statements') },
+  { href: '/reports/year-end', label: 'Year-end', icon: Files, match: (p) => p.startsWith('/reports/year-end') },
+  { href: '/reports/tax-packs', label: 'Tax packs', icon: FileSpreadsheet, match: (p) => p.startsWith('/reports/tax-packs') },
   { href: '/alerts/usage', label: 'Usage Alerts', icon: Gauge, match: (p) => p.startsWith('/alerts/usage') },
   { href: '/alerts/payments', label: 'Pay Alerts', icon: Wallet, match: (p) => p.startsWith('/alerts/payments') },
 ];
@@ -76,7 +79,13 @@ export function getStaffNavItems(role: string): NavItem[] {
       href: '/settings/integrations',
       label: 'Integrations',
       icon: Plug,
-      match: (p) => p.startsWith('/settings/integrations'),
+        match: (p) => p.startsWith('/settings/integrations'),
+      });
+    items.push({
+      href: '/settings/backup',
+      label: 'Backup',
+      icon: ShieldCheck,
+      match: (p) => p.startsWith('/settings/backup'),
     });
   }
   return items;

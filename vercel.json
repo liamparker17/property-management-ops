@@ -6,6 +6,8 @@
     { "path": "/api/cron/notifications-dispatch", "schedule": "*/5 * * * *" },
     { "path": "/api/cron/eskom-sync", "schedule": "0 3 * * *" },
     { "path": "/api/cron/usage-alerts", "schedule": "0 4 * * *" },
-    { "path": "/api/cron/payment-alerts", "schedule": "0 5 * * *" }
+    { "path": "/api/cron/payment-alerts", "schedule": "0 5 * * *" },
+    { "path": "/api/cron/backup-daily", "schedule": "30 0 * * *" },
+    { "path": "/api/cron/backup-verify", "schedule": "0 1 * * 0" }
   ]
 }

@@ -4,45 +4,43 @@ import { redirect } from 'next/navigation';
 import { EmptyState } from '@/components/empty-state';
 import { PageHeader } from '@/components/page-header';
 import { buttonVariants } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { formatDate, formatZar } from '@/lib/format';
 import { formatFinancialYearLabel } from '@/lib/financial-year';
 
-export default async function LandlordReportsPage() {
+export default async function TenantReportsPage() {
   const session = await auth();
-  if (!session || session.user.role !== 'LANDLORD') redirect('/login');
+  if (!session || session.user.role !== 'TENANT') redirect('/login');
 
-  const user = await db.user.findUnique({
-    where: { id: session.user.id },
-    select: { landlordId: true, orgId: true },
+  const tenant = await db.tenant.findFirst({
+    where: { orgId: session.user.orgId, userId: session.user.id },
+    select: { id: true, orgId: true },
   });
-  if (!user?.landlordId) redirect('/landlord');
+  if (!tenant) redirect('/tenant');
 
   const packs = await db.taxPack.findMany({
     where: {
-      orgId: user.orgId,
-      subjectType: 'Landlord',
-      subjectId: user.landlordId,
+      orgId: tenant.orgId,
+      subjectType: 'Tenant',
+      subjectId: tenant.id,
     },
-    include: {
-      year: { select: { id: true, startDate: true, endDate: true } },
-    },
+    include: { year: { select: { id: true, startDate: true, endDate: true } } },
     orderBy: { year: { startDate: 'desc' } },
   });
 
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Landlord Portal"
+        eyebrow="Tenant Portal"
         title="Reports"
-        description="Annual tax support packs prepared for your portfolio."
+        description="Annual payment and support-pack exports for your tenancy."
       />
 
       {packs.length === 0 ? (
-        <EmptyState title="No reports yet" description="Your property manager will publish tax packs here once they are generated." />
+        <EmptyState title="No reports yet" description="Tax support packs will appear here once your property manager publishes them." />
       ) : (
         <Card className="overflow-hidden p-0">
           <Table>
@@ -60,19 +58,14 @@ export default async function LandlordReportsPage() {
                 const totals = pack.totalsJson as { netCents?: number };
                 return (
                   <TableRow key={pack.id} className="even:bg-muted/15 hover:bg-muted/40">
-                    <TableCell className="px-4 py-3 font-medium">
-                      {formatFinancialYearLabel(pack.year.startDate)}
-                    </TableCell>
+                    <TableCell className="px-4 py-3 font-medium">{formatFinancialYearLabel(pack.year.startDate)}</TableCell>
                     <TableCell className="px-4 py-3 text-muted-foreground">
                       {formatDate(pack.year.startDate)} → {formatDate(pack.year.endDate)}
                     </TableCell>
                     <TableCell className="px-4 py-3 text-muted-foreground">{formatDate(pack.generatedAt)}</TableCell>
                     <TableCell className="px-4 py-3">{formatZar(totals.netCents ?? 0)}</TableCell>
                     <TableCell className="px-4 py-3 text-right">
-                      <Link
-                        href={`/landlord/reports/${pack.yearId}`}
-                        className={buttonVariants({ variant: 'outline', size: 'sm' })}
-                      >
+                      <Link href={`/tenant/reports/${pack.yearId}`} className={buttonVariants({ variant: 'outline', size: 'sm' })}>
                         Open report
                       </Link>
                     </TableCell>

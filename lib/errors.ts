@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 
 export type ApiErrorCode =
+  | 'BAD_REQUEST'
   | 'UNAUTHORIZED'
   | 'FORBIDDEN'
   | 'NOT_FOUND'
@@ -21,6 +22,9 @@ export class ApiError extends Error {
 
   static unauthorized(message = 'Not authenticated') {
     return new ApiError('UNAUTHORIZED', message, 401);
+  }
+  static badRequest(message = 'Bad request', details?: unknown) {
+    return new ApiError('BAD_REQUEST', message, 400, details);
   }
   static forbidden(message = 'Forbidden') {
     return new ApiError('FORBIDDEN', message, 403);

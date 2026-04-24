@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, Home, FileText, Folder, User, Wrench, Receipt, CreditCard, ClipboardCheck, Zap } from 'lucide-react';
+import { Bell, Home, FileText, Folder, User, Wrench, Receipt, CreditCard, ClipboardCheck, Zap, Files } from 'lucide-react';
 
 import { SidebarBody } from './sidebar';
 
@@ -13,6 +13,7 @@ const NAV = [
   { href: '/tenant/inspections', label: 'Inspections', icon: ClipboardCheck, match: (p: string) => p.startsWith('/tenant/inspections') },
   { href: '/tenant/notices', label: 'Notices', icon: Bell, match: (p: string) => p.startsWith('/tenant/notices') },
   { href: '/tenant/outages', label: 'Outages', icon: Zap, match: (p: string) => p.startsWith('/tenant/outages') },
+  { href: '/tenant/reports', label: 'Reports', icon: Files, match: (p: string) => p.startsWith('/tenant/reports') },
   { href: '/tenant/documents', label: 'Documents', icon: Folder, match: (p: string) => p.startsWith('/tenant/documents') },
   { href: '/tenant/profile', label: 'Profile', icon: User, match: (p: string) => p.startsWith('/tenant/profile') },
 ];

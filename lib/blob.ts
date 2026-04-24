@@ -12,8 +12,16 @@ export function validateFile(file: File) {
   if (!ALLOWED_MIME.has(file.type)) throw new Error(`Unsupported file type: ${file.type}`);
 }
 
-export async function uploadBlob(path: string, file: File) {
-  const result = await put(path, file, { access: 'public', addRandomSuffix: true, contentType: file.type });
+export async function uploadBlob(
+  path: string,
+  file: File,
+  opts?: { addRandomSuffix?: boolean; access?: 'public' | 'private' },
+) {
+  const result = await put(path, file, {
+    access: opts?.access ?? 'public',
+    addRandomSuffix: opts?.addRandomSuffix ?? true,
+    contentType: file.type,
+  });
   return { url: result.url, pathname: result.pathname };
 }
 

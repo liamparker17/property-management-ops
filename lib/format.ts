@@ -1,3 +1,5 @@
+export { FINANCIAL_YEAR_START } from '@/lib/financial-year';
+
 export function formatZar(cents: number): string {
   return new Intl.NumberFormat('en-ZA', {
     style: 'currency',

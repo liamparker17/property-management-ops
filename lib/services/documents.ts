@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 // Slice 1 uses public Vercel Blob URLs. Slice 2+ will move to private blobs + signed URLs.
 import { db } from '@/lib/db';
 import { ApiError } from '@/lib/errors';
@@ -17,6 +19,7 @@ export async function uploadLeaseAgreement(ctx: RouteCtx, leaseId: string, file:
     throw ApiError.validation({ file: (err as Error).message });
   }
   const { pathname } = await uploadBlob(`orgs/${ctx.orgId}/leases/${leaseId}/${file.name}`, file);
+  const bytes = Buffer.from(await file.arrayBuffer());
   return db.document.create({
     data: {
       orgId: ctx.orgId,
@@ -26,6 +29,8 @@ export async function uploadLeaseAgreement(ctx: RouteCtx, leaseId: string, file:
       mimeType: file.type,
       sizeBytes: file.size,
       storageKey: pathname,
+      checksum: createHash('sha256').update(bytes).digest('hex'),
+      encryptionNote: 'provider-default',
       uploadedById: ctx.userId,
     },
   });

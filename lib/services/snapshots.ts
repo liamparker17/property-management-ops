@@ -66,21 +66,25 @@ async function sumInvoiceTotals(where: Prisma.InvoiceWhereInput) {
   }, 0);
 }
 
-async function sumTrustBalance(where: Prisma.TrustLedgerEntryWhereInput) {
+async function sumTrustBalance(orgId: string) {
   // Trust account under EAAB/PPRA rules holds **security deposits only**.
-  // Rent receipts flow tenant → landlord directly (or same-day pass-through
-  // via PM) and must not sit in trust. Accordingly, the trust balance is
-  // the net of DEPOSIT_IN minus DEPOSIT_OUT (plus any REVERSALs that touch
-  // those). Summing RECEIPT/DISBURSEMENT/FEE rows would commingle rent
-  // flow with the deposit book.
-  const result = await db.trustLedgerEntry.aggregate({
+  // Rent goes tenant → landlord directly; only deposits live in trust.
+  // Authoritative source is the Lease record itself: active/renewed leases
+  // whose deposit has been received and hasn't been settled on move-out.
+  // The trust ledger keeps a full audit trail of all receipts/disbursements
+  // for compliance, but the displayed balance comes from the lease book.
+  // ACTIVE/RENEWED leases haven't been settled yet (settlement happens at
+  // termination via OffboardingCase → DepositSettlement). Scoping to those
+  // states is a sufficient proxy for "deposit still held in trust".
+  const result = await db.lease.aggregate({
     where: {
-      ...where,
-      type: { in: ['DEPOSIT_IN', 'DEPOSIT_OUT', 'REVERSAL'] },
+      orgId,
+      state: { in: ['ACTIVE', 'RENEWED'] },
+      depositReceivedAt: { not: null },
     },
-    _sum: { amountCents: true },
+    _sum: { depositAmountCents: true },
   });
-  return result._sum.amountCents ?? 0;
+  return result._sum.depositAmountCents ?? 0;
 }
 
 async function sumUnallocated(orgId: string) {
@@ -143,9 +147,7 @@ export async function recomputeOrgSnapshot(ctx: RouteCtx, periodStart: Date) {
     orgId: ctx.orgId,
     ...overdueWhere(now),
   });
-  const trustBalanceCents = await sumTrustBalance({
-    trustAccount: { orgId: ctx.orgId },
-  });
+  const trustBalanceCents = await sumTrustBalance(ctx.orgId);
   const unallocatedCents = await sumUnallocated(ctx.orgId);
 
   const safeOccupied = Math.min(occupiedUnits, totalUnits);

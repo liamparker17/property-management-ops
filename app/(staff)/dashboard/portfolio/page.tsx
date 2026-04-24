@@ -1,5 +1,10 @@
+import Link from 'next/link';
+import { Building2 } from 'lucide-react';
+
 import { MapPanel } from '@/components/analytics/maps/map-panel';
+import { EmptyState } from '@/components/empty-state';
 import { PageHeader } from '@/components/page-header';
+import { buttonVariants } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { auth } from '@/lib/auth';
 import { userToRouteCtx } from '@/lib/auth/page-ctx';
@@ -21,6 +26,18 @@ export default async function StaffPortfolioPage() {
 
       <div className="grid gap-6 xl:grid-cols-[1.1fr_1fr]">
         <Card className="overflow-hidden border border-border p-0">
+          {data.rows.length === 0 ? (
+            <EmptyState
+              icon={<Building2 className="size-5" />}
+              title="No properties yet"
+              description="Add your first property to start tracking occupancy and arrears."
+              action={
+                <Link href="/properties/new" className={buttonVariants()}>
+                  New property
+                </Link>
+              }
+            />
+          ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead className="bg-[color:var(--muted)]/40 text-left">
@@ -50,6 +67,7 @@ export default async function StaffPortfolioPage() {
               </tbody>
             </table>
           </div>
+          )}
         </Card>
         <MapPanel title="Mapped properties" eyebrow="Map" pins={data.pins} />
       </div>

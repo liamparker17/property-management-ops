@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 
+import { EmptyState } from '@/components/empty-state';
 import { PageHeader } from '@/components/page-header';
 import { Card } from '@/components/ui/card';
 import { auth } from '@/lib/auth';
@@ -30,20 +31,28 @@ export default async function AgentPropertyDetailPage({ params }: { params: Prom
         <Card className="border border-border p-5">
           <h2 className="font-serif text-[24px] font-light text-foreground">Units</h2>
           <div className="mt-4 space-y-3">
-            {property.units.map((unit) => (
-              <div key={unit.id} className="border border-border/70 px-4 py-3">{unit.label}</div>
-            ))}
+            {property.units.length === 0 ? (
+              <EmptyState title="No units yet" description="Units added by the property manager will appear here." />
+            ) : (
+              property.units.map((unit) => (
+                <div key={unit.id} className="border border-border/70 px-4 py-3">{unit.label}</div>
+              ))
+            )}
           </div>
         </Card>
         <Card className="border border-border p-5">
           <h2 className="font-serif text-[24px] font-light text-foreground">Recent tickets</h2>
           <div className="mt-4 space-y-3">
-            {maintenanceRequests.map((row) => (
-              <div key={row.id} className="border border-border/70 px-4 py-3">
-                <div className="font-medium text-foreground">{row.title}</div>
-                <div className="text-xs text-muted-foreground">{row.status.replace('_', ' ')}</div>
-              </div>
-            ))}
+            {maintenanceRequests.length === 0 ? (
+              <EmptyState title="No tickets yet" description="Tenant-reported issues on this property will surface here." />
+            ) : (
+              maintenanceRequests.map((row) => (
+                <div key={row.id} className="border border-border/70 px-4 py-3">
+                  <div className="font-medium text-foreground">{row.title}</div>
+                  <div className="text-xs text-muted-foreground">{row.status.replace('_', ' ')}</div>
+                </div>
+              ))
+            )}
           </div>
         </Card>
       </div>

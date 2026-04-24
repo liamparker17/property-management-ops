@@ -59,14 +59,22 @@ export default async function NoticeDetailPage({ params }: { params: Promise<{ i
         <div className="border-b border-border/70 px-5 py-4">
           <h2 className="font-serif text-[26px] font-light text-foreground">Delivery audit</h2>
         </div>
-        <div className="divide-y divide-border/60">
-          {notice.deliveries.map((row) => (
-            <div key={row.id} className="px-5 py-4">
-              <div className="font-medium text-foreground">{row.user.email ?? row.user.id}</div>
-              <div className="text-xs text-muted-foreground">{row.channel} · {row.status}</div>
-            </div>
-          ))}
-        </div>
+        {notice.deliveries.length === 0 ? (
+          <div className="px-5 py-10 text-center text-sm text-muted-foreground">
+            {notice.publishedAt
+              ? 'No deliveries recorded yet. Use "Dispatch again" above to fan out to the resolved audience.'
+              : 'No deliveries yet — publish the notice to fan it out to the resolved audience.'}
+          </div>
+        ) : (
+          <div className="divide-y divide-border/60">
+            {notice.deliveries.map((row) => (
+              <div key={row.id} className="px-5 py-4">
+                <div className="font-medium text-foreground">{row.user.email ?? row.user.id}</div>
+                <div className="text-xs text-muted-foreground">{row.channel} · {row.status}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
     </div>
   );

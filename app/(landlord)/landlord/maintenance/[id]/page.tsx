@@ -10,11 +10,12 @@ export default async function LandlordMaintenanceDetailPage({ params }: { params
   const { id } = await params;
   const session = await auth();
   const ctx = userToRouteCtx(session!.user);
+  if (!ctx.user?.landlordId) notFound();
   const row = await db.maintenanceRequest.findFirst({
     where: {
       id,
       orgId: ctx.orgId,
-      unit: { property: { landlordId: ctx.user!.landlordId!, deletedAt: null } },
+      unit: { property: { landlordId: ctx.user.landlordId, deletedAt: null } },
     },
     include: {
       unit: { include: { property: { select: { name: true } } } },
@@ -38,6 +39,11 @@ export default async function LandlordMaintenanceDetailPage({ params }: { params
           <h2 className="font-serif text-[24px] font-light text-foreground">Vendor & cost</h2>
           <p className="mt-4 text-sm text-muted-foreground">{row.vendor?.name ?? 'Vendor not assigned'}</p>
           <p className="mt-2 text-sm text-muted-foreground">Invoice cents: {row.invoiceCents ?? 0}</p>
+          {row.quotes.length === 0 ? (
+            <p className="mt-3 text-xs text-muted-foreground">No quotes captured yet.</p>
+          ) : (
+            <p className="mt-3 text-xs text-muted-foreground">{row.quotes.length} quote{row.quotes.length === 1 ? '' : 's'} on file.</p>
+          )}
         </Card>
       </div>
     </div>

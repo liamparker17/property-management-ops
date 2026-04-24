@@ -1,3 +1,6 @@
+import { Zap } from 'lucide-react';
+
+import { EmptyState } from '@/components/empty-state';
 import { PageHeader } from '@/components/page-header';
 import { Card } from '@/components/ui/card';
 import { auth } from '@/lib/auth';
@@ -13,14 +16,22 @@ export default async function AgentOutagesPage() {
     <div className="space-y-8">
       <PageHeader eyebrow="Agent Portal" title="Outages" description="Upcoming outages affecting your assigned properties." />
       <Card className="overflow-hidden border border-border p-0">
-        <div className="divide-y divide-border/60">
-          {outages.map((row) => (
-            <div key={row.id} className="px-5 py-4">
-              <div className="font-medium text-foreground">{row.source}</div>
-              <div className="text-sm text-muted-foreground">{row.startsAt.toISOString().slice(0, 16).replace('T', ' ')} to {row.endsAt.toISOString().slice(0, 16).replace('T', ' ')}</div>
-            </div>
-          ))}
-        </div>
+        {outages.length === 0 ? (
+          <EmptyState
+            icon={<Zap className="size-5" />}
+            title="No upcoming outages"
+            description="Scheduled outages across your assigned portfolio will appear here when they are synced from Eskom or created by a property manager."
+          />
+        ) : (
+          <div className="divide-y divide-border/60">
+            {outages.map((row) => (
+              <div key={row.id} className="px-5 py-4">
+                <div className="font-medium text-foreground">{row.source}</div>
+                <div className="text-sm text-muted-foreground">{row.startsAt.toISOString().slice(0, 16).replace('T', ' ')} to {row.endsAt.toISOString().slice(0, 16).replace('T', ' ')}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
     </div>
   );

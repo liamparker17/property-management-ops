@@ -1,6 +1,9 @@
+import { ShieldAlert } from 'lucide-react';
+
 import { AreaChart } from '@/components/analytics/charts/area-chart';
 import { KpiTile } from '@/components/analytics/kpi-tile';
 import { MapPanel } from '@/components/analytics/maps/map-panel';
+import { EmptyState } from '@/components/empty-state';
 import { PageHeader } from '@/components/page-header';
 import { Card } from '@/components/ui/card';
 import { auth } from '@/lib/auth';
@@ -12,6 +15,18 @@ export const metadata = { title: 'Landlord Portfolio' };
 export default async function LandlordDashboardPage() {
   const session = await auth();
   const ctx = userToRouteCtx(session!.user);
+  if (!ctx.user?.landlordId) {
+    return (
+      <div className="space-y-6">
+        <PageHeader eyebrow="Landlord Portal" title="Portfolio overview" description="Collections, disbursements, maintenance exposure, and trust visibility across your properties." />
+        <EmptyState
+          icon={<ShieldAlert className="size-5" />}
+          title="No landlord record linked"
+          description="Your account has the landlord role but no landlord profile is linked. Ask your property manager to link your account so your portfolio can load."
+        />
+      </div>
+    );
+  }
   const [overview, portfolio] = await Promise.all([getLandlordOverview(ctx), getLandlordPortfolio(ctx)]);
 
   return (

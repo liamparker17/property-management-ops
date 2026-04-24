@@ -10,11 +10,12 @@ export default async function AgentMaintenanceDetailPage({ params }: { params: P
   const { id } = await params;
   const session = await auth();
   const ctx = userToRouteCtx(session!.user);
+  if (!ctx.user?.managingAgentId) notFound();
   const row = await db.maintenanceRequest.findFirst({
     where: {
       id,
       orgId: ctx.orgId,
-      unit: { property: { assignedAgentId: ctx.user!.managingAgentId!, deletedAt: null } },
+      unit: { property: { assignedAgentId: ctx.user.managingAgentId, deletedAt: null } },
     },
     include: {
       unit: { include: { property: { select: { name: true } } } },
@@ -31,10 +32,16 @@ export default async function AgentMaintenanceDetailPage({ params }: { params: P
         <Card className="border border-border p-5">
           <h2 className="font-serif text-[24px] font-light text-foreground">Ticket</h2>
           <p className="mt-4 text-sm text-muted-foreground">{row.description}</p>
+          <p className="mt-2 text-xs text-muted-foreground">{row.status.replace('_', ' ')} · {row.priority}</p>
         </Card>
         <Card className="border border-border p-5">
           <h2 className="font-serif text-[24px] font-light text-foreground">Assignment</h2>
           <p className="mt-4 text-sm text-muted-foreground">{row.vendor?.name ?? 'No vendor assigned'}</p>
+          {row.quotes.length === 0 ? (
+            <p className="mt-3 text-xs text-muted-foreground">No quotes captured yet.</p>
+          ) : (
+            <p className="mt-3 text-xs text-muted-foreground">{row.quotes.length} quote{row.quotes.length === 1 ? '' : 's'} on file.</p>
+          )}
         </Card>
       </div>
     </div>

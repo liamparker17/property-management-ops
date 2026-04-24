@@ -1,3 +1,6 @@
+import { Bell } from 'lucide-react';
+
+import { EmptyState } from '@/components/empty-state';
 import { PageHeader } from '@/components/page-header';
 import { Card } from '@/components/ui/card';
 import { auth } from '@/lib/auth';
@@ -13,14 +16,22 @@ export default async function AgentNoticesPage() {
     <div className="space-y-8">
       <PageHeader eyebrow="Agent Portal" title="Notices" description="Area notices routed to your assigned properties and teams." />
       <Card className="overflow-hidden border border-border p-0">
-        <div className="divide-y divide-border/60">
-          {rows.map((row) => (
-            <div key={row.id} className="px-5 py-4">
-              <div className="font-medium text-foreground">{row.subject}</div>
-              <div className="text-sm text-muted-foreground">{row.body}</div>
-            </div>
-          ))}
-        </div>
+        {rows.length === 0 ? (
+          <EmptyState
+            icon={<Bell className="size-5" />}
+            title="No notices yet"
+            description="Area notices that target your assigned properties will appear here as they are published."
+          />
+        ) : (
+          <div className="divide-y divide-border/60">
+            {rows.map((row) => (
+              <div key={row.id} className="px-5 py-4">
+                <div className="font-medium text-foreground">{row.subject}</div>
+                <div className="text-sm text-muted-foreground">{row.body}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
     </div>
   );

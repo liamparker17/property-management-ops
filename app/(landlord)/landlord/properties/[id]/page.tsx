@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 
+import { EmptyState } from '@/components/empty-state';
 import { PageHeader } from '@/components/page-header';
 import { Card } from '@/components/ui/card';
 import { auth } from '@/lib/auth';
@@ -12,6 +13,7 @@ export default async function LandlordPropertyDetailPage({ params }: { params: P
   const { id } = await params;
   const session = await auth();
   const ctx = userToRouteCtx(session!.user);
+  if (!ctx.user?.landlordId) notFound();
   await assertCanReadProperty(ctx, id);
 
   const property = await db.property.findFirst({
@@ -45,7 +47,7 @@ export default async function LandlordPropertyDetailPage({ params }: { params: P
     }),
     db.trustLedgerEntry.findMany({
       where: {
-        landlordId: ctx.user!.landlordId!,
+        landlordId: ctx.user.landlordId,
         lease: { unit: { propertyId: id } },
       },
       orderBy: { occurredAt: 'desc' },
@@ -61,27 +63,35 @@ export default async function LandlordPropertyDetailPage({ params }: { params: P
         <Card className="border border-border p-5">
           <h2 className="font-serif text-[26px] font-light text-foreground">Units & leases</h2>
           <div className="mt-4 space-y-3">
-            {property.units.map((unit) => (
-              <div key={unit.id} className="border border-border/70 px-4 py-3">
-                <div className="font-medium text-foreground">{unit.label}</div>
-                <div className="text-xs text-muted-foreground">
-                  {unit.leases[0]?.tenants[0]?.tenant
-                    ? `${unit.leases[0].tenants[0].tenant.firstName} ${unit.leases[0].tenants[0].tenant.lastName}`
-                    : 'Vacant'}
+            {property.units.length === 0 ? (
+              <EmptyState title="No units yet" description="Units added by the property manager will appear here." />
+            ) : (
+              property.units.map((unit) => (
+                <div key={unit.id} className="border border-border/70 px-4 py-3">
+                  <div className="font-medium text-foreground">{unit.label}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {unit.leases[0]?.tenants[0]?.tenant
+                      ? `${unit.leases[0].tenants[0].tenant.firstName} ${unit.leases[0].tenants[0].tenant.lastName}`
+                      : 'Vacant'}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </Card>
         <Card className="border border-border p-5">
           <h2 className="font-serif text-[26px] font-light text-foreground">Open tickets</h2>
           <div className="mt-4 space-y-3">
-            {maintenanceRequests.map((request) => (
-              <div key={request.id} className="border border-border/70 px-4 py-3">
-                <div className="font-medium text-foreground">{request.title}</div>
-                <div className="text-xs text-muted-foreground">{request.status.replace('_', ' ')} · {request.priority}</div>
-              </div>
-            ))}
+            {maintenanceRequests.length === 0 ? (
+              <EmptyState title="No tickets" description="Maintenance requests on this property will surface here." />
+            ) : (
+              maintenanceRequests.map((request) => (
+                <div key={request.id} className="border border-border/70 px-4 py-3">
+                  <div className="font-medium text-foreground">{request.title}</div>
+                  <div className="text-xs text-muted-foreground">{request.status.replace('_', ' ')} · {request.priority}</div>
+                </div>
+              ))
+            )}
           </div>
         </Card>
       </div>
@@ -90,23 +100,31 @@ export default async function LandlordPropertyDetailPage({ params }: { params: P
         <Card className="border border-border p-5">
           <h2 className="font-serif text-[26px] font-light text-foreground">Recent invoices</h2>
           <div className="mt-4 space-y-3">
-            {invoices.map((invoice) => (
-              <div key={invoice.id} className="border border-border/70 px-4 py-3">
-                <div className="font-medium text-foreground">{formatZar(invoice.totalCents > 0 ? invoice.totalCents : invoice.amountCents)}</div>
-                <div className="text-xs text-muted-foreground">{invoice.status} · Due {invoice.dueDate.toISOString().slice(0, 10)}</div>
-              </div>
-            ))}
+            {invoices.length === 0 ? (
+              <EmptyState title="No invoices yet" description="Once the property is leased and billed, invoices appear here." />
+            ) : (
+              invoices.map((invoice) => (
+                <div key={invoice.id} className="border border-border/70 px-4 py-3">
+                  <div className="font-medium text-foreground">{formatZar(invoice.totalCents > 0 ? invoice.totalCents : invoice.amountCents)}</div>
+                  <div className="text-xs text-muted-foreground">{invoice.status} · Due {invoice.dueDate.toISOString().slice(0, 10)}</div>
+                </div>
+              ))
+            )}
           </div>
         </Card>
         <Card className="border border-border p-5">
           <h2 className="font-serif text-[26px] font-light text-foreground">Recent trust entries</h2>
           <div className="mt-4 space-y-3">
-            {ledgerEntries.map((entry) => (
-              <div key={entry.id} className="border border-border/70 px-4 py-3">
-                <div className="font-medium text-foreground">{entry.type.replace('_', ' ')}</div>
-                <div className="text-xs text-muted-foreground">{formatZar(entry.amountCents)} · {entry.occurredAt.toISOString().slice(0, 10)}</div>
-              </div>
-            ))}
+            {ledgerEntries.length === 0 ? (
+              <EmptyState title="No trust activity yet" description="Receipts, allocations, and disbursements scoped to this property will appear here." />
+            ) : (
+              ledgerEntries.map((entry) => (
+                <div key={entry.id} className="border border-border/70 px-4 py-3">
+                  <div className="font-medium text-foreground">{entry.type.replace('_', ' ')}</div>
+                  <div className="text-xs text-muted-foreground">{formatZar(entry.amountCents)} · {entry.occurredAt.toISOString().slice(0, 10)}</div>
+                </div>
+              ))
+            )}
           </div>
         </Card>
       </div>

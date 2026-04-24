@@ -1,6 +1,9 @@
+import { ShieldAlert } from 'lucide-react';
+
 import { KpiTile } from '@/components/analytics/kpi-tile';
 import { MapPanel } from '@/components/analytics/maps/map-panel';
 import { RankedList } from '@/components/analytics/ranked-list';
+import { EmptyState } from '@/components/empty-state';
 import { PageHeader } from '@/components/page-header';
 import { auth } from '@/lib/auth';
 import { userToRouteCtx } from '@/lib/auth/page-ctx';
@@ -13,6 +16,18 @@ export const metadata = {
 export default async function AgentDashboardPage() {
   const session = await auth();
   const ctx = userToRouteCtx(session!.user);
+  if (!ctx.user?.managingAgentId) {
+    return (
+      <div className="space-y-6">
+        <PageHeader eyebrow="Agent Portal" title="Operations dashboard" description="Assigned-property work queues and inspection pressure for today." />
+        <EmptyState
+          icon={<ShieldAlert className="size-5" />}
+          title="No managing-agent record linked"
+          description="Your account has the managing-agent role but no managing-agent profile is linked. Ask your administrator to link your account from /settings/team so your assigned properties and queues can load."
+        />
+      </div>
+    );
+  }
   const data = await getAgentCommandCenter(ctx);
 
   return (
@@ -25,8 +40,8 @@ export default async function AgentDashboardPage() {
       </div>
       <div className="grid gap-6 xl:grid-cols-[1.1fr_1fr_1fr]">
         <MapPanel title="Assigned footprint" pins={data.pins} />
-        <RankedList title="Ticket queue" eyebrow="Maintenance" items={data.ticketQueue.map((row) => ({ id: row.id, title: row.label, subtitle: row.detail, value: 'Open', href: row.href }))} />
-        <RankedList title="Inspection queue" eyebrow="Inspections" items={data.inspectionQueue.map((row) => ({ id: row.id, title: row.label, subtitle: row.detail, value: 'Due', href: row.href }))} />
+        <RankedList title="Ticket queue" eyebrow="Maintenance" items={data.ticketQueue.map((row) => ({ id: row.id, title: row.label, subtitle: row.detail, value: 'Open', href: row.href }))} emptyCopy="No open tickets across your assigned properties." />
+        <RankedList title="Inspection queue" eyebrow="Inspections" items={data.inspectionQueue.map((row) => ({ id: row.id, title: row.label, subtitle: row.detail, value: 'Due', href: row.href }))} emptyCopy="No upcoming inspections scheduled." />
       </div>
     </div>
   );

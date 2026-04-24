@@ -30,6 +30,7 @@ export default async function StaffOperationsPage() {
             value: `${row.daysUntilExpiry}d`,
             href: row.href,
           }))}
+          emptyCopy="No leases expiring in the next 30 days."
         />
         <RankedList
           title="Expiring in 60"
@@ -41,6 +42,7 @@ export default async function StaffOperationsPage() {
             value: `${row.daysUntilExpiry}d`,
             href: row.href,
           }))}
+          emptyCopy="No leases expiring in the next 60 days."
         />
         <RankedList
           title="Expiring in 90"
@@ -52,6 +54,7 @@ export default async function StaffOperationsPage() {
             value: `${row.daysUntilExpiry}d`,
             href: row.href,
           }))}
+          emptyCopy="No leases expiring in the next 90 days."
         />
       </div>
 
@@ -60,26 +63,34 @@ export default async function StaffOperationsPage() {
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--accent)]">Approvals</p>
           <h2 className="mt-2 font-serif text-[28px] font-light text-foreground">Blocked approvals</h2>
           <div className="mt-4 space-y-3">
-            {data.blockedApprovals.map((row) => (
-              <div key={row.id} className="border border-border/70 px-4 py-3">
-                <div className="font-medium text-foreground">{row.kind.replaceAll('_', ' ')}</div>
-                <div className="text-xs text-muted-foreground">
-                  {row.propertyName ?? 'Organisation-wide'} · Requested {formatDate(row.requestedAt)}
+            {data.blockedApprovals.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No blocked approvals — landlord approval queues are clear.</p>
+            ) : (
+              data.blockedApprovals.map((row) => (
+                <div key={row.id} className="border border-border/70 px-4 py-3">
+                  <div className="font-medium text-foreground">{row.kind.replaceAll('_', ' ')}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {row.propertyName ?? 'Organisation-wide'} · Requested {formatDate(row.requestedAt)}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </Card>
         <Card className="border border-border p-5">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--accent)]">Inspections</p>
           <h2 className="mt-2 font-serif text-[28px] font-light text-foreground">Missing move-ins</h2>
           <div className="mt-4 space-y-3">
-            {data.missingMoveIns.map((row) => (
-              <div key={row.id} className="border border-border/70 px-4 py-3">
-                <div className="font-medium text-foreground">{row.label}</div>
-                <div className="text-xs text-muted-foreground">{row.detail}</div>
-              </div>
-            ))}
+            {data.missingMoveIns.length === 0 ? (
+              <p className="text-sm text-muted-foreground">All active leases have a move-in inspection on file.</p>
+            ) : (
+              data.missingMoveIns.map((row) => (
+                <div key={row.id} className="border border-border/70 px-4 py-3">
+                  <div className="font-medium text-foreground">{row.label}</div>
+                  <div className="text-xs text-muted-foreground">{row.detail}</div>
+                </div>
+              ))
+            )}
           </div>
         </Card>
       </div>

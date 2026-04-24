@@ -249,6 +249,18 @@ export async function activateLease(ctx: RouteCtx, id: string) {
     await assertNoOverlap(tx, ctx.orgId, lease.unitId, lease.startDate, lease.endDate, lease.id);
     const updated = await tx.lease.update({ where: { id }, data: { state: 'ACTIVE' } });
 
+    const moveInCount = await tx.inspection.count({
+      where: { leaseId: lease.id, type: 'MOVE_IN' },
+    });
+    if (moveInCount === 0) {
+      await writeAudit(ctx, {
+        entityType: 'Lease',
+        entityId: lease.id,
+        action: 'lease.activated_without_move_in',
+        payload: { leaseId: lease.id },
+      });
+    }
+
     if (lease.depositReceivedAt && lease.depositAmountCents > 0) {
       const landlordId = lease.unit.property.landlordId;
       if (!landlordId) {
@@ -292,7 +304,7 @@ export async function terminateLease(
   if (lease.state !== 'ACTIVE') {
     throw ApiError.conflict(`Only ACTIVE leases may be terminated (current: ${lease.state})`);
   }
-  return db.lease.update({
+  const updated = await db.lease.update({
     where: { id },
     data: {
       state: 'TERMINATED',
@@ -300,6 +312,22 @@ export async function terminateLease(
       terminatedReason: input.terminatedReason,
     },
   });
+
+  const { openOffboardingCase } = await import('@/lib/services/offboarding');
+  const offboardingCase = await openOffboardingCase(ctx, id);
+
+  await writeAudit(ctx, {
+    entityType: 'Lease',
+    entityId: id,
+    action: 'terminated',
+    payload: {
+      terminatedAt: input.terminatedAt,
+      terminatedReason: input.terminatedReason,
+      offboardingCaseId: offboardingCase.id,
+    },
+  });
+
+  return { ...updated, offboardingCaseId: offboardingCase.id };
 }
 
 export async function renewLease(

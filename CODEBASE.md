@@ -18,17 +18,36 @@ Next.js 16.2 | React 19 | TypeScript strict | Prisma 7 + Neon Postgres | NextAut
 | SENTRY_DSN | Error tracking (optional) |
 | EXPIRING_WINDOW_DAYS | Lease expiry warning threshold |
 | AUTH_TRUST_HOST | Trust proxy host header (Vercel) |
-| GMAIL_USER | Gmail address used as SMTP sender; leave blank to disable outbound email |
+| SMTP_HOST | Shared SMTP host for outbound email (e.g. `smtp.gmail.com`, `smtp.office365.com`) |
+| SMTP_PORT | Shared SMTP port (commonly `587` for STARTTLS or `465` for implicit TLS) |
+| SMTP_SECURE | Shared SMTP transport security toggle (`true` for implicit TLS, `false` for STARTTLS) |
+| SMTP_USER | Shared SMTP username used by named mailboxes unless overridden per mailbox |
+| SMTP_PASSWORD | Shared SMTP password / app password used by named mailboxes unless overridden |
+| GMAIL_USER | Legacy Gmail / Google Workspace username fallback when `SMTP_*` is unset |
 | GMAIL_APP_PASSWORD | Gmail App Password (16 chars) — generate at myaccount.google.com/apppasswords with 2FA on |
-| EMAIL_FROM_NAME | Display name in From header (default `"PMOps"`) |
-| EMAIL_FROM | Optional explicit From override (default `"EMAIL_FROM_NAME <GMAIL_USER>"`) |
-| EMAIL_REPLY_TO | Optional reply-to address (route tenant replies to a real inbox) |
+| EMAIL_FROM_NAME | Default display name in From header (default `"Regalis"`) |
+| EMAIL_FROM | Optional explicit default From override (default `"EMAIL_FROM_NAME <SMTP_USER>"`) |
+| EMAIL_REPLY_TO | Optional default reply-to address |
+| EMAIL_NOREPLY_FROM | Optional From header for transactional/system email (tenant invites, future automations) |
+| EMAIL_NOREPLY_REPLY_TO | Optional reply-to for the `noreply` mailbox (can point to `updates@...`) |
+| EMAIL_NOREPLY_SMTP_HOST | Optional SMTP host override for the `noreply` mailbox |
+| EMAIL_NOREPLY_SMTP_PORT | Optional SMTP port override for the `noreply` mailbox |
+| EMAIL_NOREPLY_SMTP_SECURE | Optional SMTP security override for the `noreply` mailbox |
+| EMAIL_NOREPLY_SMTP_USER | Optional SMTP username override for the `noreply` mailbox |
+| EMAIL_NOREPLY_SMTP_PASSWORD | Optional SMTP password override for the `noreply` mailbox |
+| EMAIL_UPDATES_FROM | Optional From header for public contact, signup, and ops-style email |
+| EMAIL_UPDATES_REPLY_TO | Optional reply-to for the `updates` mailbox |
+| EMAIL_UPDATES_SMTP_HOST | Optional SMTP host override for the `updates` mailbox |
+| EMAIL_UPDATES_SMTP_PORT | Optional SMTP port override for the `updates` mailbox |
+| EMAIL_UPDATES_SMTP_SECURE | Optional SMTP security override for the `updates` mailbox |
+| EMAIL_UPDATES_SMTP_USER | Optional SMTP username override for the `updates` mailbox |
+| EMAIL_UPDATES_SMTP_PASSWORD | Optional SMTP password override for the `updates` mailbox |
 | APP_URL | Base URL used in email/SMS login links; falls back to request origin |
 | SMS_GATEWAY_USER | Username for SMS Gateway for Android cloud server; leave blank to disable SMS |
 | SMS_GATEWAY_PASSWORD | Password for SMS Gateway for Android cloud server |
 | SMS_GATEWAY_URL | Optional override endpoint for self-hosted / private SMS server (default is the public cloud URL) |
 | OPS_SMS_RECIPIENTS | Comma-separated E.164 numbers that receive PM-side alerts (new maintenance, lease signings, clause reviews) |
-| OPS_EMAIL_RECIPIENTS | Comma-separated addresses that receive PM-side email alerts (public contact + signup-request notifications in `lib/email.ts`) |
+| OPS_EMAIL_RECIPIENTS | Comma-separated addresses that receive PM-side email alerts (public contact + signup-request notifications in `lib/email.ts`); falls back to the configured `updates` mailbox when blank |
 | INTEGRATION_SECRET_KEY | 32-byte hex key for AES-256-GCM cipher on `OrgIntegration` token fields (read by `lib/crypto.ts`) |
 | STITCH_PARTNER_ID | White-label partner id in the Stitch Connect onboarding URL |
 | STITCH_WEBHOOK_SECRET | HMAC secret used by Stitch adapters to verify inbound webhook signatures |
@@ -48,7 +67,7 @@ Next.js 16.2 | React 19 | TypeScript strict | Prisma 7 + Neon Postgres | NextAut
 
 ## Database Schema (prisma/schema.prisma)
 
-**Enums:** Role (ADMIN, PROPERTY_MANAGER, FINANCE, TENANT, LANDLORD, MANAGING_AGENT) | OrgOwnerType (PM_AGENCY, LANDLORD_DIRECT) | FeatureFlagKey (UTILITIES_BILLING, TRUST_ACCOUNTING, AREA_NOTICES, LANDLORD_APPROVALS, USAGE_ALERTS, PAYMENT_ALERTS, ANNUAL_PACKS) | ApprovalKind (MAINTENANCE_COMMIT, LEASE_CREATE, LEASE_RENEW, RENT_CHANGE, TENANT_EVICT, PROPERTY_REMOVE) | ApprovalState (PENDING, APPROVED, DECLINED, CANCELLED) | LeaseState (DRAFT, ACTIVE, TERMINATED, RENEWED) | DocumentKind (LEASE_AGREEMENT) | SAProvince (GP, WC, KZN, EC, FS, LP, MP, NW, NC) | MaintenancePriority (LOW, MEDIUM, HIGH, URGENT) | MaintenanceStatus (OPEN, IN_PROGRESS, RESOLVED, CLOSED) | InvoiceStatus (DRAFT, DUE, PAID, OVERDUE) | ReviewRequestStatus (OPEN, ACCEPTED, REJECTED, RESOLVED) | ApplicationStage (DRAFT, SUBMITTED, UNDER_REVIEW, VETTING, APPROVED, DECLINED, CONVERTED, WITHDRAWN) | ApplicationDecision (PENDING, APPROVED, DECLINED) | TpnCheckStatus (NOT_STARTED, REQUESTED, RECEIVED, FAILED, WAIVED) | TpnRecommendation (PASS, CAUTION, DECLINE, UNKNOWN) | IntegrationProvider (STITCH_PAYMENTS, STITCH_DEBICHECK, STITCH_PAYOUTS, QUICKBOOKS, TPN) | IntegrationStatus (DISCONNECTED, CONNECTED, ERROR) | InvoiceLineItemKind (RENT, UTILITY_WATER, UTILITY_ELECTRICITY, UTILITY_GAS, UTILITY_SEWER, UTILITY_REFUSE, ADJUSTMENT, LATE_FEE, DEPOSIT_CHARGE) | UtilityType (WATER, ELECTRICITY, GAS, SEWER, REFUSE, OTHER) | MeterReadingSource (MANUAL, IMPORT, ESTIMATED, ROLLOVER) | TariffStructure (FLAT, TIERED) | PaymentMethod (EFT, CASH, CHEQUE, CARD_MANUAL, OTHER) | ReceiptSource (MANUAL, CSV_IMPORT, STITCH, DEBICHECK) | AllocationTarget (INVOICE_LINE_ITEM, DEPOSIT, LATE_FEE, UNAPPLIED) | LedgerEntryType (RECEIPT, DISBURSEMENT, ALLOCATION, REVERSAL, DEPOSIT_IN, DEPOSIT_OUT, FEE) | StatementType (TENANT, LANDLORD, TRUST) | DebiCheckMandateStatus (PENDING_SIGNATURE, ACTIVE, REVOKED, FAILED)
+**Enums:** Role (ADMIN, PROPERTY_MANAGER, FINANCE, TENANT, LANDLORD, MANAGING_AGENT) | OrgOwnerType (PM_AGENCY, LANDLORD_DIRECT) | FeatureFlagKey (UTILITIES_BILLING, TRUST_ACCOUNTING, AREA_NOTICES, LANDLORD_APPROVALS, USAGE_ALERTS, PAYMENT_ALERTS, ANNUAL_PACKS) | ApprovalKind (MAINTENANCE_COMMIT, LEASE_CREATE, LEASE_RENEW, RENT_CHANGE, TENANT_EVICT, PROPERTY_REMOVE) | ApprovalState (PENDING, APPROVED, DECLINED, CANCELLED) | LeaseState (DRAFT, ACTIVE, TERMINATED, RENEWED) | DocumentKind (LEASE_AGREEMENT) | SAProvince (GP, WC, KZN, EC, FS, LP, MP, NW, NC) | MaintenancePriority (LOW, MEDIUM, HIGH, URGENT) | MaintenanceStatus (OPEN, IN_PROGRESS, RESOLVED, CLOSED) | InvoiceStatus (DRAFT, DUE, PAID, OVERDUE) | ReviewRequestStatus (OPEN, ACCEPTED, REJECTED, RESOLVED) | ApplicationStage (DRAFT, SUBMITTED, UNDER_REVIEW, VETTING, APPROVED, DECLINED, CONVERTED, WITHDRAWN) | ApplicationDecision (PENDING, APPROVED, DECLINED) | TpnCheckStatus (NOT_STARTED, REQUESTED, RECEIVED, FAILED, WAIVED) | TpnRecommendation (PASS, CAUTION, DECLINE, UNKNOWN) | IntegrationProvider (STITCH_PAYMENTS, STITCH_DEBICHECK, STITCH_PAYOUTS, QUICKBOOKS, TPN) | IntegrationStatus (DISCONNECTED, CONNECTED, ERROR) | InvoiceLineItemKind (RENT, UTILITY_WATER, UTILITY_ELECTRICITY, UTILITY_GAS, UTILITY_SEWER, UTILITY_REFUSE, ADJUSTMENT, LATE_FEE, DEPOSIT_CHARGE) | UtilityType (WATER, ELECTRICITY, GAS, SEWER, REFUSE, OTHER) | MeterReadingSource (MANUAL, IMPORT, ESTIMATED, ROLLOVER) | TariffStructure (FLAT, TIERED) | PaymentMethod (EFT, CASH, CHEQUE, CARD_MANUAL, OTHER) | ReceiptSource (MANUAL, CSV_IMPORT, STITCH, DEBICHECK) | AllocationTarget (INVOICE_LINE_ITEM, DEPOSIT, LATE_FEE, UNAPPLIED) | LedgerEntryType (RECEIPT, DISBURSEMENT, ALLOCATION, REVERSAL, DEPOSIT_IN, DEPOSIT_OUT, FEE) | StatementType (TENANT, LANDLORD, TRUST) | DebiCheckMandateStatus (PENDING_SIGNATURE, ACTIVE, REVOKED, FAILED) | InspectionType (MOVE_IN, MOVE_OUT, INTERIM) | InspectionStatus (SCHEDULED, IN_PROGRESS, COMPLETED, SIGNED_OFF, CANCELLED) | ConditionRating (EXCELLENT, GOOD, FAIR, POOR, DAMAGED) | ChargeResponsibility (LANDLORD, TENANT, SHARED)
 
 **Models:**
 | Model | Key Fields | Relations |
@@ -66,7 +85,10 @@ Next.js 16.2 | React 19 | TypeScript strict | Prisma 7 + Neon Postgres | NextAut
 | LeaseTenant | leaseId, tenantId, isPrimary | lease, tenant |
 | Document | kind, storageKey, filename, mimeType, sizeBytes, uploadedById | lease?, property?, unit?, tenant? |
 | Account/Session/VerificationToken | Standard NextAuth models | |
-| MaintenanceRequest | title, description, priority, status, internalNotes, resolvedAt | org, tenant, unit |
+| MaintenanceRequest | title, description, priority, status, internalNotes, resolvedAt, assignedVendorId?, estimatedCostCents?, quotedCostCents?, scheduledFor?, completedAt?, invoiceCents?, invoiceBlobKey? | org, tenant, unit, vendor?, quotes, worklogs |
+| Vendor | orgId, name, contactName?, contactEmail?, contactPhone?, categories[], archivedAt? | org, quotes, requests |
+| MaintenanceQuote | requestId, vendorId?, amountCents, documentStorageKey?, note?, createdAt | request, vendor? |
+| MaintenanceWorklog | requestId, authorId?, body, createdAt | request, author? |
 | Invoice | leaseId, periodStart, dueDate, amountCents (legacy cache), subtotalCents, taxCents, totalCents, status (DRAFT/DUE/PAID/OVERDUE), paidAt, paidAmountCents, paidNote, billingRunId? | org, lease, billingRun?, lineItems — unique(leaseId, periodStart) |
 | LeaseSignature | leaseId, tenantId, signedName, signedAt, ipAddress, userAgent, latitude, longitude, locationText | lease, tenant — unique(leaseId, tenantId) |
 | LeaseReviewRequest | leaseId, tenantId, clauseExcerpt, tenantNote, status, pmResponse, respondedAt | lease (no FK to tenant) |
@@ -92,6 +114,15 @@ Next.js 16.2 | React 19 | TypeScript strict | Prisma 7 + Neon Postgres | NextAut
 | Statement | orgId, type (StatementType), subjectType, subjectId, periodStart, periodEnd, openingBalanceCents, closingBalanceCents, totalsJson, storageKey?, generatedAt | org, lines |
 | StatementLine | statementId, occurredAt, description, debitCents, creditCents, runningBalanceCents, sourceType?, sourceId? | statement |
 | DebiCheckMandate | orgId, leaseId (unique), tenantId, mandateExternalId?, upperCapCents, status (DebiCheckMandateStatus), signedAt? | lease |
+| Inspection | orgId, leaseId, unitId, type (InspectionType), status (InspectionStatus), scheduledAt, startedAt?, completedAt?, signedOffAt?, staffUserId?, agentId?, summary?, reportKey? | org, lease, unit, areas, signatures |
+| InspectionArea | inspectionId, name, orderIndex | inspection, items |
+| InspectionItem | areaId, label, condition (ConditionRating), note?, estimatedCostCents?, responsibility? (ChargeResponsibility) | area, photos |
+| InspectionPhoto | itemId, storageKey, caption? | item |
+| InspectionSignature | inspectionId, signerRole (Role), signerUserId?, signedName, signedAt, ipAddress?, userAgent? | inspection |
+| OffboardingCase | orgId, leaseId (unique), openedAt, closedAt?, status (OPEN/SETTLING/CLOSED) | org, lease, tasks, charges, settlement? |
+| OffboardingTask | caseId, label, orderIndex, done, doneAt?, doneById? | case |
+| MoveOutCharge | caseId, label, amountCents, responsibility (ChargeResponsibility), sourceInspectionItemId? | case |
+| DepositSettlement | caseId (unique), depositHeldCents, chargesAppliedCents, refundDueCents, balanceOwedCents, statementKey?, finalizedAt? | case (immutable once finalised) |
 
 ## Auth Flow
 
@@ -117,6 +148,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | File | Exports | Lines |
 |------|---------|-------|
 | db.ts | `db` — PrismaClient singleton with pg adapter | 14 |
+| marketing-theme.ts | `MARKETING_THEME` — shared public-site palette built around `#001030` and supporting neutrals/gold accents | 18 |
 | auth.config.ts | `authConfig` — edge-safe NextAuthConfig (JWT strategy, callbacks: jwt+session add userId/role/orgId) | 32 |
 | auth.ts | `handlers, auth, signIn, signOut` — full NextAuth with Credentials provider, bcrypt, loginSchema | 36 |
 | auth/with-org.ts | `withOrg<P>()` — HOF for auth'd API routes; `RouteCtx {orgId, userId, role}`, `RouteParams<P>` | 38 |
@@ -125,7 +157,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | lease-template.ts | `LeaseTemplateData`, `LeaseSection`, `renderLeaseAgreement(data)` — generic SA residential lease generator (15 sections) | 200 |
 | email.ts | `sendTenantInvite({to, tenantName, orgName, tempPassword, appUrl})`, `SendResult` — Gmail SMTP (nodemailer) transactional email; no-ops gracefully if `GMAIL_USER`/`GMAIL_APP_PASSWORD` missing | 112 |
 | sms.ts | `sendTenantInviteSms`, `sendMaintenanceCreatedOpsSms`, `sendMaintenanceCreatedTenantSms`, `sendMaintenanceStatusTenantSms`, `sendLeaseSignedOpsSms`, `sendReviewRequestOpsSms`, `sendReviewResponseTenantSms`, `sendInvoicePaidTenantSms`, `SendResult` — SMS via SMS Gateway for Android (cloud mode); normalizes ZA local numbers to E.164; ops messages go to `OPS_SMS_RECIPIENTS`; no-ops if unconfigured | — |
-| blob.ts | `validateFile(file)` (20MB, pdf/png/jpeg/webp), `uploadBlob(path, file)`, `deleteBlob(pathname)` | 13 |
+| blob.ts | `validateFile(file)` (20MB, pdf/png/jpeg/webp), `uploadBlob(path, file)`, `deleteBlob(pathname)`, `createSignedUploadUrl({ pathname, contentType, maxBytes? })` (M3: scopes a one-time photo upload URL through `/api/uploads/blob/[...storageKey]`; png/jpeg/webp only) | 65 |
 | utils.ts | `cn()` — clsx + tailwind-merge | 6 |
 | permissions.ts | `landlordHasExecutiveAuthority(org)`, `requiresLandlordApproval(action, org)`, `orgOwnerTypeLabel()` — gates landlord actions based on Org.ownerType | — |
 | nav/validate.ts | `validateNav()` — planner utility that reports missing sidebar destinations with loose dynamic-route matching; non-blocking by design | 119 |
@@ -139,6 +171,13 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | integrations/bank-csv/dialects.ts | `BankCsvDialect`, `getDialect(name)` — header maps for `generic` CSV dialect in M2; bank-specific dialects deferred to M4 | 45 |
 | reports/statement-pdf.ts | `renderStatementPdf(statement)` — deterministic PDF buffer with TENANT/LANDLORD/TRUST layouts routed by `StatementType` | 98 |
 | reports/debit-order-instruction-pdf.ts | `renderDebitOrderInstruction({ org, lease, bankDetails })` — one-page PDF with bank details + reference (`${BANK_REF_PREFIX}${lease.id}`) + suggested cap (`rent + 25%`) | 99 |
+| reports/inspection-pdf.ts | `renderInspectionReport(data)` — deterministic HTML/PDF buffer for an Inspection with nested areas/items/photos + signatures; same idiom as `lease-template.ts` | — |
+| reports/settlement-pdf.ts | `renderSettlementStatement(data)` — deterministic HTML/PDF buffer summarising deposit held, charges applied, refund due, balance owed | 87 |
+
+**Manifest refresh (2026-04-23) - supersedes older `lib/email.ts` entry above**
+| File | Exports | Lines |
+|------|---------|-------|
+| email.ts | `EmailMailbox`, `MailboxConfig`, `resolveMailboxConfig()`, `sendEmail()`, `sendTenantInvite({to, tenantName, orgName, tempPassword, appUrl})`, `sendSignupRequest()`, `sendContactRequest()`, `SendResult` - nodemailer mailer with shared SMTP + named `noreply` / `updates` mailboxes; legacy Gmail envs still supported | 346 |
 
 ### lib/services/
 | File | Exports | Lines |
@@ -153,7 +192,10 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | tenant-portal.ts | `getTenantProfile()`, `getActiveLeaseForTenant()`, `getPendingLeaseForTenant()` (DRAFT lease w/ signatures+reviewRequests filtered to tenant), `getTenantLeases()`, `listTenantDocuments()`, `getTenantDocumentForDownload()` — all scoped by User.id → Tenant.userId | 106 |
 | signatures.ts | `signLeaseAsTenant()`, `getTenantSignatureForLease()`, `listLeaseSignatures(ctx)`, `createReviewRequest()`, `listTenantReviewRequests()`, `listLeaseReviewRequests(ctx)`, `respondToReviewRequest(ctx)` | 145 |
 | onboarding.ts | `onboardTenant(ctx, input)` — single-transaction tenant + DRAFT lease + optional portal account with temp password | 94 |
-| maintenance.ts | `createTenantMaintenanceRequest()`, `listTenantMaintenanceRequests()`, `getTenantMaintenanceRequest()`, `listMaintenanceRequests()`, `getMaintenanceRequest()`, `updateMaintenanceRequest()` | 128 |
+| maintenance.ts | `createTenantMaintenanceRequest()`, `listTenantMaintenanceRequests()`, `getTenantMaintenanceRequest()`, `listMaintenanceRequests()`, `getMaintenanceRequest()`, `updateMaintenanceRequest()`, `assignVendor()`, `captureQuote()`, `scheduleMaintenance()`, `completeMaintenance()`, `captureMaintenanceInvoice()` (M3: posts a `FEE` ledger entry with `-invoiceCents` against the property's landlord), `addMaintenanceWorklog()` | — |
+| vendors.ts | `listVendors`, `getVendor`, `createVendor`, `updateVendor`, `archiveVendor` (soft delete via `archivedAt`) — every mutation audits | — |
+| inspections.ts | `listInspections`, `getInspection`, `createInspection`, `startInspection`, `recordArea`, `recordItem`, `completeInspection` (renders + uploads PDF, stamps `reportKey`), `signInspection` (either-signer rule per locked decision #7) | — |
+| offboarding.ts | `openOffboardingCase` (idempotent; seeds default tasks gated on `OrgFeature.UTILITIES_BILLING`), `listOffboardingCases`, `getOffboardingCase`, `listOffboardingTasks`, `toggleOffboardingTask`, `addMoveOutCharge`, `removeMoveOutCharge`, `finaliseDepositSettlement` (immutable; writes `DEPOSIT_OUT` ledger entry when refund > 0), `closeOffboardingCase`, `getTenantOffboardingSummary`, `listTenantInspections`, `getTenantInspection`, `listTenantSignedInspectionsForLease`, `DEFAULT_OFFBOARDING_TASK_LABELS`, `__setSettlementUploaderForTests` | — |
 | invoices.ts | `ensureInvoicesForLease()` (idempotent month-by-month generator, past→PAID, current/future→DUE), `listTenantInvoices()`, `getInvoiceForTenant()`, `listLeaseInvoices()`, `markInvoicePaid()` (M2: creates MANUAL `PaymentReceipt`, allocates against line items, writes ledger via `lib/services/trust.ts`), `markInvoiceUnpaid()` (M2: reverses auto-generated allocations + deletes the receipt) | — |
 | audit.ts | `writeAudit(ctx, input)` — reusable audit-log writer with JSON-safe payload normalization; swallows insert failures after logging | 90 |
 | landlords.ts | `listLandlords()`, `getLandlord()`, `createLandlord()`, `updateLandlord()` | — |
@@ -188,7 +230,10 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | managing-agents.ts | `createManagingAgentSchema`, `updateManagingAgentSchema` | — |
 | approvals.ts | `approvalKindEnum`, `decideApprovalSchema` | — |
 | document.ts | `documentKindEnum`, `documentUploadMetaSchema` | 4 |
-| maintenance.ts | `maintenancePriorityEnum`, `maintenanceStatusEnum`, `createMaintenanceRequestSchema`, `updateMaintenanceRequestSchema` | 18 |
+| maintenance.ts | `maintenancePriorityEnum`, `maintenanceStatusEnum`, `createMaintenanceRequestSchema`, `updateMaintenanceRequestSchema`, `assignVendorSchema`, `captureQuoteSchema`, `scheduleMaintenanceSchema`, `completeMaintenanceSchema`, `captureMaintenanceInvoiceSchema`, `addMaintenanceWorklogSchema` | — |
+| vendors.ts | `createVendorSchema`, `updateVendorSchema` | — |
+| inspection.ts | `inspectionTypeEnum`, `inspectionStatusEnum`, `conditionRatingEnum`, `chargeResponsibilityEnum`, `signerRoleEnum`, `createInspectionSchema`, `recordAreaSchema`, `recordItemSchema`, `completeInspectionSchema`, `signInspectionSchema`, `registerPhotoSchema` | 64 |
+| offboarding.ts | `chargeResponsibilityEnum`, `openOffboardingCaseSchema`, `toggleOffboardingTaskSchema`, `addMoveOutChargeSchema`, `finaliseDepositSettlementSchema` | — |
 | invoice.ts | `markInvoicePaidSchema` | 8 |
 | signature.ts | `signLeaseSchema`, `createReviewRequestSchema`, `respondReviewRequestSchema` | — |
 | onboarding.ts | `onboardTenantSchema` — full form schema for tenant+lease+invite in one step (accepts optional `fromApplicationId` cuid for application conversion) | — |
@@ -217,6 +262,8 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | docs/2026-04-23-alignment-tasks.md | Task-by-task execution plan that refines the product overview plan with locked decisions and milestone-ready deliverables | 703 |
 | docs/2026-04-23-product-overview-gap-checklist.md | Product deck checklist mapping implemented, partial, and missing capabilities against the current app | 55 |
 | docs/2026-04-23-product-overview-implementation-plan.md | Deep phased implementation plan covering tenant lifecycle, finance, approvals, portals, notifications, and platform hardening | 997 |
+| docs/2026-04-24-m2-plan.md | M2 task-by-task execution plan (38 tasks across Phases A–H — billing, payments, trust, statements, marketing) | 737 |
+| docs/2026-04-25-m3-plan.md | M3 task-by-task execution plan (31 tasks across Phases A–H — maintenance capture, inspections, offboarding, deposit settlement; no maintenance approval gate per locked decision #1) | 601 |
 
 ### scripts/
 | File | Purpose | Lines |
@@ -236,6 +283,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | tests/integration/applications.test.ts | Full lifecycle: create → submit → TPN PASS → approve → convert (+ waive path, DECLINE-blocks path) | — |
 | tests/integration/payments.test.ts | End-to-end: markInvoicePaid → PaymentReceipt + Allocation + ledger entries; markInvoiceUnpaid reverses cleanly; `getTenantTrustPosition` balances to zero when fully allocated | 341 |
 | tests/lib/crypto.test.ts | Round-trip encrypt/decrypt + tamper-detection cases for `lib/crypto.ts` | 63 |
+| tests/lib/email.test.ts | Mailbox-config coverage for shared SMTP, legacy Gmail fallback, and per-mailbox credential overrides in `lib/email.ts` | 73 |
 | tests/lib/statement-pdf.test.ts | Deterministic PDF buffer assertion for `renderStatementPdf` (same input ⇒ same bytes) | 78 |
 | tests/lib/debit-order-instruction-pdf.test.ts | `renderDebitOrderInstruction` output contains expected bank ref, cap, and BANK_REF_PREFIX override | 53 |
 | tests/integrations/qbo-mapping.test.ts | Fixture-based coverage for QBO → canonical `BankTransaction` mapper | 58 |
@@ -252,13 +300,20 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | tests/services/debicheck.test.ts | Cap-aware collection refusal; retry-state machine flips invoice to OVERDUE at day +2; mandate status transitions | 201 |
 | tests/services/payouts.test.ts | Payout initiation persists external id on ledger entry; webhook flips pending → confirmed; signature verification | 154 |
 | tests/services/qbo-adapter.test.ts | Adapter returns stub payload + throws `ApiError.conflict` when `QBO_CLIENT_ID` unset; OAuth callback persists OrgIntegration | 86 |
+| tests/services/maintenance.test.ts | (M3) Vendor + lifecycle assignVendor → schedule → complete → captureMaintenanceInvoice writes a `FEE` ledger entry with `-invoiceCents` against the property's landlord | — |
+| tests/services/vendors.test.ts | (M3) list/create/update/archive happy path + cross-org isolation | — |
+| tests/services/inspections.test.ts | (M3) create → start → recordArea → recordItem → complete → sign; either-signer rule for MOVE_IN/MOVE_OUT, tenant-only for INTERIM | — |
+| tests/services/offboarding.test.ts | (M3) seed default tasks (with/without UTILITIES_BILLING flag), idempotent open, charge add/remove gating, finalise no-charges → full refund + DEPOSIT_OUT, partial → partial refund, exceeding → balance owed + no ledger, second finalise rejected | — |
+| tests/lib/blob-signed-url.test.ts | (M3) `createSignedUploadUrl` content-type allowlist, pathname traversal/leading-slash rejection, max-bytes cap, extension mapping | 70 |
+| tests/reports/inspection-pdf.test.ts | (M3) `renderInspectionReport` deterministic — same fixture renders identical bytes | — |
+| tests/reports/settlement-pdf.test.ts | (M3) `renderSettlementStatement` deterministic; balance-owed visibility gate; empty-charges fallback copy | 75 |
 
 ### app/ — Layouts & Pages
 | Route | File | Purpose |
 |-------|------|---------|
 | — | app/layout.tsx | Root layout: metadata + `<Providers>` wrapper | 
 | — | app/providers.tsx | Client: `<SessionProvider>` |
-| / | (marketing)/page.tsx | Landing page |
+| / | (marketing)/page.tsx | Landing page with legitimacy-first copy, persona-led feature discovery, and contact-led CTA flow |
 | — | (marketing)/layout.tsx | Public layout shell |
 | /login | (marketing)/login/page.tsx | Renders `<LoginForm>` in Suspense |
 | — | (staff)/layout.tsx | Auth guard + `<StaffNav>` |
@@ -301,8 +356,17 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | /tenant/repairs/[id] | (tenant)/tenant/repairs/[id]/page.tsx | Tenant view of a request |
 | /tenant/invoices | (tenant)/tenant/invoices/page.tsx | Rent invoices: next due, history, paid total |
 | /maintenance | (staff)/maintenance/page.tsx | Staff maintenance list with status filters |
-| /maintenance/[id] | (staff)/maintenance/[id]/page.tsx | Staff detail + update status/priority/internal notes |
+| /maintenance/[id] | (staff)/maintenance/[id]/page.tsx | Staff detail with dispatch (assign vendor / quote / schedule / complete / capture invoice) panels, quotes list, worklog feed |
 | /maintenance/[id] | (staff)/maintenance/[id]/update-form.tsx | Client: status/priority/notes form |
+| /maintenance/vendors | (staff)/maintenance/vendors/page.tsx | Vendor directory list with archived filter |
+| /maintenance/vendors/new | (staff)/maintenance/vendors/new/page.tsx | Create vendor form |
+| /maintenance/vendors/[id] | (staff)/maintenance/vendors/[id]/page.tsx | Edit vendor + archive/unarchive |
+| /inspections | (staff)/inspections/page.tsx | Inspections list with status/type filters |
+| /inspections/[id] | (staff)/inspections/[id]/page.tsx | Inspection detail: areas/items editor, photo uploader (signed-URL flow), complete + sign CTAs, PDF link |
+| /leases/[id]/move-in | (staff)/leases/[id]/move-in/page.tsx | Server gateway: ensures a MOVE_IN inspection exists, redirects to /inspections/[id] |
+| /leases/[id]/move-out | (staff)/leases/[id]/move-out/page.tsx | Server gateway: ensures a MOVE_OUT inspection exists, redirects to /inspections/[id] |
+| /offboarding | (staff)/offboarding/page.tsx | Offboarding cases list with status pills |
+| /offboarding/[id] | (staff)/offboarding/[id]/page.tsx | Case detail: tasks checklist, charges add/remove, settlement preview, finalise CTA, PDF link, close case |
 | /applications | (staff)/applications/page.tsx | Application list with stage tabs, reviewer filter, search; loading skeleton + empty state |
 | /applications/new | (staff)/applications/new/page.tsx | Capture form for new applicant + application + TPN consent |
 | /applications/[id] | (staff)/applications/[id]/page.tsx | Tabbed detail (Overview / TPN / Documents / Notes) with decision CTAs and convert dialog |
@@ -356,6 +420,8 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | /tenant/payments | (tenant)/tenant/payments/page.tsx | Rails overview: active payment methods + "Set up new method" actions |
 | /tenant/payments | (tenant)/tenant/payments/debicheck-card.tsx | Client: "Sign DebiCheck mandate in your banking app" + status pill |
 | /tenant/payments | (tenant)/tenant/payments/self-managed-card.tsx | Client: download instruction PDF; shows "Debit order active (self-managed)" pill |
+| /tenant/inspections | (tenant)/tenant/inspections/page.tsx | Tenant inspections list scoped to tenant's leases |
+| /tenant/inspections/[id] | (tenant)/tenant/inspections/[id]/page.tsx | Tenant inspection view + sign action (TENANT signature flips MOVE_IN/MOVE_OUT to SIGNED_OFF; required for INTERIM) |
 
 ### app/api/ — Route Handlers
 | Endpoint | Methods | Handler calls |
@@ -372,6 +438,33 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | /api/tenants/[id]/invite | POST | inviteTenantToPortal (ADMIN/PM only) |
 | /api/maintenance | GET, POST | listMaintenanceRequests (staff), createTenantMaintenanceRequest (tenant) |
 | /api/maintenance/[id] | GET, PATCH | getMaintenanceRequest, updateMaintenanceRequest (ADMIN/PM only) |
+| /api/maintenance/[id]/assign | POST | assignVendor (ADMIN/PM) |
+| /api/maintenance/[id]/quotes | GET, POST | list quotes, captureQuote (ADMIN/PM) |
+| /api/maintenance/[id]/schedule | POST | scheduleMaintenance (ADMIN/PM) |
+| /api/maintenance/[id]/complete | POST | completeMaintenance (ADMIN/PM) |
+| /api/maintenance/[id]/invoice | POST | captureMaintenanceInvoice (ADMIN/PM/FINANCE) — writes FEE ledger entry against landlord |
+| /api/maintenance/[id]/worklogs | GET, POST | list, addMaintenanceWorklog (ADMIN/PM) |
+| /api/vendors | GET, POST | listVendors, createVendor (ADMIN/PM) |
+| /api/vendors/[id] | GET, PATCH, DELETE | getVendor, updateVendor, archiveVendor (ADMIN/PM) |
+| /api/inspections | GET, POST | listInspections, createInspection (ADMIN/PM) |
+| /api/inspections/[id] | GET, PATCH | getInspection, updateInspection (ADMIN/PM) |
+| /api/inspections/[id]/start | POST | startInspection (ADMIN/PM) |
+| /api/inspections/[id]/complete | POST | completeInspection (ADMIN/PM) |
+| /api/inspections/[id]/sign | POST | signInspection (ADMIN/PM/LANDLORD/TENANT — TENANT only when inspection's lease matches) |
+| /api/inspections/[id]/areas | POST | recordArea (ADMIN/PM) |
+| /api/inspection-areas/[id]/items | POST | recordItem (ADMIN/PM) |
+| /api/inspection-items/[id]/photos | POST | register `InspectionPhoto` after client upload (ADMIN/PM/TENANT) |
+| /api/inspection-items/[id]/photos/signed-url | POST | issue scoped client upload URL (ADMIN/PM/TENANT) |
+| /api/inspection-items/[id]/photos/[photoId] | DELETE | remove photo row (ADMIN/PM) |
+| /api/uploads/blob/[...storageKey] | PUT | direct-Blob upload proxy; auth-gated; org-scoped pathname; png/jpeg/webp only |
+| /api/leases/[id]/debit-order-instruction.pdf | GET | renderDebitOrderInstruction (M2 — referenced by tenant rail B(ii)) |
+| /api/offboarding | GET, POST | listOffboardingCases, openOffboardingCase (ADMIN/PM) |
+| /api/offboarding/[id] | GET | getOffboardingCase (ADMIN/PM/TENANT — own lease) |
+| /api/offboarding/[id]/tasks/[taskId] | PATCH | toggleOffboardingTask (ADMIN/PM) |
+| /api/offboarding/[id]/charges | GET, POST | list, addMoveOutCharge (ADMIN/PM) — refused after finalisation |
+| /api/offboarding/[id]/charges/[chargeId] | DELETE | removeMoveOutCharge (ADMIN/PM) — refused after finalisation |
+| /api/offboarding/[id]/finalise | POST | finaliseDepositSettlement (ADMIN/PM/FINANCE) — immutable, writes DEPOSIT_OUT ledger entry when refund > 0 |
+| /api/offboarding/[id]/close | POST | closeOffboardingCase (ADMIN/PM) |
 | /api/invoices/[id]/paid | POST, DELETE | markInvoicePaid, markInvoiceUnpaid (ADMIN/PM/FINANCE) |
 | /api/leases/[id]/sign | POST | signLeaseAsTenant (TENANT only; records IP/UA from request headers) |
 | /api/leases/[id]/review-requests | POST | createReviewRequest (TENANT only) |
@@ -467,6 +560,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | marketing/marketing-header.tsx | Client | `MarketingHeader` — top nav shell for marketing pages with responsive drawer | 129 |
 | marketing/marketing-footer.tsx | Server | `MarketingFooter` — marketing footer with links + legal | 107 |
 | marketing/contact-form.tsx | Client | `ContactForm` — POSTs to `/api/public/contact` | 122 |
+| marketing/persona-value-grid.tsx | Client | `PersonaValueGrid` — four audience-selector cards that expand in-place into role-specific value-prop blocks on click | 302 |
 | signup-form.tsx | Client | `SignupForm` — marketing `/signup` request form, POSTs to `/api/public/signup-request` | 249 |
 | forms/meter-form.tsx | Client | `MeterForm` — property/unit/type/serial create form | 100 |
 | forms/meter-reading-form.tsx | Client | `MeterReadingForm` — takenAt + readingValue + source | 85 |
@@ -474,6 +568,19 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | forms/allocation-dialog.tsx | Client | `AllocationDialog` — allocate receipt to invoice line items, oldest-first default with manual override | 148 |
 | forms/reverse-allocation-dialog.tsx | Client | `ReverseAllocationDialog` — captures reason; enforces 30-day gate for non-ADMIN | 97 |
 | forms/payment-csv-import-form.tsx | Client | `PaymentCsvImportForm` — dialect picker + multipart upload + preview table | 189 |
+| forms/vendor-form.tsx | Client | `VendorForm`, `ArchiveVendorButton` — create/update + archive control | — |
+| forms/assign-vendor-dialog.tsx | Client | `AssignVendorDialog` — vendor picker + estimate + scheduledFor | — |
+| forms/capture-quote-dialog.tsx | Client | `CaptureQuoteDialog` — vendor + amount + storage key + note | — |
+| forms/capture-invoice-dialog.tsx | Client | `CaptureInvoiceDialog` — invoice amount + blob key (M3: ledger entry on submit) | — |
+| forms/maintenance-worklog-form.tsx | Client | `MaintenanceWorklogForm`, `ScheduleButton`, `CompleteForm` — worklog comment box + schedule/complete actions | — |
+| forms/inspection-area-form.tsx | Client | `InspectionAreaForm` — add area to inspection | 64 |
+| forms/inspection-item-form.tsx | Client | `InspectionItemForm` — label + condition + note + estimated cost + responsibility | — |
+| forms/inspection-sign-dialog.tsx | Client | `InspectionSignDialog` — typed name + role; either-signer rule fires SIGNED_OFF transition server-side | — |
+| forms/inspection-photo-uploader.tsx | Client | `InspectionPhotoUploader` — signed-URL flow: requests scoped upload URL → PUTs file → registers `InspectionPhoto` row | 90 |
+| forms/offboarding-task-toggle.tsx | Client | `OffboardingTaskToggle` — checkbox calling `/api/offboarding/[id]/tasks/[taskId]` | — |
+| forms/move-out-charge-form.tsx | Client | `MoveOutChargeForm`, `RemoveChargeButton` — charge entry + removal (gated when settlement finalised) | — |
+| forms/finalise-settlement-button.tsx | Client | `FinaliseSettlementButton` — confirms then POSTs to `/api/offboarding/[id]/finalise` | — |
+| forms/close-case-button.tsx | Client | `CloseCaseButton` — POSTs to `/api/offboarding/[id]/close` | — |
  
 **Manifest refresh (2026-04-22) — supersedes older line counts above where duplicated**
 
@@ -492,3 +599,15 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | nav/agent-sidebar.tsx | Client | `getAgentNavItems()`, `AgentSidebar`, `DesktopAgentSidebar` â€” agent portal nav config + wrappers (dashboard-only until more routes land) | 29 |
 | nav/landlord-sidebar.tsx | Client | `getLandlordNavItems()`, `LandlordSidebar`, `DesktopLandlordSidebar` â€” landlord portal nav config + wrappers (dashboard-only until more routes land) | 29 |
 | nav/top-bar.tsx | Server | `TopBar` â€” internal top bar with breadcrumbs, theme toggle, account, sign out | 53 |
+
+**Marketing refresh (2026-04-23) - supersedes older marketing route/component entries above where duplicated**
+| Route / File | Purpose / Export | Lines |
+|--------------|------------------|-------|
+| /about | Marketing about page with company context and guided next-read links | 226 |
+| /product | Marketing product overview with section anchors and guided next-read links | 289 |
+| /pricing | Marketing pricing overview with scoped profiles, FAQs, and guided next-read links | 312 |
+| /contact | Marketing contact page with direct form and guided pre-contact links | 181 |
+| components/marketing/marketing-footer.tsx | `MarketingFooter` - anchor-based exploration links + legal | 109 |
+| components/marketing/contact-form.tsx | `ContactForm` - POSTs to `/api/public/contact` | 135 |
+| components/marketing/marketing-journey-grid.tsx | `MarketingJourneyGrid` - reusable high-signal read-next card grid for marketing pages | 83 |
+| components/signup-form.tsx | `SignupForm` - marketing `/signup` request form, POSTs to `/api/public/signup-request` | 244 |

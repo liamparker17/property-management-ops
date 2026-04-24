@@ -7,6 +7,10 @@ import {
   getTenantLeases,
   getTenantProfile,
 } from '@/lib/services/tenant-portal';
+import {
+  getTenantOffboardingSummary,
+  listTenantSignedInspectionsForLease,
+} from '@/lib/services/offboarding';
 import { formatDate, formatZar } from '@/lib/format';
 import { SignLeaseCard, SignedConfirmation } from './sign-card';
 import { ReviewRequestForm, ReviewRequestList } from './review-form';
@@ -32,6 +36,13 @@ export default async function TenantLeasePage() {
     getTenantProfile(userId),
   ]);
   const history = all.filter((l) => l.id !== active?.id && l.id !== pending?.id);
+  const focusLeaseId = active?.id ?? history[0]?.id ?? null;
+  const [settlement, signedInspections] = focusLeaseId
+    ? await Promise.all([
+        getTenantOffboardingSummary(userId, focusLeaseId),
+        listTenantSignedInspectionsForLease(userId, focusLeaseId),
+      ])
+    : [null, []];
   const tenantFullName = profile
     ? `${profile.firstName} ${profile.lastName}`.trim()
     : (session?.user.name ?? '');
@@ -316,6 +327,76 @@ export default async function TenantLeasePage() {
                   </li>
                 ))}
               </ul>
+            )}
+          </div>
+        </section>
+      )}
+
+      {signedInspections.length > 0 && (
+        <section>
+          <h2 className="mb-3 text-lg font-semibold">Inspection reports</h2>
+          <div className="overflow-hidden rounded-lg border bg-card">
+            <ul className="divide-y">
+              {signedInspections.map((insp) => (
+                <li key={insp.id} className="flex items-center gap-3 px-4 py-3 text-sm">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium">{insp.type.replaceAll('_', ' ')} inspection</div>
+                    <div className="text-xs text-muted-foreground">
+                      Signed off {insp.signedOffAt ? formatDate(insp.signedOffAt) : '—'}
+                    </div>
+                  </div>
+                  {insp.reportKey && (
+                    <a
+                      href={insp.reportKey}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm text-primary hover:underline"
+                    >
+                      Open PDF
+                    </a>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
+
+      {settlement && (
+        <section>
+          <h2 className="mb-3 text-lg font-semibold">Deposit settlement</h2>
+          <div className="space-y-2 rounded-lg border bg-card p-4 text-sm">
+            <div className="flex items-baseline justify-between border-b border-border/60 pb-2">
+              <span className="text-muted-foreground">Deposit held</span>
+              <span className="font-medium">{formatZar(settlement.depositHeldCents)}</span>
+            </div>
+            <div className="flex items-baseline justify-between border-b border-border/60 pb-2">
+              <span className="text-muted-foreground">Charges applied</span>
+              <span className="font-medium">{formatZar(settlement.chargesAppliedCents)}</span>
+            </div>
+            <div className="flex items-baseline justify-between border-b border-border/60 pb-2">
+              <span className="text-muted-foreground">Refund due to you</span>
+              <span className="font-medium">{formatZar(settlement.refundDueCents)}</span>
+            </div>
+            {settlement.balanceOwedCents > 0 && (
+              <div className="flex items-baseline justify-between border-b border-border/60 pb-2">
+                <span className="text-muted-foreground">Balance owed</span>
+                <span className="font-medium text-destructive">{formatZar(settlement.balanceOwedCents)}</span>
+              </div>
+            )}
+            <div className="pt-2 text-xs text-muted-foreground">
+              Finalised {formatDate(settlement.finalizedAt)}
+            </div>
+            {settlement.statementKey && (
+              <a
+                href={settlement.statementKey}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex text-sm font-medium text-primary hover:underline"
+              >
+                Open settlement statement PDF
+              </a>
             )}
           </div>
         </section>

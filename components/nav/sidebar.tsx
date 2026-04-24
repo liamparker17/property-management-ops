@@ -6,7 +6,9 @@ import {
   LayoutDashboard,
   Building2,
   Users,
+  ClipboardCheck,
   ClipboardList,
+  DoorClosed,
   FileText,
   FileSpreadsheet,
   Gauge,
@@ -28,7 +30,10 @@ const NAV: NavItem[] = [
   { href: '/tenants', label: 'Tenants', icon: Users, match: (p) => p.startsWith('/tenants') },
   { href: '/applications', label: 'Applications', icon: ClipboardList, match: (p) => p.startsWith('/applications') },
   { href: '/leases', label: 'Leases', icon: FileText, match: (p) => p.startsWith('/leases') },
-  { href: '/maintenance', label: 'Maintenance', icon: Wrench, match: (p) => p.startsWith('/maintenance') },
+  { href: '/maintenance', label: 'Maintenance', icon: Wrench, match: (p) => p === '/maintenance' || (p.startsWith('/maintenance/') && !p.startsWith('/maintenance/vendors')) },
+  { href: '/maintenance/vendors', label: 'Vendors', icon: Wrench, match: (p) => p.startsWith('/maintenance/vendors') },
+  { href: '/inspections', label: 'Inspections', icon: ClipboardCheck, match: (p) => p.startsWith('/inspections') },
+  { href: '/offboarding', label: 'Offboarding', icon: DoorClosed, match: (p) => p.startsWith('/offboarding') },
 ];
 
 const FINANCE_NAV: NavItem[] = [

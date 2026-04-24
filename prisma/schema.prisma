@@ -260,6 +260,9 @@ model Org {
   billingRuns         BillingRun[]
   paymentReceipts     PaymentReceipt[]
   trustAccounts       TrustAccount[]
+  vendors             Vendor[]
+  inspections         Inspection[]
+  offboardingCases    OffboardingCase[]
 }
 
 model OrgFeature {
@@ -376,6 +379,7 @@ model User {
   notifications Notification[]
   assignedApplications Application[] @relation("ApplicationReviewer")
   applicationNotesAuthored ApplicationNote[]
+  maintenanceWorklogs  MaintenanceWorklog[]
 
   @@index([orgId])
   @@index([landlordId])
@@ -468,6 +472,7 @@ model Unit {
   maintenance MaintenanceRequest[]
   applications Application[]
   meters      Meter[]
+  inspections Inspection[]
 
   @@unique([propertyId, label])
   @@index([orgId, propertyId])
@@ -640,6 +645,8 @@ model Lease {
   paymentReceipts     PaymentReceipt[]
   depositAllocations  Allocation[]       @relation("LeaseDepositAllocations")
   trustLedgerEntries  TrustLedgerEntry[]
+  inspections         Inspection[]
+  offboardingCase     OffboardingCase?
 
   @@index([orgId, unitId, state])
   @@index([orgId, endDate])
@@ -697,12 +704,23 @@ model MaintenanceRequest {
   status        MaintenanceStatus   @default(OPEN)
   internalNotes String?
   resolvedAt    DateTime?
+  assignedVendorId   String?
+  vendor             Vendor?              @relation(fields: [assignedVendorId], references: [id])
+  estimatedCostCents Int?
+  quotedCostCents    Int?
+  scheduledFor       DateTime?
+  completedAt        DateTime?
+  invoiceCents       Int?
+  invoiceBlobKey     String?
+  quotes             MaintenanceQuote[]
+  worklogs           MaintenanceWorklog[]
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
 
   @@index([orgId, status])
   @@index([orgId, tenantId])
   @@index([orgId, unitId])
+  @@index([orgId, status, scheduledFor])
 }
 
 model Invoice {
@@ -1039,4 +1057,194 @@ model DebiCheckMandate {
 
   @@index([orgId, status])
   @@index([tenantId])
+}
+
+model Vendor {
+  id           String   @id @default(cuid())
+  orgId        String
+  name         String
+  contactName  String?
+  contactEmail String?
+  contactPhone String?
+  categories   String[]
+  archivedAt   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  org          Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  quotes       MaintenanceQuote[]
+  maintenance  MaintenanceRequest[]
+
+  @@index([orgId, archivedAt])
+}
+
+model MaintenanceQuote {
+  id                 String   @id @default(cuid())
+  requestId          String
+  vendorId           String?
+  amountCents        Int
+  documentStorageKey String?
+  note               String?
+  createdAt          DateTime @default(now())
+  request            MaintenanceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  vendor             Vendor?            @relation(fields: [vendorId], references: [id])
+
+  @@index([requestId])
+}
+
+model MaintenanceWorklog {
+  id        String   @id @default(cuid())
+  requestId String
+  authorId  String?
+  body      String
+  createdAt DateTime @default(now())
+  request   MaintenanceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  author    User?              @relation(fields: [authorId], references: [id])
+
+  @@index([requestId])
+}
+
+enum InspectionType {
+  MOVE_IN
+  MOVE_OUT
+  INTERIM
+}
+
+enum InspectionStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  SIGNED_OFF
+  CANCELLED
+}
+
+enum ConditionRating {
+  EXCELLENT
+  GOOD
+  FAIR
+  POOR
+  DAMAGED
+}
+
+enum ChargeResponsibility {
+  LANDLORD
+  TENANT
+  SHARED
+}
+
+model Inspection {
+  id           String           @id @default(cuid())
+  orgId        String
+  leaseId      String
+  unitId       String
+  type         InspectionType
+  status       InspectionStatus @default(SCHEDULED)
+  scheduledAt  DateTime
+  startedAt    DateTime?
+  completedAt  DateTime?
+  signedOffAt  DateTime?
+  staffUserId  String?
+  agentId      String?
+  summary      String?
+  reportKey    String?
+  org          Org   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  lease        Lease @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  unit         Unit  @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  areas        InspectionArea[]
+  signatures   InspectionSignature[]
+  @@index([orgId, type, status])
+}
+
+model InspectionArea {
+  id            String @id @default(cuid())
+  inspectionId  String
+  name          String
+  orderIndex    Int
+  inspection    Inspection        @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  items         InspectionItem[]
+}
+
+model InspectionItem {
+  id               String @id @default(cuid())
+  areaId           String
+  label            String
+  condition        ConditionRating
+  note             String?
+  estimatedCostCents Int?
+  responsibility   ChargeResponsibility?
+  area             InspectionArea   @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  photos           InspectionPhoto[]
+}
+
+model InspectionPhoto {
+  id        String @id @default(cuid())
+  itemId    String
+  storageKey String
+  caption   String?
+  item      InspectionItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+}
+
+model InspectionSignature {
+  id           String @id @default(cuid())
+  inspectionId String
+  signerRole   Role
+  signerUserId String?
+  signedName   String
+  signedAt     DateTime @default(now())
+  ipAddress    String?
+  userAgent    String?
+  inspection   Inspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+}
+
+model OffboardingCase {
+  id         String             @id @default(cuid())
+  orgId      String
+  leaseId    String             @unique
+  openedAt   DateTime           @default(now())
+  closedAt   DateTime?
+  status     String
+  org        Org                @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  lease      Lease              @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  tasks      OffboardingTask[]
+  charges    MoveOutCharge[]
+  settlement DepositSettlement?
+
+  @@index([orgId, status])
+}
+
+model OffboardingTask {
+  id       String          @id @default(cuid())
+  caseId   String
+  label    String
+  orderIndex Int           @default(0)
+  done     Boolean         @default(false)
+  doneAt   DateTime?
+  doneById String?
+  case     OffboardingCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId, orderIndex])
+}
+
+model MoveOutCharge {
+  id                     String               @id @default(cuid())
+  caseId                 String
+  label                  String
+  amountCents            Int
+  responsibility         ChargeResponsibility
+  sourceInspectionItemId String?
+  createdAt              DateTime             @default(now())
+  case                   OffboardingCase      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+}
+
+model DepositSettlement {
+  id                  String          @id @default(cuid())
+  caseId              String          @unique
+  depositHeldCents    Int
+  chargesAppliedCents Int
+  refundDueCents      Int
+  balanceOwedCents    Int
+  statementKey        String?
+  finalizedAt         DateTime?
+  case                OffboardingCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
 }

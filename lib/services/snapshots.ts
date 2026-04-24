@@ -185,7 +185,11 @@ export async function recomputePropertySnapshot(ctx: RouteCtx, propertyId: strin
     where: { id: propertyId, orgId: ctx.orgId },
     select: { id: true },
   });
-  if (!property) throw new Error(`Property ${propertyId} not found`);
+  if (!property) {
+    // Stale session referring to a property in a different/wiped org.
+    // Skip silently — dashboards just render without this snapshot.
+    return null;
+  }
 
   // Serialized to avoid Neon cold-start connection refusals.
   const totalUnits = await db.unit.count({
@@ -262,7 +266,7 @@ export async function recomputeLandlordSnapshot(ctx: RouteCtx, landlordId: strin
     where: { id: landlordId, orgId: ctx.orgId },
     select: { id: true },
   });
-  if (!landlord) throw new Error(`Landlord ${landlordId} not found`);
+  if (!landlord) return null;
 
   const grossRentCents = await sumInvoiceTotals({
     orgId: ctx.orgId,
@@ -333,7 +337,7 @@ export async function recomputeAgentSnapshot(ctx: RouteCtx, agentId: string, per
     where: { id: agentId, orgId: ctx.orgId },
     select: { id: true },
   });
-  if (!agent) throw new Error(`Agent ${agentId} not found`);
+  if (!agent) return null;
 
   const propertyIds = await db.property.findMany({
     where: { orgId: ctx.orgId, assignedAgentId: agentId, deletedAt: null },

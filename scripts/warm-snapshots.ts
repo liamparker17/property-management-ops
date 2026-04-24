@@ -44,44 +44,47 @@ async function main() {
     process.exit(1);
   }
   const ctx: RouteCtx = { orgId: org.id, userId: 'warm-snapshots-cli', role: 'ADMIN' };
-  const periodStart = monthFloor(new Date());
-  console.log(`Warming snapshots for "${org.name}" (orgId=${org.id}, period=${periodStart.toISOString()})`);
-
-  console.log('[1/4] org snapshot');
-  await recomputeOrgSnapshot(ctx, periodStart);
+  const current = monthFloor(new Date());
+  // Warm the current month plus the previous 11 so the 12-month trend chart
+  // on /dashboard and /dashboard/finance has data for every bar.
+  const months: Date[] = [];
+  for (let offset = 11; offset >= 0; offset -= 1) {
+    const d = new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth() - offset, 1));
+    months.push(d);
+  }
+  console.log(`Warming snapshots for "${org.name}" (orgId=${org.id}) across ${months.length} months`);
 
   const properties = await db.property.findMany({
     where: { orgId: org.id, deletedAt: null },
     select: { id: true },
   });
-  console.log(`[2/4] ${properties.length} property snapshots`);
-  for (const p of properties) {
-    await recomputePropertySnapshot(ctx, p.id, periodStart);
-  }
-
   const landlords = await db.landlord.findMany({
     where: { orgId: org.id, archivedAt: null },
     select: { id: true },
   });
-  console.log(`[3/4] ${landlords.length} landlord snapshots`);
-  for (const l of landlords) {
-    await recomputeLandlordSnapshot(ctx, l.id, periodStart);
-  }
-
   const agents = await db.managingAgent.findMany({
     where: { orgId: org.id, archivedAt: null },
     select: { id: true },
   });
-  console.log(`[4/4] ${agents.length} agent snapshots`);
-  for (const a of agents) {
-    await recomputeAgentSnapshot(ctx, a.id, periodStart);
+
+  for (const periodStart of months) {
+    const label = periodStart.toISOString().slice(0, 7);
+    console.log(`[${label}] org + ${properties.length} props + ${landlords.length} landlords + ${agents.length} agents`);
+    await recomputeOrgSnapshot(ctx, periodStart);
+    for (const p of properties) await recomputePropertySnapshot(ctx, p.id, periodStart);
+    for (const l of landlords) await recomputeLandlordSnapshot(ctx, l.id, periodStart);
+    for (const a of agents) await recomputeAgentSnapshot(ctx, a.id, periodStart);
   }
 
-  const check = await db.orgMonthlySnapshot.findFirst({
-    where: { orgId: org.id, periodStart },
+  const check = await db.orgMonthlySnapshot.findMany({
+    where: { orgId: org.id },
+    orderBy: { periodStart: 'asc' },
+    select: { periodStart: true, billedCents: true, collectedCents: true },
   });
-  console.log('\nResulting org snapshot:');
-  console.log(JSON.stringify(check, null, 2));
+  console.log(`\nOrg snapshots written: ${check.length}`);
+  for (const s of check) {
+    console.log(`  ${s.periodStart.toISOString().slice(0, 7)}  billed=${s.billedCents}  collected=${s.collectedCents}`);
+  }
   await db.$disconnect();
 }
 

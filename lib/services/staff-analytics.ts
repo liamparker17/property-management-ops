@@ -429,8 +429,8 @@ export async function getStaffCommandCenter(
     const row = seriesMap.get(keyForMonth(month));
     return {
       x: labelForMonth(month),
-      y: row?.collectedCents ?? 0,
-      y2: row?.billedCents ?? 0,
+      y: row?.billedCents ?? 0,
+      y2: row?.collectedCents ?? 0,
     };
   });
 

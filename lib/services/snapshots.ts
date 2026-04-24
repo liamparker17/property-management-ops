@@ -74,15 +74,19 @@ async function sumTrustBalance(where: Prisma.TrustLedgerEntryWhereInput) {
   return result._sum.amountCents ?? 0;
 }
 
-async function sumUnallocated(where: Prisma.TrustLedgerEntryWhereInput) {
-  const rows = await db.trustLedgerEntry.findMany({
+async function sumUnallocated(orgId: string) {
+  // Unapplied cash = sum of receipt allocations explicitly marked UNAPPLIED
+  // (live, non-reversed). Summing every RECEIPT ledger row would double-count
+  // every collected rand — that was the bug.
+  const result = await db.allocation.aggregate({
     where: {
-      ...where,
-      type: { in: ['RECEIPT', 'ALLOCATION', 'REVERSAL'] },
+      target: 'UNAPPLIED',
+      reversedAt: null,
+      receipt: { orgId },
     },
-    select: { type: true, amountCents: true },
+    _sum: { amountCents: true },
   });
-  return rows.reduce((sum, row) => sum + row.amountCents, 0);
+  return result._sum.amountCents ?? 0;
 }
 
 export async function recomputeOrgSnapshot(ctx: RouteCtx, periodStart: Date) {
@@ -133,9 +137,7 @@ export async function recomputeOrgSnapshot(ctx: RouteCtx, periodStart: Date) {
   const trustBalanceCents = await sumTrustBalance({
     trustAccount: { orgId: ctx.orgId },
   });
-  const unallocatedCents = await sumUnallocated({
-    trustAccount: { orgId: ctx.orgId },
-  });
+  const unallocatedCents = await sumUnallocated(ctx.orgId);
 
   const safeOccupied = Math.min(occupiedUnits, totalUnits);
   const vacantUnits = Math.max(totalUnits - safeOccupied, 0);

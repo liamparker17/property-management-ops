@@ -489,6 +489,9 @@ model Property {
   postalCode       String
   notes            String?
   eskomAreaCode    String?
+  latitude         Float?
+  longitude        Float?
+  geocodedAt       DateTime?
   deletedAt        DateTime?
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt

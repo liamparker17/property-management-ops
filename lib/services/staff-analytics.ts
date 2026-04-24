@@ -206,9 +206,12 @@ async function getScopedProperties(ctx: RouteCtx, propertyId?: string) {
     select: {
       id: true,
       name: true,
+      addressLine1: true,
       suburb: true,
       city: true,
       province: true,
+      latitude: true,
+      longitude: true,
       landlord: { select: { id: true, name: true } },
       assignedAgent: { select: { id: true, name: true } },
     },

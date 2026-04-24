@@ -43,10 +43,11 @@ function formatTick(value: number, mode: 'cents' | 'count'): string {
 
 export function AreaChart({ data, height = 260, yFormat = 'count', seriesLabels }: AreaChartProps) {
   const [primary, secondary] = getSeriesPalette(2);
-  const tooltipFormatter = (value: number, name: string) => {
-    const display = yFormat === 'cents' ? formatZar(value) : String(value);
+  const tooltipFormatter = (value: unknown, name: unknown): [string, string] => {
+    const num = typeof value === 'number' ? value : Number(value ?? 0);
+    const display = yFormat === 'cents' ? formatZar(num) : String(num);
     const label = name === 'y' ? seriesLabels?.y ?? 'Series 1' : seriesLabels?.y2 ?? 'Series 2';
-    return [display, label] as [string, string];
+    return [display, label];
   };
 
   return (

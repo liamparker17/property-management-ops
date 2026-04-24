@@ -87,11 +87,11 @@ async function main() {
 
   console.log(`Created ${created} catch-up disbursements totalling R${(totalDisbursedCents / 100).toFixed(2)}`);
 
-  // Re-warm current-month org snapshot so trust balance reflects backfill
+  // Re-warm current-month org snapshot so trust balance reflects backfill.
   const { recomputeOrgSnapshot, monthFloor } = await import('@/lib/services/snapshots');
-  const { RouteCtx } = await import('@/lib/auth/with-org').catch(() => ({ RouteCtx: null as any }));
-  void RouteCtx;
-  const ctx: any = { orgId: org.id, userId: 'backfill-cli', role: 'ADMIN' };
+  // RouteCtx is a type — construct a plain object inline with the shape the
+  // service expects. Seed/CLI is trusted, so ADMIN role is fine.
+  const ctx = { orgId: org.id, userId: 'backfill-cli', role: 'ADMIN' as const };
   await recomputeOrgSnapshot(ctx, monthFloor(new Date()));
 
   const snap = await db.orgMonthlySnapshot.findFirst({

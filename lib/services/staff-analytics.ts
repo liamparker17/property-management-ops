@@ -433,7 +433,7 @@ export async function getStaffCommandCenter(
     ]);
 
   const seriesMap = new Map(series.map((row) => [keyForMonth(row.periodStart), row]));
-  const collectionsTrend = Array.from({ length: 12 }, (_, index) => addMonths(periodStart, index - 11)).map((month) => {
+  const rawTrend = Array.from({ length: 12 }, (_, index) => addMonths(periodStart, index - 11)).map((month) => {
     const row = seriesMap.get(keyForMonth(month));
     return {
       x: labelForMonth(month),
@@ -441,6 +441,10 @@ export async function getStaffCommandCenter(
       y2: row?.collectedCents ?? 0,
     };
   });
+  // Trim leading all-zero months so the chart starts at the first month
+  // with actual data (avoids a synthetic 0 → peak "spike" at the left edge).
+  const firstNonZero = rawTrend.findIndex((p) => p.y > 0 || (p.y2 ?? 0) > 0);
+  const collectionsTrend = firstNonZero > 0 ? rawTrend.slice(firstNonZero) : rawTrend;
 
   const statusCountsSource = await db.maintenanceRequest.findMany({
     where: { orgId: ctx.orgId, status: { in: ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'] } },
@@ -571,7 +575,7 @@ export async function getStaffFinance(
   ]);
 
   const seriesMap = new Map(series.map((row) => [keyForMonth(row.periodStart), row]));
-  const trend = Array.from({ length: 12 }, (_, index) => addMonths(periodStart, index - 11)).map((month) => {
+  const rawTrend = Array.from({ length: 12 }, (_, index) => addMonths(periodStart, index - 11)).map((month) => {
     const row = seriesMap.get(keyForMonth(month));
     return {
       x: labelForMonth(month),
@@ -579,6 +583,8 @@ export async function getStaffFinance(
       y2: row?.collectedCents ?? 0,
     };
   });
+  const firstNonZero = rawTrend.findIndex((p) => p.y > 0 || (p.y2 ?? 0) > 0);
+  const trend = firstNonZero > 0 ? rawTrend.slice(firstNonZero) : rawTrend;
 
   const buckets = [
     { x: 'Current', y: 0 },

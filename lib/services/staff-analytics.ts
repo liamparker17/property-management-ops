@@ -262,18 +262,26 @@ function snapshotKpis(snapshot?: {
   } satisfies KpiMap;
 }
 
-async function getExpiringLeases(ctx: RouteCtx, maxDays: number, limit = 5): Promise<ExpiringLeaseRow[]> {
+async function getExpiringLeases(
+  ctx: RouteCtx,
+  opts: { maxDays: number; minDays?: number; limit?: number } | number,
+  legacyLimit = 5,
+): Promise<ExpiringLeaseRow[]> {
+  // Support both old (maxDays: number, limit) and new ({ maxDays, minDays, limit }) callers.
+  const { minDays = 0, maxDays, limit = legacyLimit } =
+    typeof opts === 'number' ? { maxDays: opts, minDays: 0, limit: legacyLimit } : opts;
   const propertyIds = await getPropertyIds(ctx);
   if (propertyIds.length === 0) return [];
+
+  const now = Date.now();
+  const rangeStart = new Date(now + minDays * 86400000);
+  const rangeEnd = new Date(now + maxDays * 86400000);
 
   const rows = await db.lease.findMany({
     where: {
       orgId: ctx.orgId,
       state: { in: ['ACTIVE', 'RENEWED'] },
-      endDate: {
-        gte: new Date(),
-        lte: new Date(Date.now() + maxDays * 86400000),
-      },
+      endDate: { gte: rangeStart, lte: rangeEnd },
       unit: { propertyId: { in: propertyIds } },
     },
     orderBy: { endDate: 'asc' },
@@ -666,9 +674,9 @@ export async function getStaffMaintenance(
 export async function getStaffOperations(ctx: RouteCtx): Promise<OperationsView> {
   const propertyIds = await getPropertyIds(ctx);
   const [expiring30, expiring60, expiring90, blockedApprovals, activeLeases, moveInInspections] = await Promise.all([
-    getExpiringLeases(ctx, 30, 20),
-    getExpiringLeases(ctx, 60, 20),
-    getExpiringLeases(ctx, 90, 20),
+    getExpiringLeases(ctx, { minDays: 0, maxDays: 30, limit: 20 }),
+    getExpiringLeases(ctx, { minDays: 31, maxDays: 60, limit: 20 }),
+    getExpiringLeases(ctx, { minDays: 61, maxDays: 90, limit: 20 }),
     getBlockedApprovals(ctx),
     db.lease.findMany({
       where: {

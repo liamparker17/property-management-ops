@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 
 import { chartTheme, getSeriesPalette } from '@/lib/analytics/chart-theme';
+import { formatZar } from '@/lib/format';
 
 export type ChartPoint = {
   x: string;
@@ -21,10 +22,32 @@ export type ChartPoint = {
 type AreaChartProps = {
   data: ChartPoint[];
   height?: number;
+  /**
+   * 'cents' formats Y-axis + tooltip as ZAR currency (divides by 100).
+   * 'count' leaves raw numbers untouched (for counts/status charts).
+   */
+  yFormat?: 'cents' | 'count';
+  /** Series labels shown in the tooltip. Defaults to y / y2. */
+  seriesLabels?: { y?: string; y2?: string };
 };
 
-export function AreaChart({ data, height = 260 }: AreaChartProps) {
+function formatTick(value: number, mode: 'cents' | 'count'): string {
+  if (mode === 'cents') {
+    const rand = value / 100;
+    if (Math.abs(rand) >= 1_000_000) return `R${(rand / 1_000_000).toFixed(1)}M`;
+    if (Math.abs(rand) >= 1_000) return `R${Math.round(rand / 1_000)}k`;
+    return `R${Math.round(rand)}`;
+  }
+  return String(value);
+}
+
+export function AreaChart({ data, height = 260, yFormat = 'count', seriesLabels }: AreaChartProps) {
   const [primary, secondary] = getSeriesPalette(2);
+  const tooltipFormatter = (value: number, name: string) => {
+    const display = yFormat === 'cents' ? formatZar(value) : String(value);
+    const label = name === 'y' ? seriesLabels?.y ?? 'Series 1' : seriesLabels?.y2 ?? 'Series 2';
+    return [display, label] as [string, string];
+  };
 
   return (
     <div style={{ height }}>
@@ -42,12 +65,18 @@ export function AreaChart({ data, height = 260 }: AreaChartProps) {
           </defs>
           <CartesianGrid stroke={chartTheme.gridStroke} vertical={false} />
           <XAxis dataKey="x" tickLine={false} axisLine={{ stroke: chartTheme.axisStroke }} />
-          <YAxis tickLine={false} axisLine={false} width={36} />
+          <YAxis
+            tickLine={false}
+            axisLine={false}
+            width={yFormat === 'cents' ? 52 : 36}
+            tickFormatter={(value: number) => formatTick(value, yFormat)}
+          />
           <Tooltip
             contentStyle={{
               background: chartTheme.tooltipSurface,
               borderColor: chartTheme.tooltipBorder,
             }}
+            formatter={tooltipFormatter}
           />
           <Area
             type="monotone"

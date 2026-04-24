@@ -162,7 +162,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 |------|-------------------|-------|
 | next.config.ts | Empty NextConfig | 8 |
 | proxy.ts | `proxy(req)`, `config` — route guard: public paths, role-based redirects | 59 |
-| prisma.config.ts | defineConfig with schema path, datasource URL, and Prisma seed command (`tsx prisma/seed.ts`) | 12 |
+| prisma.config.ts | defineConfig with schema path, datasource URL, and Prisma seed command (`node --import tsx prisma/seed.ts`) | 12 |
 | tsconfig.json | strict, ES2017, @/* alias | 35 |
 | components.json | shadcn UI config | — |
 | vercel.json | Vercel cron registrations: `/api/cron/debicheck-retry` (daily 00:00 UTC), `/api/cron/reconciliation` twice daily (04:00 + 16:00 UTC ≙ 06:00 + 18:00 SAST), `/api/cron/notifications-dispatch` (every 5 min), `/api/cron/eskom-sync` (03:00 UTC), `/api/cron/usage-alerts` (04:00 UTC), `/api/cron/payment-alerts` (05:00 UTC), `/api/cron/backup-daily` (00:30 UTC), `/api/cron/backup-verify` (Sundays 01:00 UTC) | 13 |

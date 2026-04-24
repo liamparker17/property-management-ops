@@ -89,64 +89,53 @@ export async function recomputeOrgSnapshot(ctx: RouteCtx, periodStart: Date) {
   const { start, end } = monthRange(periodStart);
   const now = new Date();
 
-  const [
-    totalUnits,
-    occupiedUnits,
-    activeLeases,
-    expiringLeases30,
-    openMaintenance,
-    blockedApprovals,
-    billedCents,
-    collectedCentsAgg,
-    arrearsCents,
-    trustBalanceCents,
-    unallocatedCents,
-  ] = await Promise.all([
-    db.unit.count({
-      where: { orgId: ctx.orgId, property: { deletedAt: null } },
-    }),
-    db.unit.count({
-      where: {
-        orgId: ctx.orgId,
-        property: { deletedAt: null },
-        leases: { some: { state: { in: ['ACTIVE', 'RENEWED'] } } },
-      },
-    }),
-    db.lease.count({
-      where: { orgId: ctx.orgId, state: { in: ['ACTIVE', 'RENEWED'] } },
-    }),
-    db.lease.count({
-      where: {
-        orgId: ctx.orgId,
-        state: 'ACTIVE',
-        endDate: { gte: asDateOnly(now), lt: new Date(now.getTime() + 30 * 86400000) },
-      },
-    }),
-    db.maintenanceRequest.count({
-      where: { orgId: ctx.orgId, status: { in: ['OPEN', 'IN_PROGRESS'] } },
-    }),
-    db.approval.count({
-      where: { orgId: ctx.orgId, state: 'PENDING' },
-    }),
-    sumInvoiceTotals({
+  // Serial queries — Neon free-tier compute rejects high-fanout parallel
+  // queries on cold start; Vercel serverless hits the same limit. Sequential
+  // is slower per-call but finishes reliably without connection refusals.
+  const totalUnits = await db.unit.count({
+    where: { orgId: ctx.orgId, property: { deletedAt: null } },
+  });
+  const occupiedUnits = await db.unit.count({
+    where: {
       orgId: ctx.orgId,
-      periodStart: { gte: start, lt: end },
-    }),
-    db.paymentReceipt.aggregate({
-      where: { orgId: ctx.orgId, receivedAt: { gte: start, lt: end } },
-      _sum: { amountCents: true },
-    }),
-    sumInvoiceTotals({
+      property: { deletedAt: null },
+      leases: { some: { state: { in: ['ACTIVE', 'RENEWED'] } } },
+    },
+  });
+  const activeLeases = await db.lease.count({
+    where: { orgId: ctx.orgId, state: { in: ['ACTIVE', 'RENEWED'] } },
+  });
+  const expiringLeases30 = await db.lease.count({
+    where: {
       orgId: ctx.orgId,
-      ...overdueWhere(now),
-    }),
-    sumTrustBalance({
-      trustAccount: { orgId: ctx.orgId },
-    }),
-    sumUnallocated({
-      trustAccount: { orgId: ctx.orgId },
-    }),
-  ]);
+      state: 'ACTIVE',
+      endDate: { gte: asDateOnly(now), lt: new Date(now.getTime() + 30 * 86400000) },
+    },
+  });
+  const openMaintenance = await db.maintenanceRequest.count({
+    where: { orgId: ctx.orgId, status: { in: ['OPEN', 'IN_PROGRESS'] } },
+  });
+  const blockedApprovals = await db.approval.count({
+    where: { orgId: ctx.orgId, state: 'PENDING' },
+  });
+  const billedCents = await sumInvoiceTotals({
+    orgId: ctx.orgId,
+    periodStart: { gte: start, lt: end },
+  });
+  const collectedCentsAgg = await db.paymentReceipt.aggregate({
+    where: { orgId: ctx.orgId, receivedAt: { gte: start, lt: end } },
+    _sum: { amountCents: true },
+  });
+  const arrearsCents = await sumInvoiceTotals({
+    orgId: ctx.orgId,
+    ...overdueWhere(now),
+  });
+  const trustBalanceCents = await sumTrustBalance({
+    trustAccount: { orgId: ctx.orgId },
+  });
+  const unallocatedCents = await sumUnallocated({
+    trustAccount: { orgId: ctx.orgId },
+  });
 
   const safeOccupied = Math.min(occupiedUnits, totalUnits);
   const vacantUnits = Math.max(totalUnits - safeOccupied, 0);
@@ -198,29 +187,30 @@ export async function recomputePropertySnapshot(ctx: RouteCtx, propertyId: strin
   });
   if (!property) throw new Error(`Property ${propertyId} not found`);
 
-  const [totalUnits, occupiedUnits, openMaintenance, arrearsCents, grossRentCents] = await Promise.all([
-    db.unit.count({ where: { propertyId, orgId: ctx.orgId } }),
-    db.unit.count({
-      where: {
-        propertyId,
-        orgId: ctx.orgId,
-        leases: { some: { orgId: ctx.orgId, state: { in: ['ACTIVE', 'RENEWED'] } } },
-      },
-    }),
-    db.maintenanceRequest.count({
-      where: { orgId: ctx.orgId, unit: { propertyId }, status: { in: ['OPEN', 'IN_PROGRESS'] } },
-    }),
-    sumInvoiceTotals({
+  // Serialized to avoid Neon cold-start connection refusals.
+  const totalUnits = await db.unit.count({
+    where: { propertyId, orgId: ctx.orgId },
+  });
+  const occupiedUnits = await db.unit.count({
+    where: {
+      propertyId,
       orgId: ctx.orgId,
-      lease: { unit: { propertyId } },
-      ...overdueWhere(now),
-    }),
-    sumInvoiceTotals({
-      orgId: ctx.orgId,
-      periodStart: { gte: start, lt: end },
-      lease: { unit: { propertyId } },
-    }),
-  ]);
+      leases: { some: { orgId: ctx.orgId, state: { in: ['ACTIVE', 'RENEWED'] } } },
+    },
+  });
+  const openMaintenance = await db.maintenanceRequest.count({
+    where: { orgId: ctx.orgId, unit: { propertyId }, status: { in: ['OPEN', 'IN_PROGRESS'] } },
+  });
+  const arrearsCents = await sumInvoiceTotals({
+    orgId: ctx.orgId,
+    lease: { unit: { propertyId } },
+    ...overdueWhere(now),
+  });
+  const grossRentCents = await sumInvoiceTotals({
+    orgId: ctx.orgId,
+    periodStart: { gte: start, lt: end },
+    lease: { unit: { propertyId } },
+  });
 
   return db.propertyMonthlySnapshot.upsert({
     where: {
@@ -274,40 +264,40 @@ export async function recomputeLandlordSnapshot(ctx: RouteCtx, landlordId: strin
   });
   if (!landlord) throw new Error(`Landlord ${landlordId} not found`);
 
-  const [grossRentCents, collectedCentsAgg, disbursedRaw, maintenanceSpendRaw, vacancyDragCents, trustBalanceCents] =
-    await Promise.all([
-      sumInvoiceTotals({
-        orgId: ctx.orgId,
-        periodStart: { gte: start, lt: end },
-        lease: { unit: { property: { landlordId } } },
-      }),
-      db.paymentReceipt.aggregate({
-        where: {
-          orgId: ctx.orgId,
-          receivedAt: { gte: start, lt: end },
-          lease: { unit: { property: { landlordId } } },
-        },
-        _sum: { amountCents: true },
-      }),
-      db.trustLedgerEntry.aggregate({
-        where: {
-          landlordId,
-          occurredAt: { gte: start, lt: end },
-          type: 'DISBURSEMENT',
-        },
-        _sum: { amountCents: true },
-      }),
-      db.trustLedgerEntry.aggregate({
-        where: {
-          landlordId,
-          occurredAt: { gte: start, lt: end },
-          type: 'FEE',
-        },
-        _sum: { amountCents: true },
-      }),
-      computeVacancyDragForLandlord(ctx.orgId, landlordId),
-      sumTrustBalance({ landlordId, trustAccount: { orgId: ctx.orgId } }),
-    ]);
+  const grossRentCents = await sumInvoiceTotals({
+    orgId: ctx.orgId,
+    periodStart: { gte: start, lt: end },
+    lease: { unit: { property: { landlordId } } },
+  });
+  const collectedCentsAgg = await db.paymentReceipt.aggregate({
+    where: {
+      orgId: ctx.orgId,
+      receivedAt: { gte: start, lt: end },
+      lease: { unit: { property: { landlordId } } },
+    },
+    _sum: { amountCents: true },
+  });
+  const disbursedRaw = await db.trustLedgerEntry.aggregate({
+    where: {
+      landlordId,
+      occurredAt: { gte: start, lt: end },
+      type: 'DISBURSEMENT',
+    },
+    _sum: { amountCents: true },
+  });
+  const maintenanceSpendRaw = await db.trustLedgerEntry.aggregate({
+    where: {
+      landlordId,
+      occurredAt: { gte: start, lt: end },
+      type: 'FEE',
+    },
+    _sum: { amountCents: true },
+  });
+  const vacancyDragCents = await computeVacancyDragForLandlord(ctx.orgId, landlordId);
+  const trustBalanceCents = await sumTrustBalance({
+    landlordId,
+    trustAccount: { orgId: ctx.orgId },
+  });
 
   return db.landlordMonthlySnapshot.upsert({
     where: {
@@ -351,30 +341,28 @@ export async function recomputeAgentSnapshot(ctx: RouteCtx, agentId: string, per
   });
   const scopedPropertyIds = propertyIds.map((row) => row.id);
 
-  const [openTickets, blockedApprovals, upcomingInspections] = await Promise.all([
-    db.maintenanceRequest.count({
-      where: {
-        orgId: ctx.orgId,
-        status: { in: ['OPEN', 'IN_PROGRESS'] },
-        unit: { property: { assignedAgentId: agentId } },
-      },
-    }),
-    db.approval.count({
-      where: {
-        orgId: ctx.orgId,
-        state: 'PENDING',
-        ...(scopedPropertyIds.length > 0 ? { propertyId: { in: scopedPropertyIds } } : { propertyId: '__none__' }),
-      },
-    }),
-    db.inspection.count({
-      where: {
-        orgId: ctx.orgId,
-        status: { in: ['SCHEDULED', 'IN_PROGRESS'] },
-        scheduledAt: { gte: now },
-        unit: { property: { assignedAgentId: agentId } },
-      },
-    }),
-  ]);
+  const openTickets = await db.maintenanceRequest.count({
+    where: {
+      orgId: ctx.orgId,
+      status: { in: ['OPEN', 'IN_PROGRESS'] },
+      unit: { property: { assignedAgentId: agentId } },
+    },
+  });
+  const blockedApprovals = await db.approval.count({
+    where: {
+      orgId: ctx.orgId,
+      state: 'PENDING',
+      ...(scopedPropertyIds.length > 0 ? { propertyId: { in: scopedPropertyIds } } : { propertyId: '__none__' }),
+    },
+  });
+  const upcomingInspections = await db.inspection.count({
+    where: {
+      orgId: ctx.orgId,
+      status: { in: ['SCHEDULED', 'IN_PROGRESS'] },
+      scheduledAt: { gte: now },
+      unit: { property: { assignedAgentId: agentId } },
+    },
+  });
 
   return db.agentMonthlySnapshot.upsert({
     where: {

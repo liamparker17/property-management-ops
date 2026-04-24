@@ -147,26 +147,52 @@ function percent(numerator: number, denominator: number) {
   return Math.round((numerator / denominator) * 100);
 }
 
+function hashStringToUnit(input: string): number {
+  let hash = 0;
+  for (let i = 0; i < input.length; i += 1) {
+    hash = (hash * 31 + input.charCodeAt(i)) | 0;
+  }
+  return ((hash >>> 0) % 10_000) / 10_000;
+}
+
+function resolveCityAnchor(city: string | null): [number, number] | null {
+  if (!city) return null;
+  const key = city.replaceAll(/\s+/g, '');
+  return CITY_COORDS[key] ?? null;
+}
+
 function buildPropertyPin(
   property: {
     id: string;
     name: string;
-    city: string;
-    suburb: string;
+    city: string | null;
+    suburb: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
   },
-  index: number,
-): PortfolioPin {
-  const cityKey = property.city.replaceAll(/\s+/g, '');
-  const [baseLat, baseLng] = CITY_COORDS[cityKey] ?? CITY_COORDS.Johannesburg;
-  const lat = baseLat + index * 0.01;
-  const lng = baseLng + index * 0.01;
+  _index: number,
+): PortfolioPin | null {
+  if (typeof property.latitude === 'number' && typeof property.longitude === 'number') {
+    return {
+      id: property.id,
+      label: property.name,
+      lat: property.latitude,
+      lng: property.longitude,
+      href: `/properties/${property.id}`,
+      meta: [property.suburb, property.city].filter(Boolean).join(', ') || undefined,
+    };
+  }
+  const anchor = resolveCityAnchor(property.city);
+  if (!anchor) return null;
+  const latJitter = (hashStringToUnit(`${property.id}:lat`) - 0.5) * 0.04;
+  const lngJitter = (hashStringToUnit(`${property.id}:lng`) - 0.5) * 0.04;
   return {
     id: property.id,
     label: property.name,
-    lat,
-    lng,
+    lat: anchor[0] + latJitter,
+    lng: anchor[1] + lngJitter,
     href: `/properties/${property.id}`,
-    meta: `${property.suburb}, ${property.city}`,
+    meta: [property.suburb, property.city].filter(Boolean).join(', ') || undefined,
   };
 }
 
@@ -429,7 +455,9 @@ export async function getStaffCommandCenter(
     topArrears,
     openMaintenance,
     blockedApprovals,
-    portfolioPins: properties.map((row, index) => buildPropertyPin(row, index)),
+    portfolioPins: properties
+      .map((row, index) => buildPropertyPin(row, index))
+      .filter((pin): pin is PortfolioPin => pin !== null),
     collectionsTrend,
     maintenanceByStatus,
   };
@@ -491,7 +519,9 @@ export async function getStaffPortfolio(
         href: `/properties/${property.id}`,
       };
     }),
-    pins: properties.map((row, index) => buildPropertyPin(row, index)),
+    pins: properties
+      .map((row, index) => buildPropertyPin(row, index))
+      .filter((pin): pin is PortfolioPin => pin !== null),
   };
 }
 

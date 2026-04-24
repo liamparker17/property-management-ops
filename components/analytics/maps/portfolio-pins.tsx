@@ -1,7 +1,8 @@
 'use client';
 
-import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
-import { divIcon } from 'leaflet';
+import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
+import { divIcon, latLngBounds } from 'leaflet';
+import { useEffect } from 'react';
 import Link from 'next/link';
 
 export type PortfolioPin = {
@@ -24,22 +25,44 @@ const markerIcon = divIcon({
   iconAnchor: [7, 7],
 });
 
-function getCenter(pins: PortfolioPin[]) {
-  if (pins.length === 0) return [-26.2041, 28.0473] as [number, number];
-  const lat = pins.reduce((sum, pin) => sum + pin.lat, 0) / pins.length;
-  const lng = pins.reduce((sum, pin) => sum + pin.lng, 0) / pins.length;
-  return [lat, lng] as [number, number];
+const SOUTH_AFRICA_CENTER: [number, number] = [-29.0, 24.0];
+
+// Fits the viewport to show every pin, with sensible fallbacks.
+// - 0 pins: centered on South Africa at country zoom.
+// - 1 pin:  centered on that pin at city zoom.
+// - ≥2 pins that are close (all within ~0.5° ≈ one city): city-level zoom.
+// - ≥2 pins spread across provinces: country zoom showing all.
+function FitToPins({ pins }: { pins: PortfolioPin[] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (pins.length === 0) {
+      map.setView(SOUTH_AFRICA_CENTER, 5);
+      return;
+    }
+    if (pins.length === 1) {
+      map.setView([pins[0].lat, pins[0].lng], 13);
+      return;
+    }
+    const bounds = latLngBounds(pins.map((p) => [p.lat, p.lng]));
+    map.fitBounds(bounds, { padding: [48, 48], maxZoom: 13 });
+  }, [map, pins]);
+  return null;
 }
 
 export function PortfolioPins({ pins }: PortfolioPinsProps) {
-  const center = getCenter(pins);
-
   return (
-    <MapContainer center={center} zoom={11} scrollWheelZoom={false} className="h-full min-h-80 w-full">
+    <MapContainer
+      center={SOUTH_AFRICA_CENTER}
+      zoom={5}
+      scrollWheelZoom
+      zoomControl
+      className="h-full min-h-80 w-full"
+    >
       <TileLayer
-        attribution="Map data OpenStreetMap contributors"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+      <FitToPins pins={pins} />
       {pins.map((pin) => (
         <Marker key={pin.id} position={[pin.lat, pin.lng]} icon={markerIcon}>
           <Popup>

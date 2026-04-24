@@ -72,18 +72,24 @@ export default async function UsageAlertsPage() {
           <div className="border-b border-border/70 px-5 py-4">
             <h2 className="font-serif text-[26px] font-light text-foreground">Recent events</h2>
           </div>
-          <div className="divide-y divide-border/60">
-            {events.map((event) => (
-              <div key={event.id} className="px-5 py-4">
-                <div className="font-medium text-foreground">
-                  {event.lease.unit.property.name} / {event.lease.unit.label}
+          {events.length === 0 ? (
+            <div className="px-5 py-10 text-center text-sm text-muted-foreground">
+              No usage anomalies detected yet. Rules fire when meter readings exceed the configured baseline threshold.
+            </div>
+          ) : (
+            <div className="divide-y divide-border/60">
+              {events.map((event) => (
+                <div key={event.id} className="px-5 py-4">
+                  <div className="font-medium text-foreground">
+                    {event.lease.unit.property.name} / {event.lease.unit.label}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {event.deltaPct}% above baseline · {event.meter?.type ?? 'Meter'} · {event.periodStart.toISOString().slice(0, 10)}
+                  </div>
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  {event.deltaPct}% above baseline · {event.meter?.type ?? 'Meter'} · {event.periodStart.toISOString().slice(0, 10)}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
     </div>

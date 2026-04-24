@@ -30,6 +30,12 @@ export default async function StaffNoticesPage() {
       />
 
       <Card className="overflow-hidden border border-border p-0">
+        {rows.length === 0 ? (
+          <div className="px-5 py-10 text-center text-sm text-muted-foreground">
+            No notices yet. Use <Link href="/notices/new" className="text-primary hover:underline">Compose notice</Link> to
+            draft one for a property, block, or city.
+          </div>
+        ) : (
         <div className="divide-y divide-border/60">
           {rows.map((row) => (
             <Link key={row.id} href={`/notices/${row.id}`} className="block px-5 py-4 hover:bg-[color:var(--muted)]/35">
@@ -45,6 +51,7 @@ export default async function StaffNoticesPage() {
             </Link>
           ))}
         </div>
+        )}
       </Card>
     </div>
   );

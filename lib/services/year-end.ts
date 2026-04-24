@@ -127,7 +127,7 @@ async function buildSummary(
     db.invoice.findMany({
       where: invoiceWhere,
       orderBy: [{ periodStart: 'asc' }, { id: 'asc' }],
-      select: { id: true, totalCents: true, paidAmountCents: true, status: true },
+      select: { id: true, totalCents: true, amountCents: true, paidAmountCents: true, status: true },
     }),
     db.allocation.findMany({
       where: allocationWhere,
@@ -149,7 +149,10 @@ async function buildSummary(
       endDate: year.endDate.toISOString(),
     },
     totals: {
-      invoicesCents: invoices.reduce((total, invoice) => total + invoice.totalCents, 0),
+      invoicesCents: invoices.reduce(
+        (total, invoice) => total + (invoice.totalCents > 0 ? invoice.totalCents : invoice.amountCents),
+        0,
+      ),
       invoicePaidCents: invoices.reduce((total, invoice) => total + (invoice.paidAmountCents ?? 0), 0),
       allocationsCents: allocations.reduce((total, allocation) => total + allocation.amountCents, 0),
       ledgerNetCents: sum(ledgerEntries),

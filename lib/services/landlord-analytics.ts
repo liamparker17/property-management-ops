@@ -4,7 +4,7 @@ import type { KpiId } from '@/lib/analytics/kpis';
 import type { RouteCtx } from '@/lib/auth/with-org';
 import { db } from '@/lib/db';
 import { withRoleScopeFilter } from '@/lib/services/role-scope';
-import { monthFloor } from '@/lib/services/snapshots';
+import { monthFloor, recomputeLandlordSnapshot, recomputePropertySnapshot } from '@/lib/services/snapshots';
 
 type LandlordKpiMap = Record<
   Extract<KpiId, 'GROSS_RENT' | 'COLLECTION_RATE' | 'DISBURSED_CENTS' | 'MAINTENANCE_SPEND' | 'VACANCY_DRAG' | 'TRUST_BALANCE' | 'OPEN_MAINTENANCE'>,
@@ -57,7 +57,7 @@ function labelForMonth(date: Date) {
 
 function percent(numerator: number, denominator: number) {
   if (denominator <= 0) return 0;
-  return Math.round((numerator / denominator) * 100);
+  return Math.min(100, Math.max(0, Math.round((numerator / denominator) * 100)));
 }
 
 function requireLandlordId(ctx: RouteCtx) {
@@ -114,8 +114,18 @@ export async function getLandlordOverview(ctx: RouteCtx): Promise<LandlordOvervi
   const landlordId = requireLandlordId(ctx);
   const periodStart = monthFloor(new Date());
   const priorPeriodStart = addMonths(periodStart, -1);
+  let currentSnapshotRow = await db.landlordMonthlySnapshot.findFirst({
+    where: { orgId: ctx.orgId, landlordId, periodStart },
+  });
+  if (!currentSnapshotRow) {
+    try {
+      currentSnapshotRow = await recomputeLandlordSnapshot(ctx, landlordId, periodStart);
+    } catch (err) {
+      console.error('[landlord-analytics] lazy hydrate failed', err);
+    }
+  }
   const [currentSnapshot, priorSnapshot, snapshots, openMaintenance] = await Promise.all([
-    db.landlordMonthlySnapshot.findFirst({ where: { orgId: ctx.orgId, landlordId, periodStart } }),
+    Promise.resolve(currentSnapshotRow),
     db.landlordMonthlySnapshot.findFirst({ where: { orgId: ctx.orgId, landlordId, periodStart: priorPeriodStart } }),
     db.landlordMonthlySnapshot.findMany({
       where: {
@@ -160,10 +170,36 @@ export async function getLandlordCashflow(ctx: RouteCtx) {
 
 export async function getLandlordPortfolio(ctx: RouteCtx): Promise<{ rows: LandlordPortfolioRow[]; pins: PortfolioPin[] }> {
   const periodStart = monthFloor(new Date());
-  const [properties, snapshots] = await Promise.all([
-    getScopedProperties(ctx),
-    db.propertyMonthlySnapshot.findMany({ where: { orgId: ctx.orgId, periodStart } }),
-  ]);
+  const properties = await getScopedProperties(ctx);
+  const propertyIds = properties.map((row) => row.id);
+  let snapshots = await db.propertyMonthlySnapshot.findMany({
+    where: {
+      orgId: ctx.orgId,
+      periodStart,
+      ...(propertyIds.length > 0 ? { propertyId: { in: propertyIds } } : {}),
+    },
+  });
+  const stalePropertyIds = snapshots
+    .filter((row) => row.occupiedUnits > row.totalUnits)
+    .map((row) => row.propertyId);
+  const missing = propertyIds.filter((id) => !snapshots.some((row) => row.propertyId === id));
+  const toRecompute = [...new Set([...missing, ...stalePropertyIds])];
+  if (toRecompute.length > 0) {
+    await Promise.all(
+      toRecompute.map((id) =>
+        recomputePropertySnapshot(ctx, id, periodStart).catch((err) =>
+          console.error('[landlord-analytics] lazy property snapshot hydrate failed', { id, err }),
+        ),
+      ),
+    );
+    snapshots = await db.propertyMonthlySnapshot.findMany({
+      where: {
+        orgId: ctx.orgId,
+        periodStart,
+        ...(propertyIds.length > 0 ? { propertyId: { in: propertyIds } } : {}),
+      },
+    });
+  }
   const snapshotMap = new Map(snapshots.map((row) => [row.propertyId, row]));
   return {
     rows: properties.map((property) => {

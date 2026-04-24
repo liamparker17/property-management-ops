@@ -4,7 +4,7 @@ import type { KpiId } from '@/lib/analytics/kpis';
 import type { RouteCtx } from '@/lib/auth/with-org';
 import { db } from '@/lib/db';
 import { withRoleScopeFilter } from '@/lib/services/role-scope';
-import { monthFloor } from '@/lib/services/snapshots';
+import { monthFloor, recomputeAgentSnapshot } from '@/lib/services/snapshots';
 
 type AgentKpiMap = Record<
   Extract<KpiId, 'AGENT_OPEN_TICKETS' | 'BLOCKED_APPROVALS' | 'AGENT_UPCOMING_INSPECTIONS'>,
@@ -59,8 +59,18 @@ export async function getAgentCommandCenter(ctx: RouteCtx): Promise<AgentCommand
       select: { id: true },
     })
   ).map((row) => row.id);
+  let currentSnapshotRow = await db.agentMonthlySnapshot.findFirst({
+    where: { orgId: ctx.orgId, agentId, periodStart },
+  });
+  if (!currentSnapshotRow) {
+    try {
+      currentSnapshotRow = await recomputeAgentSnapshot(ctx, agentId, periodStart);
+    } catch (err) {
+      console.error('[agent-analytics] lazy hydrate failed', err);
+    }
+  }
   const [currentSnapshot, priorSnapshot, properties, tickets, inspections, blockedApprovals] = await Promise.all([
-    db.agentMonthlySnapshot.findFirst({ where: { orgId: ctx.orgId, agentId, periodStart } }),
+    Promise.resolve(currentSnapshotRow),
     db.agentMonthlySnapshot.findFirst({ where: { orgId: ctx.orgId, agentId, periodStart: priorPeriodStart } }),
     db.property.findMany({
       where: withRoleScopeFilter(ctx, { deletedAt: null }),

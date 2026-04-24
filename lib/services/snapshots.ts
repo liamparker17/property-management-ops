@@ -91,7 +91,7 @@ export async function recomputeOrgSnapshot(ctx: RouteCtx, periodStart: Date) {
 
   const [
     totalUnits,
-    occupiedUnitRows,
+    occupiedUnits,
     activeLeases,
     expiringLeases30,
     openMaintenance,
@@ -105,14 +105,12 @@ export async function recomputeOrgSnapshot(ctx: RouteCtx, periodStart: Date) {
     db.unit.count({
       where: { orgId: ctx.orgId, property: { deletedAt: null } },
     }),
-    db.lease.findMany({
+    db.unit.count({
       where: {
         orgId: ctx.orgId,
-        state: { in: ['ACTIVE', 'RENEWED'] },
-        unit: { property: { deletedAt: null } },
+        property: { deletedAt: null },
+        leases: { some: { state: { in: ['ACTIVE', 'RENEWED'] } } },
       },
-      select: { unitId: true },
-      distinct: ['unitId'],
     }),
     db.lease.count({
       where: { orgId: ctx.orgId, state: { in: ['ACTIVE', 'RENEWED'] } },
@@ -150,8 +148,8 @@ export async function recomputeOrgSnapshot(ctx: RouteCtx, periodStart: Date) {
     }),
   ]);
 
-  const occupiedUnits = occupiedUnitRows.length;
-  const vacantUnits = Math.max(totalUnits - occupiedUnits, 0);
+  const safeOccupied = Math.min(occupiedUnits, totalUnits);
+  const vacantUnits = Math.max(totalUnits - safeOccupied, 0);
 
   return db.orgMonthlySnapshot.upsert({
     where: {
@@ -160,7 +158,7 @@ export async function recomputeOrgSnapshot(ctx: RouteCtx, periodStart: Date) {
     create: {
       orgId: ctx.orgId,
       periodStart: start,
-      occupiedUnits,
+      occupiedUnits: safeOccupied,
       totalUnits,
       vacantUnits,
       activeLeases,
@@ -174,7 +172,7 @@ export async function recomputeOrgSnapshot(ctx: RouteCtx, periodStart: Date) {
       unallocatedCents,
     },
     update: {
-      occupiedUnits,
+      occupiedUnits: safeOccupied,
       totalUnits,
       vacantUnits,
       activeLeases,
@@ -200,16 +198,14 @@ export async function recomputePropertySnapshot(ctx: RouteCtx, propertyId: strin
   });
   if (!property) throw new Error(`Property ${propertyId} not found`);
 
-  const [totalUnits, occupiedUnitRows, openMaintenance, arrearsCents, grossRentCents] = await Promise.all([
-    db.unit.count({ where: { propertyId } }),
-    db.lease.findMany({
+  const [totalUnits, occupiedUnits, openMaintenance, arrearsCents, grossRentCents] = await Promise.all([
+    db.unit.count({ where: { propertyId, orgId: ctx.orgId } }),
+    db.unit.count({
       where: {
+        propertyId,
         orgId: ctx.orgId,
-        state: { in: ['ACTIVE', 'RENEWED'] },
-        unit: { propertyId },
+        leases: { some: { orgId: ctx.orgId, state: { in: ['ACTIVE', 'RENEWED'] } } },
       },
-      select: { unitId: true },
-      distinct: ['unitId'],
     }),
     db.maintenanceRequest.count({
       where: { orgId: ctx.orgId, unit: { propertyId }, status: { in: ['OPEN', 'IN_PROGRESS'] } },
@@ -234,14 +230,14 @@ export async function recomputePropertySnapshot(ctx: RouteCtx, propertyId: strin
       orgId: ctx.orgId,
       propertyId,
       periodStart: start,
-      occupiedUnits: occupiedUnitRows.length,
+      occupiedUnits: Math.min(occupiedUnits, totalUnits),
       totalUnits,
       openMaintenance,
       arrearsCents,
       grossRentCents,
     },
     update: {
-      occupiedUnits: occupiedUnitRows.length,
+      occupiedUnits: Math.min(occupiedUnits, totalUnits),
       totalUnits,
       openMaintenance,
       arrearsCents,

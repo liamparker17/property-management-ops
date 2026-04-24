@@ -39,7 +39,9 @@ export default async function LandlordPropertiesPage() {
                       <div className="text-xs text-muted-foreground">{row.suburb}, {row.city}</div>
                     </td>
                     <td className="px-4 py-3">
-                      {row.totalUnits > 0 ? Math.round((row.occupiedUnits / row.totalUnits) * 100) : 0}%
+                      {row.totalUnits > 0
+                        ? Math.min(100, Math.max(0, Math.round((row.occupiedUnits / row.totalUnits) * 100)))
+                        : 0}%
                     </td>
                     <td className="px-4 py-3">{row.openMaintenance}</td>
                     <td className="px-4 py-3">{formatZar(row.arrearsCents)}</td>

@@ -41,7 +41,7 @@ export default async function LandlordPropertyDetailPage({ params }: { params: P
       where: { lease: { unit: { propertyId: id } } },
       orderBy: { dueDate: 'desc' },
       take: 6,
-      select: { id: true, dueDate: true, totalCents: true, status: true },
+      select: { id: true, dueDate: true, totalCents: true, amountCents: true, status: true },
     }),
     db.trustLedgerEntry.findMany({
       where: {
@@ -92,7 +92,7 @@ export default async function LandlordPropertyDetailPage({ params }: { params: P
           <div className="mt-4 space-y-3">
             {invoices.map((invoice) => (
               <div key={invoice.id} className="border border-border/70 px-4 py-3">
-                <div className="font-medium text-foreground">{formatZar(invoice.totalCents)}</div>
+                <div className="font-medium text-foreground">{formatZar(invoice.totalCents > 0 ? invoice.totalCents : invoice.amountCents)}</div>
                 <div className="text-xs text-muted-foreground">{invoice.status} · Due {invoice.dueDate.toISOString().slice(0, 10)}</div>
               </div>
             ))}

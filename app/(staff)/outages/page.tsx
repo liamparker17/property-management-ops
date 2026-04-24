@@ -87,16 +87,22 @@ export default async function StaffOutagesPage() {
           <div className="border-b border-border/70 px-5 py-4">
             <h2 className="font-serif text-[26px] font-light text-foreground">Upcoming outages</h2>
           </div>
-          <div className="divide-y divide-border/60">
-            {outages.map((row) => (
-              <div key={row.id} className="px-5 py-4">
-                <div className="font-medium text-foreground">{row.source}{row.stage ? ` · Stage ${row.stage}` : ''}</div>
-                <div className="text-xs text-muted-foreground">
-                  {row.startsAt.toISOString().slice(0, 16).replace('T', ' ')} to {row.endsAt.toISOString().slice(0, 16).replace('T', ' ')}
+          {outages.length === 0 ? (
+            <div className="px-5 py-10 text-center text-sm text-muted-foreground">
+              No upcoming outages. Add a PM-authored outage above, or wait for the Eskom sync to ingest new events.
+            </div>
+          ) : (
+            <div className="divide-y divide-border/60">
+              {outages.map((row) => (
+                <div key={row.id} className="px-5 py-4">
+                  <div className="font-medium text-foreground">{row.source}{row.stage ? ` · Stage ${row.stage}` : ''}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {row.startsAt.toISOString().slice(0, 16).replace('T', ' ')} to {row.endsAt.toISOString().slice(0, 16).replace('T', ' ')}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
     </div>

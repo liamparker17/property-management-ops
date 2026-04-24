@@ -144,7 +144,7 @@ function daysUntil(date: Date) {
 
 function percent(numerator: number, denominator: number) {
   if (denominator <= 0) return 0;
-  return Math.round((numerator / denominator) * 100);
+  return Math.min(100, Math.max(0, Math.round((numerator / denominator) * 100)));
 }
 
 function hashStringToUnit(input: string): number {
@@ -333,7 +333,7 @@ async function getTopArrears(ctx: RouteCtx): Promise<ArrearsRow[]> {
     subtitle: row.lease.tenants[0]?.tenant
       ? `${row.lease.tenants[0].tenant.firstName} ${row.lease.tenants[0].tenant.lastName}`
       : 'Primary tenant missing',
-    amountCents: row.totalCents,
+    amountCents: row.totalCents > 0 ? row.totalCents : row.amountCents,
     href: `/leases/${row.leaseId}#invoices`,
   }));
 }
@@ -405,7 +405,7 @@ export async function getStaffCommandCenter(
   let currentSnapshotRow = await db.orgMonthlySnapshot.findFirst({
     where: { orgId: ctx.orgId, periodStart },
   });
-  if (!currentSnapshotRow) {
+  if (!currentSnapshotRow || currentSnapshotRow.occupiedUnits > currentSnapshotRow.totalUnits) {
     try {
       currentSnapshotRow = await recomputeOrgSnapshot(ctx, periodStart);
     } catch (err) {
@@ -477,12 +477,16 @@ export async function getStaffPortfolio(
       ...(propertyIds.length > 0 ? { propertyId: { in: propertyIds } } : {}),
     },
   });
+  const stalePropertyIds = snapshots
+    .filter((row) => row.occupiedUnits > row.totalUnits)
+    .map((row) => row.propertyId);
   const missing = propertyIds.filter(
     (id) => !snapshots.some((row) => row.propertyId === id),
   );
-  if (missing.length > 0) {
+  const toRecompute = [...new Set([...missing, ...stalePropertyIds])];
+  if (toRecompute.length > 0) {
     await Promise.all(
-      missing.map((id) =>
+      toRecompute.map((id) =>
         recomputePropertySnapshot(ctx, id, periodStart).catch((err) =>
           console.error('[staff-analytics] lazy property snapshot hydrate failed', { id, err }),
         ),
@@ -534,7 +538,7 @@ export async function getStaffFinance(
   let currentSnapshotRow = await db.orgMonthlySnapshot.findFirst({
     where: { orgId: ctx.orgId, periodStart },
   });
-  if (!currentSnapshotRow) {
+  if (!currentSnapshotRow || currentSnapshotRow.occupiedUnits > currentSnapshotRow.totalUnits) {
     try {
       currentSnapshotRow = await recomputeOrgSnapshot(ctx, periodStart);
     } catch (err) {

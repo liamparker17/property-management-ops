@@ -438,7 +438,7 @@ export async function publishBillingRun(ctx: RouteCtx, runId: string) {
         body: `Invoice for ${run.periodStart.toISOString().slice(0, 7)} is now due.`,
         entityType: 'Invoice',
         entityId: invoice.id,
-        payload: { totalCents: invoice.totalCents },
+        payload: { totalCents: invoice.totalCents > 0 ? invoice.totalCents : invoice.amountCents },
       });
     }
   }

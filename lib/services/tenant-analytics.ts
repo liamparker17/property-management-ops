@@ -73,7 +73,7 @@ export async function getTenantHomeView(ctx: RouteCtx): Promise<TenantHomeView> 
         lease: withTenantLeaseFilter(ctx),
       },
       orderBy: { dueDate: 'asc' },
-      select: { id: true, totalCents: true, dueDate: true },
+      select: { id: true, totalCents: true, amountCents: true, dueDate: true },
     }),
     db.maintenanceRequest.count({
       where: {
@@ -103,7 +103,13 @@ export async function getTenantHomeView(ctx: RouteCtx): Promise<TenantHomeView> 
           unitLabel: lease.unit.label,
         }
       : null,
-    nextInvoice: invoices[0] ?? null,
+    nextInvoice: invoices[0]
+      ? {
+          id: invoices[0].id,
+          totalCents: invoices[0].totalCents > 0 ? invoices[0].totalCents : invoices[0].amountCents,
+          dueDate: invoices[0].dueDate,
+        }
+      : null,
     openInvoices: invoices.length,
     openTickets: maintenanceCount,
     pendingInspections: inspections.length,

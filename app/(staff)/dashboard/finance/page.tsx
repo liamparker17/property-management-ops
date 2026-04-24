@@ -35,7 +35,11 @@ export default async function StaffFinancePage() {
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--accent)]">Trend</p>
             <h2 className="mt-2 font-serif text-[28px] font-light text-foreground">Billed vs collected</h2>
           </div>
-          <AreaChart data={data.trend} />
+          <AreaChart
+            data={data.trend}
+            yFormat="cents"
+            seriesLabels={{ y: 'Billed', y2: 'Collected' }}
+          />
         </Card>
         <Card className="border border-border p-5">
           <div className="mb-4">

@@ -52,7 +52,11 @@ export default async function LandlordDashboardPage() {
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--accent)]">Cashflow</p>
             <h2 className="mt-2 font-serif text-[28px] font-light text-foreground">Collected vs disbursed</h2>
           </div>
-          <AreaChart data={overview.cashflow} />
+          <AreaChart
+            data={overview.cashflow}
+            yFormat="cents"
+            seriesLabels={{ y: 'Collected', y2: 'Disbursed' }}
+          />
         </Card>
         <MapPanel title="Your properties" eyebrow="Map" pins={portfolio.pins} />
       </div>

@@ -89,7 +89,11 @@ export default async function DashboardPage() {
               Collections trend
             </h2>
           </div>
-          <AreaChart data={data.collectionsTrend} />
+          <AreaChart
+            data={data.collectionsTrend}
+            yFormat="cents"
+            seriesLabels={{ y: 'Billed', y2: 'Collected' }}
+          />
         </Card>
         <Card className="border border-border p-5">
           <div className="mb-4">

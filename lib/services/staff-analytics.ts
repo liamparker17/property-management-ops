@@ -501,8 +501,18 @@ export async function getStaffFinance(
 ): Promise<FinanceView> {
   const periodStart = monthFloor(filters?.periodStart ?? new Date());
   const priorPeriodStart = addMonths(periodStart, -1);
+  let currentSnapshotRow = await db.orgMonthlySnapshot.findFirst({
+    where: { orgId: ctx.orgId, periodStart },
+  });
+  if (!currentSnapshotRow) {
+    try {
+      currentSnapshotRow = await recomputeOrgSnapshot(ctx, periodStart);
+    } catch (err) {
+      console.error('[staff-analytics] lazy finance snapshot hydrate failed', err);
+    }
+  }
   const [currentSnapshot, priorSnapshot, series, trustAccounts, invoices] = await Promise.all([
-    db.orgMonthlySnapshot.findFirst({ where: { orgId: ctx.orgId, periodStart } }),
+    Promise.resolve(currentSnapshotRow),
     db.orgMonthlySnapshot.findFirst({ where: { orgId: ctx.orgId, periodStart: priorPeriodStart } }),
     getOrgSnapshotSeries(ctx, periodStart),
     db.trustAccount.findMany({

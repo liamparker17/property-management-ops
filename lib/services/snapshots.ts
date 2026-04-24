@@ -66,21 +66,22 @@ async function sumInvoiceTotals(where: Prisma.InvoiceWhereInput) {
   }, 0);
 }
 
-async function sumTrustBalance(orgId: string) {
+async function sumTrustBalance(scope: { orgId: string; landlordId?: string }) {
   // Trust account under EAAB/PPRA rules holds **security deposits only**.
-  // Rent goes tenant → landlord directly; only deposits live in trust.
-  // Authoritative source is the Lease record itself: active/renewed leases
-  // whose deposit has been received and hasn't been settled on move-out.
-  // The trust ledger keeps a full audit trail of all receipts/disbursements
-  // for compliance, but the displayed balance comes from the lease book.
-  // ACTIVE/RENEWED leases haven't been settled yet (settlement happens at
-  // termination via OffboardingCase → DepositSettlement). Scoping to those
-  // states is a sufficient proxy for "deposit still held in trust".
+  // Rent flows tenant → landlord directly; only deposits live in trust.
+  // Authoritative source is the Lease record: active/renewed leases whose
+  // deposit has been received. TrustLedgerEntry remains the audit log for
+  // compliance but no longer drives the displayed balance. ACTIVE/RENEWED
+  // is a sufficient proxy for "not yet settled" — settlement happens at
+  // termination via OffboardingCase → DepositSettlement.
   const result = await db.lease.aggregate({
     where: {
-      orgId,
+      orgId: scope.orgId,
       state: { in: ['ACTIVE', 'RENEWED'] },
       depositReceivedAt: { not: null },
+      ...(scope.landlordId
+        ? { unit: { property: { landlordId: scope.landlordId } } }
+        : {}),
     },
     _sum: { depositAmountCents: true },
   });
@@ -147,7 +148,7 @@ export async function recomputeOrgSnapshot(ctx: RouteCtx, periodStart: Date) {
     orgId: ctx.orgId,
     ...overdueWhere(now),
   });
-  const trustBalanceCents = await sumTrustBalance(ctx.orgId);
+  const trustBalanceCents = await sumTrustBalance({ orgId: ctx.orgId });
   const unallocatedCents = await sumUnallocated(ctx.orgId);
 
   const safeOccupied = Math.min(occupiedUnits, totalUnits);
@@ -311,10 +312,7 @@ export async function recomputeLandlordSnapshot(ctx: RouteCtx, landlordId: strin
     _sum: { amountCents: true },
   });
   const vacancyDragCents = await computeVacancyDragForLandlord(ctx.orgId, landlordId);
-  const trustBalanceCents = await sumTrustBalance({
-    landlordId,
-    trustAccount: { orgId: ctx.orgId },
-  });
+  const trustBalanceCents = await sumTrustBalance({ orgId: ctx.orgId, landlordId });
 
   return db.landlordMonthlySnapshot.upsert({
     where: {

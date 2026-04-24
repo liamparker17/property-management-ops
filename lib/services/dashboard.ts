@@ -4,6 +4,7 @@ import type { RouteCtx } from '@/lib/auth/with-org';
 import { db } from '@/lib/db';
 import { ensureInvoicesForLease } from '@/lib/services/invoices';
 import { deriveStatus } from '@/lib/services/leases';
+import { monthFloor } from '@/lib/services/snapshots';
 import { getUnitOccupancy } from '@/lib/services/units';
 
 function monthStartUtc(date: Date) {
@@ -144,13 +145,30 @@ export async function getDashboardSummary(ctx: RouteCtx) {
     else expiryBuckets.later += 1;
   }
 
-  const monthlyTrend = trailingMonths.map((month) => ({
-    label: monthLabel(month),
-    key: monthKey(month),
-    invoicedCents: 0,
-    paidCents: 0,
-  }));
-  const trendByKey = new Map(monthlyTrend.map((bucket) => [bucket.key, bucket]));
+  // Monthly trend is sourced from OrgMonthlySnapshot for consistency with
+  // staff-analytics (getStaffCommandCenter / getStaffFinance). 12-month lookback.
+  const trendPeriodStart = monthFloor(now);
+  const trendMonths = Array.from({ length: 12 }, (_, i) => addUtcMonths(trendPeriodStart, i - 11));
+  const trendFrom = trendMonths[0]!;
+  const trendSnapshotRows = await db.orgMonthlySnapshot.findMany({
+    where: {
+      orgId: ctx.orgId,
+      periodStart: { gte: trendFrom, lte: trendPeriodStart },
+    },
+    orderBy: { periodStart: 'asc' },
+  });
+  const trendSeriesMap = new Map(
+    trendSnapshotRows.map((row) => [row.periodStart.toISOString().slice(0, 10), row]),
+  );
+  const monthlyTrend = trendMonths.map((month) => {
+    const row = trendSeriesMap.get(month.toISOString().slice(0, 10));
+    return {
+      label: monthLabel(month),
+      invoicedCents: row?.billedCents ?? 0,
+      paidCents: row?.collectedCents ?? 0,
+    };
+  });
+
   const unitCashflowMap = new Map<
     string,
     {
@@ -213,8 +231,6 @@ export async function getDashboardSummary(ctx: RouteCtx) {
     const invoiceKey = monthKey(invoiceMonth);
     if (trailingMonthKeys.has(invoiceKey)) {
       totalInvoicedCents += invoice.amountCents;
-      const bucket = trendByKey.get(invoiceKey);
-      if (bucket) bucket.invoicedCents += invoice.amountCents;
 
       const unitKey = invoice.lease.unit.id;
       const unitBucket =
@@ -240,8 +256,6 @@ export async function getDashboardSummary(ctx: RouteCtx) {
       const paidKey = monthKey(paidMonth);
       if (trailingMonthKeys.has(paidKey)) {
         totalCollectedCents += effectiveAmount;
-        const bucket = trendByKey.get(paidKey);
-        if (bucket) bucket.paidCents += effectiveAmount;
       }
     }
   }
@@ -311,7 +325,7 @@ export async function getDashboardSummary(ctx: RouteCtx) {
       overdueCount,
       overdueAmountCents,
       collectionRatePct,
-      monthlyTrend: monthlyTrend.map(({ key, ...bucket }) => bucket),
+      monthlyTrend,
       statusBreakdown: [
         { label: 'Paid', amountCents: paidAmountCents, count: paidCount, tone: 'emerald' as const },
         { label: 'Due', amountCents: dueAmountCents, count: dueCount, tone: 'amber' as const },

@@ -1,5 +1,10 @@
+import { KpiTile } from '@/components/analytics/kpi-tile';
+import { MapPanel } from '@/components/analytics/maps/map-panel';
+import { RankedList } from '@/components/analytics/ranked-list';
+import { PageHeader } from '@/components/page-header';
 import { auth } from '@/lib/auth';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { userToRouteCtx } from '@/lib/auth/page-ctx';
+import { getAgentCommandCenter } from '@/lib/services/agent-analytics';
 
 export const metadata = {
   title: 'Agent Operations',
@@ -7,47 +12,22 @@ export const metadata = {
 
 export default async function AgentDashboardPage() {
   const session = await auth();
-  
+  const ctx = userToRouteCtx(session!.user);
+  const data = await getAgentCommandCenter(ctx);
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">Operations Dashboard</h1>
-      
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">0</div>
-            <p className="text-xs text-muted-foreground">Requires your attention</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Properties</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">--</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Expiring Leases (30d)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">0</div>
-          </CardContent>
-        </Card>
+    <div className="space-y-8">
+      <PageHeader eyebrow="Agent Portal" title="Operations dashboard" description="Assigned-property work queues and inspection pressure for today." />
+      <div className="grid gap-4 md:grid-cols-3">
+        <KpiTile kpiId="AGENT_OPEN_TICKETS" value={data.kpis.AGENT_OPEN_TICKETS} prior={data.priorKpis.AGENT_OPEN_TICKETS} role="MANAGING_AGENT" />
+        <KpiTile kpiId="BLOCKED_APPROVALS" value={data.kpis.BLOCKED_APPROVALS} prior={data.priorKpis.BLOCKED_APPROVALS} role="MANAGING_AGENT" />
+        <KpiTile kpiId="AGENT_UPCOMING_INSPECTIONS" value={data.kpis.AGENT_UPCOMING_INSPECTIONS} prior={data.priorKpis.AGENT_UPCOMING_INSPECTIONS} role="MANAGING_AGENT" />
       </div>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Alerts & Notifications</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">No active alerts.</p>
-        </CardContent>
-      </Card>
+      <div className="grid gap-6 xl:grid-cols-[1.1fr_1fr_1fr]">
+        <MapPanel title="Assigned footprint" pins={data.pins} />
+        <RankedList title="Ticket queue" eyebrow="Maintenance" items={data.ticketQueue.map((row) => ({ id: row.id, title: row.label, subtitle: row.detail, value: 'Open', href: row.href }))} />
+        <RankedList title="Inspection queue" eyebrow="Inspections" items={data.inspectionQueue.map((row) => ({ id: row.id, title: row.label, subtitle: row.detail, value: 'Due', href: row.href }))} />
+      </div>
     </div>
   );
 }

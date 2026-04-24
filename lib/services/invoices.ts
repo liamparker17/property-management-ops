@@ -2,10 +2,10 @@ import { InvoiceStatus } from '@prisma/client';
 import { db } from '@/lib/db';
 import { ApiError } from '@/lib/errors';
 import { formatZar } from '@/lib/format';
-import { sendInvoicePaidTenantSms } from '@/lib/sms';
 import type { RouteCtx } from '@/lib/auth/with-org';
 import type { z } from 'zod';
 import type { markInvoicePaidSchema } from '@/lib/zod/invoice';
+import { createNotification } from '@/lib/services/notifications';
 import { allocateReceipt, recordIncomingPayment, reverseAllocation } from '@/lib/services/payments';
 import { writeAudit } from '@/lib/services/audit';
 
@@ -153,7 +153,7 @@ export async function markInvoicePaid(
       leaseId: true,
       lease: {
         select: {
-          tenants: { where: { isPrimary: true }, select: { tenantId: true } },
+          tenants: { where: { isPrimary: true }, select: { tenantId: true, tenant: { select: { userId: true, firstName: true, lastName: true } } } },
         },
       },
       lineItems: { select: { id: true, amountCents: true } },
@@ -222,18 +222,22 @@ export async function markInvoicePaid(
       action: 'markPaid',
       payload: { amountCents: updated.paidAmountCents },
     });
-    const primary = updated.lease.tenants[0]?.tenant;
-    if (primary?.phone) {
+    const primary = invoice.lease.tenants[0]?.tenant;
+    if (primary?.userId) {
       const periodLabel = updated.periodStart.toLocaleString('en-ZA', {
         month: 'long',
         year: 'numeric',
         timeZone: 'UTC',
       });
-      await sendInvoicePaidTenantSms({
-        to: primary.phone,
-        tenantName: `${primary.firstName} ${primary.lastName}`.trim(),
-        amountZar: formatZar(updated.paidAmountCents ?? updated.amountCents),
-        periodLabel,
+      await createNotification(ctx, {
+        userId: primary.userId,
+        role: 'TENANT',
+        type: 'INVOICE_PAID',
+        subject: 'Payment received',
+        body: `We have received your ${periodLabel} payment of ${formatZar(updated.paidAmountCents ?? updated.amountCents)}.`,
+        payload: { invoiceId: updated.id, periodLabel },
+        entityType: 'Invoice',
+        entityId: updated.id,
       });
     }
   }

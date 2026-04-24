@@ -5,7 +5,7 @@
 
 ## Stack
 
-Next.js 16.2 | React 19 | TypeScript strict | Prisma 7 + Neon Postgres | NextAuth v5 (JWT/Credentials) | Tailwind 4 + shadcn | Vercel Blob | Zod 4
+Next.js 16.2 | React 19 | TypeScript strict | Prisma 7 + Neon Postgres | NextAuth v5 (JWT/Credentials) | Tailwind 4 + shadcn | Recharts | React-Leaflet + Leaflet | Vercel Blob | Zod 4
 
 ## Environment Variables (.env.local)
 
@@ -52,6 +52,7 @@ Next.js 16.2 | React 19 | TypeScript strict | Prisma 7 + Neon Postgres | NextAut
 | STITCH_PARTNER_ID | White-label partner id in the Stitch Connect onboarding URL |
 | STITCH_WEBHOOK_SECRET | HMAC secret used by Stitch adapters to verify inbound webhook signatures |
 | STITCH_REDIRECT_URI | OAuth callback for the Stitch Connect flow (payments + DebiCheck + payouts) |
+| ESKOM_SE_PUSH_API_BASE | Optional base URL override for the EskomSePush business API; defaults to `https://developer.sepush.co.za/business/2.0` |
 | QBO_CLIENT_ID | Intuit QuickBooks Online OAuth client id; when unset, QBO adapter + reconciliation cron no-op |
 | QBO_CLIENT_SECRET | Intuit QuickBooks Online OAuth client secret |
 | QBO_REDIRECT_URI | OAuth callback for QBO connect flow |
@@ -62,12 +63,13 @@ Next.js 16.2 | React 19 | TypeScript strict | Prisma 7 + Neon Postgres | NextAut
 | BANK_ACCOUNT_NAME | Trust account holder name on the instruction PDF (default falls back to org name) |
 | BANK_ACCOUNT_NUMBER | Trust account number on the instruction PDF (default `TBC`) |
 | BANK_BRANCH_CODE | Universal branch code on the instruction PDF (default `250655`) |
+| CRON_SECRET | Shared bearer/header secret for `/api/cron/*` routes that should reject unauthenticated invocations |
 
 **Do NOT set NEXTAUTH_URL on Vercel** — auto-detected from VERCEL_URL.
 
 ## Database Schema (prisma/schema.prisma)
 
-**Enums:** Role (ADMIN, PROPERTY_MANAGER, FINANCE, TENANT, LANDLORD, MANAGING_AGENT) | OrgOwnerType (PM_AGENCY, LANDLORD_DIRECT) | FeatureFlagKey (UTILITIES_BILLING, TRUST_ACCOUNTING, AREA_NOTICES, LANDLORD_APPROVALS, USAGE_ALERTS, PAYMENT_ALERTS, ANNUAL_PACKS) | ApprovalKind (MAINTENANCE_COMMIT, LEASE_CREATE, LEASE_RENEW, RENT_CHANGE, TENANT_EVICT, PROPERTY_REMOVE) | ApprovalState (PENDING, APPROVED, DECLINED, CANCELLED) | LeaseState (DRAFT, ACTIVE, TERMINATED, RENEWED) | DocumentKind (LEASE_AGREEMENT) | SAProvince (GP, WC, KZN, EC, FS, LP, MP, NW, NC) | MaintenancePriority (LOW, MEDIUM, HIGH, URGENT) | MaintenanceStatus (OPEN, IN_PROGRESS, RESOLVED, CLOSED) | InvoiceStatus (DRAFT, DUE, PAID, OVERDUE) | ReviewRequestStatus (OPEN, ACCEPTED, REJECTED, RESOLVED) | ApplicationStage (DRAFT, SUBMITTED, UNDER_REVIEW, VETTING, APPROVED, DECLINED, CONVERTED, WITHDRAWN) | ApplicationDecision (PENDING, APPROVED, DECLINED) | TpnCheckStatus (NOT_STARTED, REQUESTED, RECEIVED, FAILED, WAIVED) | TpnRecommendation (PASS, CAUTION, DECLINE, UNKNOWN) | IntegrationProvider (STITCH_PAYMENTS, STITCH_DEBICHECK, STITCH_PAYOUTS, QUICKBOOKS, TPN) | IntegrationStatus (DISCONNECTED, CONNECTED, ERROR) | InvoiceLineItemKind (RENT, UTILITY_WATER, UTILITY_ELECTRICITY, UTILITY_GAS, UTILITY_SEWER, UTILITY_REFUSE, ADJUSTMENT, LATE_FEE, DEPOSIT_CHARGE) | UtilityType (WATER, ELECTRICITY, GAS, SEWER, REFUSE, OTHER) | MeterReadingSource (MANUAL, IMPORT, ESTIMATED, ROLLOVER) | TariffStructure (FLAT, TIERED) | PaymentMethod (EFT, CASH, CHEQUE, CARD_MANUAL, OTHER) | ReceiptSource (MANUAL, CSV_IMPORT, STITCH, DEBICHECK) | AllocationTarget (INVOICE_LINE_ITEM, DEPOSIT, LATE_FEE, UNAPPLIED) | LedgerEntryType (RECEIPT, DISBURSEMENT, ALLOCATION, REVERSAL, DEPOSIT_IN, DEPOSIT_OUT, FEE) | StatementType (TENANT, LANDLORD, TRUST) | DebiCheckMandateStatus (PENDING_SIGNATURE, ACTIVE, REVOKED, FAILED) | InspectionType (MOVE_IN, MOVE_OUT, INTERIM) | InspectionStatus (SCHEDULED, IN_PROGRESS, COMPLETED, SIGNED_OFF, CANCELLED) | ConditionRating (EXCELLENT, GOOD, FAIR, POOR, DAMAGED) | ChargeResponsibility (LANDLORD, TENANT, SHARED)
+**Enums:** Role (ADMIN, PROPERTY_MANAGER, FINANCE, TENANT, LANDLORD, MANAGING_AGENT) | OrgOwnerType (PM_AGENCY, LANDLORD_DIRECT) | FeatureFlagKey (UTILITIES_BILLING, TRUST_ACCOUNTING, AREA_NOTICES, LANDLORD_APPROVALS, USAGE_ALERTS, PAYMENT_ALERTS, ANNUAL_PACKS) | ApprovalKind (MAINTENANCE_COMMIT, LEASE_CREATE, LEASE_RENEW, RENT_CHANGE, TENANT_EVICT, PROPERTY_REMOVE) | ApprovalState (PENDING, APPROVED, DECLINED, CANCELLED) | LeaseState (DRAFT, ACTIVE, TERMINATED, RENEWED) | DocumentKind (LEASE_AGREEMENT) | SAProvince (GP, WC, KZN, EC, FS, LP, MP, NW, NC) | MaintenancePriority (LOW, MEDIUM, HIGH, URGENT) | MaintenanceStatus (OPEN, IN_PROGRESS, RESOLVED, CLOSED) | InvoiceStatus (DRAFT, DUE, PAID, OVERDUE) | ReviewRequestStatus (OPEN, ACCEPTED, REJECTED, RESOLVED) | ApplicationStage (DRAFT, SUBMITTED, UNDER_REVIEW, VETTING, APPROVED, DECLINED, CONVERTED, WITHDRAWN) | ApplicationDecision (PENDING, APPROVED, DECLINED) | TpnCheckStatus (NOT_STARTED, REQUESTED, RECEIVED, FAILED, WAIVED) | TpnRecommendation (PASS, CAUTION, DECLINE, UNKNOWN) | IntegrationProvider (STITCH_PAYMENTS, STITCH_DEBICHECK, STITCH_PAYOUTS, QUICKBOOKS, TPN, ESKOM_SE_PUSH) | IntegrationStatus (DISCONNECTED, CONNECTED, ERROR) | AnalyticsPeriod (MONTH) | NotificationChannel (IN_APP, EMAIL, SMS) | NotificationStatus (QUEUED, SENT, FAILED, SKIPPED) | AreaNoticeType (OUTAGE, ESTATE, SECURITY, WATER, POWER, GENERAL) | OutageSource (PM, ESKOM_SE_PUSH) | InvoiceLineItemKind (RENT, UTILITY_WATER, UTILITY_ELECTRICITY, UTILITY_GAS, UTILITY_SEWER, UTILITY_REFUSE, ADJUSTMENT, LATE_FEE, DEPOSIT_CHARGE) | UtilityType (WATER, ELECTRICITY, GAS, SEWER, REFUSE, OTHER) | MeterReadingSource (MANUAL, IMPORT, ESTIMATED, ROLLOVER) | TariffStructure (FLAT, TIERED) | PaymentMethod (EFT, CASH, CHEQUE, CARD_MANUAL, OTHER) | ReceiptSource (MANUAL, CSV_IMPORT, STITCH, DEBICHECK) | AllocationTarget (INVOICE_LINE_ITEM, DEPOSIT, LATE_FEE, UNAPPLIED) | LedgerEntryType (RECEIPT, DISBURSEMENT, ALLOCATION, REVERSAL, DEPOSIT_IN, DEPOSIT_OUT, FEE) | StatementType (TENANT, LANDLORD, TRUST) | DebiCheckMandateStatus (PENDING_SIGNATURE, ACTIVE, REVOKED, FAILED) | InspectionType (MOVE_IN, MOVE_OUT, INTERIM) | InspectionStatus (SCHEDULED, IN_PROGRESS, COMPLETED, SIGNED_OFF, CANCELLED) | ConditionRating (EXCELLENT, GOOD, FAIR, POOR, DAMAGED) | ChargeResponsibility (LANDLORD, TENANT, SHARED)
 
 **Models:**
 | Model | Key Fields | Relations |
@@ -75,10 +77,10 @@ Next.js 16.2 | React 19 | TypeScript strict | Prisma 7 + Neon Postgres | NextAut
 | Org | name, slug, ownerType, landlordApprovalThresholdCents, expiringWindowDays | users, properties, units, tenants, leases, documents, landlords, managingAgents, approvals, orgFeatures, auditLogs |
 | OrgFeature | orgId, key, enabled, config, updatedAt | org — unique(orgId, key) |
 | AuditLog | orgId, actorUserId?, entityType, entityId, action, diff?, payload?, createdAt | org, actor? |
-| User | email, passwordHash, role, orgId, landlordId?, managingAgentId?, disabledAt | org, landlord?, managingAgent?, accounts, sessions, documents, auditLogs |
+| User | email, passwordHash, role, orgId, landlordId?, managingAgentId?, smsOptIn, disabledAt | org, landlord?, managingAgent?, accounts, sessions, documents, auditLogs, notifications |
 | Landlord | orgId, name, email?, phone?, vatNumber?, archivedAt | org, users, properties, approvals |
 | ManagingAgent | orgId, name, email?, phone?, archivedAt | org, users, assignedProperties |
-| Property | name, address*, suburb, city, province, postalCode, landlordId?, assignedAgentId?, deletedAt | org, landlord?, assignedAgent?, units, documents |
+| Property | name, address*, suburb, city, province, postalCode, landlordId?, assignedAgentId?, eskomAreaCode?, deletedAt | org, landlord?, assignedAgent?, units, documents, loadSheddingOutages |
 | Unit | propertyId, label, bedrooms, bathrooms, sizeSqm | property, leases, documents |
 | Tenant | firstName, lastName, email, phone, idNumber, userId, archivedAt | org, leases, documents |
 | Lease | unitId, startDate, endDate, rentAmountCents, depositAmountCents, depositReceivedAt?, selfManagedDebitOrderActive, state, renewedFromId | unit, tenants (M2M via LeaseTenant), documents, invoices, receipts, depositAllocations, trustLedgerEntries, debiCheckMandate? |
@@ -98,7 +100,17 @@ Next.js 16.2 | React 19 | TypeScript strict | Prisma 7 + Neon Postgres | NextAut
 | ApplicationDocument | applicationId, filename, mimeType, sizeBytes, storageKey, description?, uploadedById | application |
 | ApplicationNote | applicationId, authorId, body | application, author |
 | TpnCheck | applicationId (unique), status, requestedAt?, receivedAt?, tpnReferenceId?, recommendation?, summary?, reportPayload? (Json), reportBlobKey?, waivedReason?, waivedById? | application |
-| Notification | orgId, userId?, role?, type, subject, body, payload? (Json), entityType?, entityId?, readAt?, createdAt | org, user? |
+| Notification | orgId, userId?, role?, type, subject, body, payload? (Json), entityType?, entityId?, readAt?, createdAt | org, user?, deliveries |
+| NotificationDelivery | notificationId, channel (IN_APP/EMAIL/SMS), status (QUEUED/SENT/FAILED/SKIPPED), lastAttemptAt?, error?, providerRef? | notification |
+| OrgMonthlySnapshot | orgId, periodStart, occupiedUnits, totalUnits, vacantUnits, activeLeases, expiringLeases30, openMaintenance, blockedApprovals, billedCents, collectedCents, arrearsCents, trustBalanceCents, unallocatedCents, refreshedAt | org |
+| PropertyMonthlySnapshot | orgId, propertyId, periodStart, occupiedUnits, totalUnits, openMaintenance, arrearsCents, grossRentCents, refreshedAt | org, property |
+| LandlordMonthlySnapshot | orgId, landlordId, periodStart, grossRentCents, collectedCents, disbursedCents, maintenanceSpendCents, vacancyDragCents, trustBalanceCents, refreshedAt | org, landlord |
+| AgentMonthlySnapshot | orgId, agentId, periodStart, openTickets, blockedApprovals, upcomingInspections, refreshedAt | org, managingAgent |
+| AreaNotice | orgId, type, title, body, startsAt?, endsAt?, audienceQuery (Json), createdById, createdAt, publishedAt? | org, deliveries |
+| NoticeDelivery | noticeId, userId, notificationId?, channel, status, lastAttemptAt?, error?, createdAt | notice, user, notification? |
+| UsageAlertRule | orgId, utilityType, thresholdPct, enabled | org, events |
+| UsageAlertEvent | orgId, ruleId, leaseId, meterId?, notificationId?, periodStart, observedQty, baselineQty, deltaPct, createdAt | org, rule, lease, meter?, notification? |
+| LoadSheddingOutage | orgId, propertyId?, eskomAreaCode?, source, startsAt, endsAt, stage?, note?, externalEventId?, createdById?, createdAt | org, property? |
 | OrgIntegration | orgId, provider (IntegrationProvider), status, externalAccountId?, accessTokenCipher?, refreshTokenCipher?, tokenExpiresAt?, connectedAt?, connectedById?, lastError? | org — unique(orgId, provider) — encrypted tokens via `lib/crypto.ts` |
 | InvoiceLineItem | invoiceId, kind (InvoiceLineItemKind), description, quantity?, unitRateCents?, amountCents, sourceType?, sourceId?, estimated | invoice, allocations |
 | Meter | orgId, unitId, type (UtilityType), serial?, installedAt?, retiredAt? | org, unit, readings |
@@ -142,16 +154,16 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | prisma.config.ts | defineConfig with schema path | 12 |
 | tsconfig.json | strict, ES2017, @/* alias | 35 |
 | components.json | shadcn UI config | — |
-| vercel.json | Vercel cron registrations: `/api/cron/debicheck-retry` (daily 00:00 UTC) + `/api/cron/reconciliation` twice daily (04:00 + 16:00 UTC ≙ 06:00 + 18:00 SAST) | 7 |
+| vercel.json | Vercel cron registrations: `/api/cron/debicheck-retry` (daily 00:00 UTC), `/api/cron/reconciliation` twice daily (04:00 + 16:00 UTC ≙ 06:00 + 18:00 SAST), `/api/cron/notifications-dispatch` (every 5 min), `/api/cron/eskom-sync` (03:00 UTC), `/api/cron/usage-alerts` (04:00 UTC), `/api/cron/payment-alerts` (05:00 UTC) | 11 |
 
 ### lib/
 | File | Exports | Lines |
 |------|---------|-------|
 | db.ts | `db` — PrismaClient singleton with pg adapter | 14 |
 | marketing-theme.ts | `MARKETING_THEME` — shared public-site palette built around `#001030` and supporting neutrals/gold accents | 18 |
-| auth.config.ts | `authConfig` — edge-safe NextAuthConfig (JWT strategy, callbacks: jwt+session add userId/role/orgId) | 32 |
-| auth.ts | `handlers, auth, signIn, signOut` — full NextAuth with Credentials provider, bcrypt, loginSchema | 36 |
-| auth/with-org.ts | `withOrg<P>()` — HOF for auth'd API routes; `RouteCtx {orgId, userId, role}`, `RouteParams<P>` | 38 |
+| auth.config.ts | `authConfig` — edge-safe NextAuthConfig (JWT strategy, callbacks: jwt+session add userId/role/orgId plus landlordId/managingAgentId/smsOptIn) | 37 |
+| auth.ts | `handlers, auth, signIn, signOut` — full NextAuth with Credentials provider, bcrypt, loginSchema; credentials authorize now returns role-scope ids + sms opt-in | 40 |
+| auth/with-org.ts | `withOrg<P>()` — HOF for auth'd API routes; `RouteCtx {orgId, userId, role, user?}`, `RouteParams<P>` | 54 |
 | errors.ts | `ApiError` class (unauthorized/forbidden/notFound/validation/conflict/internal), `toErrorResponse()`, `ApiErrorCode` type | 58 |
 | format.ts | `formatZar(cents)`, `formatDate(d)` | 12 |
 | lease-template.ts | `LeaseTemplateData`, `LeaseSection`, `renderLeaseAgreement(data)` — generic SA residential lease generator (15 sections) | 200 |
@@ -168,6 +180,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | integrations/stitch/payouts-adapter.ts | `stitchPayoutsAdapter.initiatePayout`, `handlePayoutWebhook`, `verifyPayoutWebhookSignature` — credential-gated (`STITCH_PAYOUTS`) disbursement adapter | 71 |
 | integrations/qbo/adapter.ts | `qboAdapter.connectOAuth(ctx, authCode)`, `refreshToken(ctx)`, `fetchBankTransactions(ctx, since)` — credential-gated (`QUICKBOOKS`); no-ops + returns stub payload when `QBO_CLIENT_ID` unset | 80 |
 | integrations/qbo/mapping.ts | `mapQboTransactionToBankTransaction()`, `BankTransaction` type — normalises QBO txn shape to canonical reconciliation input | 60 |
+| integrations/eskom/adapter.ts | `EskomEvent`, `fetchAreaSchedule(ctx, areaCode)`, `resolveAreaCode(ctx, property)` — stubbed EskomSePush schedule adapter with fixture events until live credentials land | 53 |
 | integrations/bank-csv/dialects.ts | `BankCsvDialect`, `getDialect(name)` — header maps for `generic` CSV dialect in M2; bank-specific dialects deferred to M4 | 45 |
 | reports/statement-pdf.ts | `renderStatementPdf(statement)` — deterministic PDF buffer with TENANT/LANDLORD/TRUST layouts routed by `StatementType` | 98 |
 | reports/debit-order-instruction-pdf.ts | `renderDebitOrderInstruction({ org, lease, bankDetails })` — one-page PDF with bank details + reference (`${BANK_REF_PREFIX}${lease.id}`) + suggested cap (`rent + 25%`) | 99 |
@@ -190,13 +203,13 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | documents.ts | `uploadLeaseAgreement()`, `getDocumentForDownload()` | 37 |
 | team.ts | `listTeam()`, `createTeamUser()`, `updateTeamUser()`, `getOrg()`, `updateOrg()`, `changeOwnPassword()` | 102 |
 | tenant-portal.ts | `getTenantProfile()`, `getActiveLeaseForTenant()`, `getPendingLeaseForTenant()` (DRAFT lease w/ signatures+reviewRequests filtered to tenant), `getTenantLeases()`, `listTenantDocuments()`, `getTenantDocumentForDownload()` — all scoped by User.id → Tenant.userId | 106 |
-| signatures.ts | `signLeaseAsTenant()`, `getTenantSignatureForLease()`, `listLeaseSignatures(ctx)`, `createReviewRequest()`, `listTenantReviewRequests()`, `listLeaseReviewRequests(ctx)`, `respondToReviewRequest(ctx)` | 145 |
+| signatures.ts | `signLeaseAsTenant()`, `getTenantSignatureForLease()`, `listLeaseSignatures(ctx)`, `createReviewRequest()`, `listTenantReviewRequests()`, `listLeaseReviewRequests(ctx)`, `respondToReviewRequest(ctx)` — M4 routes lease-signature/review comms through `createNotification()` instead of direct SMS sends | 231 |
 | onboarding.ts | `onboardTenant(ctx, input)` — single-transaction tenant + DRAFT lease + optional portal account with temp password | 94 |
 | maintenance.ts | `createTenantMaintenanceRequest()`, `listTenantMaintenanceRequests()`, `getTenantMaintenanceRequest()`, `listMaintenanceRequests()`, `getMaintenanceRequest()`, `updateMaintenanceRequest()`, `assignVendor()`, `captureQuote()`, `scheduleMaintenance()`, `completeMaintenance()`, `captureMaintenanceInvoice()` (M3: posts a `FEE` ledger entry with `-invoiceCents` against the property's landlord), `addMaintenanceWorklog()` | — |
 | vendors.ts | `listVendors`, `getVendor`, `createVendor`, `updateVendor`, `archiveVendor` (soft delete via `archivedAt`) — every mutation audits | — |
 | inspections.ts | `listInspections`, `getInspection`, `createInspection`, `startInspection`, `recordArea`, `recordItem`, `completeInspection` (renders + uploads PDF, stamps `reportKey`), `signInspection` (either-signer rule per locked decision #7) | — |
 | offboarding.ts | `openOffboardingCase` (idempotent; seeds default tasks gated on `OrgFeature.UTILITIES_BILLING`), `listOffboardingCases`, `getOffboardingCase`, `listOffboardingTasks`, `toggleOffboardingTask`, `addMoveOutCharge`, `removeMoveOutCharge`, `finaliseDepositSettlement` (immutable; writes `DEPOSIT_OUT` ledger entry when refund > 0), `closeOffboardingCase`, `getTenantOffboardingSummary`, `listTenantInspections`, `getTenantInspection`, `listTenantSignedInspectionsForLease`, `DEFAULT_OFFBOARDING_TASK_LABELS`, `__setSettlementUploaderForTests` | — |
-| invoices.ts | `ensureInvoicesForLease()` (idempotent month-by-month generator, past→PAID, current/future→DUE), `listTenantInvoices()`, `getInvoiceForTenant()`, `listLeaseInvoices()`, `markInvoicePaid()` (M2: creates MANUAL `PaymentReceipt`, allocates against line items, writes ledger via `lib/services/trust.ts`), `markInvoiceUnpaid()` (M2: reverses auto-generated allocations + deletes the receipt) | — |
+| invoices.ts | `ensureInvoicesForLease()` (idempotent month-by-month generator, past→PAID, current/future→DUE), `listTenantInvoices()`, `getInvoiceForTenant()`, `listLeaseInvoices()`, `markInvoicePaid()` (M2: creates MANUAL `PaymentReceipt`, allocates against line items, writes ledger via `lib/services/trust.ts`; M4 also writes tenant `Notification`), `markInvoiceUnpaid()` (M2: reverses auto-generated allocations + deletes the receipt) | 260 |
 | audit.ts | `writeAudit(ctx, input)` — reusable audit-log writer with JSON-safe payload normalization; swallows insert failures after logging | 90 |
 | landlords.ts | `listLandlords()`, `getLandlord()`, `createLandlord()`, `updateLandlord()` | — |
 | managing-agents.ts | `listManagingAgents()`, `getManagingAgent()`, `createManagingAgent()`, `updateManagingAgent()` | — |
@@ -206,7 +219,13 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | applications.ts | `listApplications`, `getApplication`, `createApplication`, `updateApplication`, `submitApplication`, `assignReviewer`, `addApplicationNote`, `uploadApplicationDocument`, `withdrawApplication` — applicant+application CRUD with stage transitions; writes AuditLog + notification hooks on submit | 330 |
 | tpn.ts | `captureTpnConsent`, `requestTpnCheck`, `recordTpnResult`, `waiveTpnCheck`, `getTpnCheck` — TPN integration lifecycle; persists TpnCheck rows + reportPayload; audited. M2: calls `tpnAdapter.submitCheck(ctx, payload)` so credentials route through `OrgIntegration(TPN)` | — |
 | vetting.ts | `approveApplication`, `declineApplication`, `convertApplicationToTenant` — decision + conversion service; enforces TPN/consent gates; delegates to `onboardTenant`; notifies assigned reviewer | 256 |
-| notifications.ts | `createNotification(ctx, input)` — M1-minimal in-app Notification row writer (no email/SMS delivery yet) | 27 |
+| notifications.ts | `createNotification(ctx, input)`, `enqueueDeliveries(ctx, notification, channels)`, `dispatchPending()`, `listNotificationsForUser(ctx, filters)`, `markNotificationRead(ctx, id)`, `resolveDefaultChannels(ctx, notificationType, recipient?)` — notification inbox + delivery queue (best-effort on legacy test/mocked transaction clients) | 273 |
+| role-scope.ts | `withRoleScopeFilter(ctx, propertyClause)`, `withTenantLeaseFilter(ctx, leaseClause)`, `assertCanReadProperty(ctx, propertyId)` — M4 role scoping shim for landlord/agent/tenant reads | 76 |
+| snapshots.ts | `SnapshotEventKind`, `recordSnapshotEvent(ctx, kind, refs?)`, `recomputeOrgSnapshot()`, `recomputePropertySnapshot()`, `recomputeLandlordSnapshot()`, `recomputeAgentSnapshot()`, `monthFloor()` — monthly snapshot recompute helpers for M4 analytics foundations | 394 |
+| payment-alerts.ts | `evaluatePaymentAlerts(orgId)` — emits reminder / overdue / final tenant notifications per invoice tier with idempotency via existing `Notification` rows | 86 |
+| usage-alerts.ts | `listRules(ctx)`, `upsertRule(ctx, input)`, `evaluateUsageAlerts(orgId)` — rolling-3-period meter anomaly detection with per-meter event dedupe | 147 |
+| area-notices.ts | `createNotice(ctx, input)`, `publishNotice(ctx, id)`, `listNotices(ctx, filters)`, `getNotice(ctx, id)`, `resolveNoticeAudience(ctx, notice)`, `dispatchNotice(ctx, id)` — dynamic-audience area notice fan-out with `NoticeDelivery` audit rows | 211 |
+| outages.ts | `listUpcomingOutages(ctx, filters)`, `getOutage(ctx, id)`, `createPmOutage(ctx, input)`, `deletePmOutage(ctx, id)`, `recordEskomOutage(ctx, event, propertyId?)`, `syncEskomForOrg(orgId)` — PM + EskomSePush outage sync/service layer | 207 |
 | org-integrations.ts | `listOrgIntegrations`, `getOrgIntegration`, `connectOrgIntegration` (encrypts tokens, audits), `disconnectOrgIntegration`, `markIntegrationError`, `readDecryptedTokens` (server-only; throws unless CONNECTED), `DecryptedTokens`, `ConnectInput` types | 187 |
 | utilities.ts | `listMeters`, `getMeter`, `createMeter`, `retireMeter`, `recordMeterReading` (enforces `@@unique([meterId, takenAt])`), `latestReading`, `estimateMissingReading` (rolling 3-month avg, falls back to ROLLOVER), `listTariffs`, `upsertTariff` (org-wide default + optional property override); every mutation audits | 273 |
 | billing.ts | `InvoiceLineItemDraft`, `calculateUtilityChargesForLease`, `generateBillingRun` (idempotent per `(orgId, periodStart)`; rent + utility lines), `rebuildInvoiceTotals`, `previewBillingRun`, `publishBillingRun` (DRAFT→DUE, estimate-gate honoured), `addManualLineItem`, `removeLineItem`, `listBillingRuns`, `getBillingRun` | 543 |
@@ -249,6 +268,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | stitch.ts | `stitchCallbackSchema`, `stitchCheckoutSchema`, `debicheckMandateSchema` | 24 |
 | signup.ts | `publicSignupRequestSchema` — marketing `/signup` submissions | 16 |
 | contact.ts | `publicContactSchema` — marketing `/contact` submissions | 10 |
+| area-notices.ts | `audienceQuerySchema`, `createNoticeSchema`, `publishNoticeSchema`, `dispatchNoticeSchema` | 17 |
 
 ### types/
 | File | Purpose | Lines |
@@ -530,6 +550,18 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | /api/statements/[id]/download | GET | streams statement PDF from Blob |
 | /api/cron/reconciliation | GET | Vercel cron — runs `runTrustReconciliation` for every QBO-connected org at 06:00 + 18:00 SAST; noop when `QBO_CLIENT_ID` unset |
 | /api/cron/debicheck-retry | GET | Vercel cron — walks failed-but-retryable DebiCheck collections and runs `retryUnpaidCollection` (02:00 SAST) |
+| /api/cron/notifications-dispatch | POST | `CRON_SECRET`-guarded dispatcher for queued `NotificationDelivery` rows |
+| /api/cron/payment-alerts | POST | `CRON_SECRET`-guarded daily payment alert evaluator for orgs with `PAYMENT_ALERTS` enabled |
+| /api/cron/usage-alerts | POST | `CRON_SECRET`-guarded daily usage alert evaluator for orgs with `USAGE_ALERTS` enabled |
+| /api/cron/eskom-sync | POST | `CRON_SECRET`-guarded daily EskomSePush outage sync for CONNECTED org integrations |
+| /api/notifications | GET | current-user notification inbox (`listNotificationsForUser`) |
+| /api/notifications/[id]/read | PATCH | marks an owned notification as read |
+| /api/notices | GET, POST | list org notices / create draft notice (ADMIN, PROPERTY_MANAGER, MANAGING_AGENT) |
+| /api/notices/[id] | GET | fetch one notice with audience-scope enforcement |
+| /api/notices/[id]/publish | POST | publish + dispatch a notice (ADMIN, PROPERTY_MANAGER, MANAGING_AGENT) |
+| /api/notices/[id]/dispatch | POST | manual notice redispatch for admins/property managers |
+| /api/outages | GET, POST | list scoped outages / create PM outage (POST: ADMIN, PROPERTY_MANAGER, MANAGING_AGENT) |
+| /api/outages/[id] | GET, DELETE | fetch scoped outage / delete PM-created outage (DELETE: ADMIN, PROPERTY_MANAGER) |
 | /api/tenant/debicheck/mandate-request | POST | TENANT-initiated mandate request; calls `createMandateRequest` |
 | /api/leases/[id]/debit-order-instruction.pdf | GET | renderDebitOrderInstruction (staff + tenant self) — streams PDF |
 | /api/leases/[id]/self-managed-debit-order | POST | toggles `Lease.selfManagedDebitOrderActive` |
@@ -611,3 +643,29 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | components/marketing/contact-form.tsx | `ContactForm` - POSTs to `/api/public/contact` | 135 |
 | components/marketing/marketing-journey-grid.tsx | `MarketingJourneyGrid` - reusable high-signal read-next card grid for marketing pages | 83 |
 | components/signup-form.tsx | `SignupForm` - marketing `/signup` request form, POSTs to `/api/public/signup-request` | 244 |
+
+**M4 refresh (2026-04-24) - supersedes older entries above where duplicated**
+| File / Route | Purpose / Export | Lines |
+|--------------|------------------|-------|
+| app/layout.tsx | Root layout now imports Leaflet CSS alongside global app CSS before rendering `<Providers>` | 23 |
+| lib/services/snapshots.ts | `SnapshotEventKind`, `recordSnapshotEvent(ctx, kind, refs?)`, `recomputeOrgSnapshot()`, `recomputePropertySnapshot()`, `recomputeLandlordSnapshot()`, `recomputeAgentSnapshot()`, `monthFloor()`, `__setSnapshotEventHandlerForTests()` - monthly snapshot recompute helpers plus a test override hook for wiring assertions | 411 |
+| lib/services/leases.ts | Lease lifecycle service; `activateLease()`, `terminateLease()`, and `renewLease()` now also trigger `recordSnapshotEvent('LEASE_STATE')` with property/landlord/agent refs | 418 |
+| lib/services/payments.ts | Receipts + allocations service; `recordIncomingPayment()`, `allocateReceipt()`, and `reverseAllocation()` now also trigger snapshot refreshes for `PAYMENT` / `ALLOCATION` | 398 |
+| lib/services/trust.ts | Trust service; `recordManualLedgerEntry()` and `disburseToLandlord()` now also trigger `recordSnapshotEvent('LEDGER')` | 228 |
+| lib/services/maintenance.ts | Maintenance service; request creation/status changes/vendor assignment/scheduling/completion/invoice capture now also trigger `recordSnapshotEvent('MAINTENANCE')`, and invoice capture also triggers `recordSnapshotEvent('LEDGER')` | 447 |
+| lib/services/inspections.ts | Inspection service; `completeInspection()` and `signInspection()` now also trigger `recordSnapshotEvent('INSPECTION')` after successful mutations | 354 |
+| lib/services/offboarding.ts | Offboarding service; `finaliseDepositSettlement()` and `closeOffboardingCase()` now also trigger `recordSnapshotEvent('OFFBOARDING')` | 426 |
+| lib/analytics/kpis.ts | `KpiId`, `KpiDefinition`, `KPIS`, `getKpi()` - role-aware KPI registry for M4 drill targets and display metadata | 188 |
+| lib/analytics/formatters.ts | `formatKpi()` - shared KPI formatter for cents, counts, and percentages | 7 |
+| lib/analytics/chart-theme.ts | `chartTheme`, `getSeriesPalette()` - shared Regalis chart token registry and deterministic palette helper | 31 |
+| lib/analytics/drill-targets.ts | `resolveDrillTarget()` - central KPI drill-through path builder with optional scope query params | 16 |
+| components/analytics/empty-metric.tsx | `EmptyMetric` - compact analytics empty-state panel | 22 |
+| components/analytics/status-strip.tsx | `StatusStrip` - strip of compact KPI/status cells for dashboard modules | 42 |
+| components/analytics/ranked-list.tsx | `RankedList` - editorial top-N list with optional links | 66 |
+| components/analytics/kpi-tile.tsx | `KpiTile` - registry-backed KPI card with trend chip and drill-through link | 60 |
+| components/analytics/charts/area-chart.tsx | `ChartPoint`, `AreaChart` - shared Recharts area chart wrapper using the analytics theme registry | 66 |
+| components/analytics/charts/bar-chart.tsx | `BarChart` - shared Recharts bar chart wrapper using the analytics theme registry | 40 |
+| components/analytics/charts/donut-chart.tsx | `DonutChart` - shared Recharts donut chart wrapper using the analytics theme registry | 41 |
+| components/analytics/charts/trend-card.tsx | `TrendCard` - KPI tile + sparkline composition block | 30 |
+| components/analytics/maps/portfolio-pins.tsx | `PortfolioPin`, `PortfolioPins` - React-Leaflet portfolio marker renderer with custom `divIcon` pins | 53 |
+| components/analytics/maps/map-panel.tsx | `MapPanel` - lazily-loaded portfolio map shell with empty-state fallback | 45 |

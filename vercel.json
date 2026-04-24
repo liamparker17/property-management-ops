@@ -2,6 +2,10 @@
   "crons": [
     { "path": "/api/cron/debicheck-retry", "schedule": "0 0 * * *" },
     { "path": "/api/cron/reconciliation", "schedule": "0 4 * * *" },
-    { "path": "/api/cron/reconciliation", "schedule": "0 16 * * *" }
+    { "path": "/api/cron/reconciliation", "schedule": "0 16 * * *" },
+    { "path": "/api/cron/notifications-dispatch", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/eskom-sync", "schedule": "0 3 * * *" },
+    { "path": "/api/cron/usage-alerts", "schedule": "0 4 * * *" },
+    { "path": "/api/cron/payment-alerts", "schedule": "0 5 * * *" }
   ]
 }

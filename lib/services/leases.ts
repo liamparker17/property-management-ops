@@ -11,6 +11,7 @@ import type {
 } from '@/lib/zod/lease';
 import { writeLedgerEntry } from '@/lib/services/trust';
 import { writeAudit } from '@/lib/services/audit';
+import { recordSnapshotEvent } from '@/lib/services/snapshots';
 
 export type DerivedStatus = 'DRAFT' | 'ACTIVE' | 'EXPIRING' | 'EXPIRED' | 'TERMINATED' | 'RENEWED';
 
@@ -231,12 +232,16 @@ export async function updateDraftLease(
 }
 
 export async function activateLease(ctx: RouteCtx, id: string) {
-  return db.$transaction(async (tx) => {
+  const result = await db.$transaction(async (tx) => {
     const lease = await tx.lease.findFirst({
       where: { id, orgId: ctx.orgId },
       include: {
         tenants: true,
-        unit: { include: { property: { select: { landlordId: true } } } },
+        unit: {
+          include: {
+            property: { select: { id: true, landlordId: true, assignedAgentId: true } },
+          },
+        },
       },
     });
     if (!lease) throw ApiError.notFound('Lease not found');
@@ -290,8 +295,18 @@ export async function activateLease(ctx: RouteCtx, id: string) {
       }
     }
 
-    return updated;
+    return {
+      lease: updated,
+      refs: {
+        propertyId: lease.unit.property.id,
+        landlordId: lease.unit.property.landlordId ?? undefined,
+        agentId: lease.unit.property.assignedAgentId ?? undefined,
+      },
+    };
   });
+
+  void recordSnapshotEvent(ctx, 'LEASE_STATE', result.refs);
+  return result.lease;
 }
 
 export async function terminateLease(
@@ -299,7 +314,16 @@ export async function terminateLease(
   id: string,
   input: z.infer<typeof terminateLeaseSchema>,
 ) {
-  const lease = await db.lease.findFirst({ where: { id, orgId: ctx.orgId } });
+  const lease = await db.lease.findFirst({
+    where: { id, orgId: ctx.orgId },
+    include: {
+      unit: {
+        include: {
+          property: { select: { id: true, landlordId: true, assignedAgentId: true } },
+        },
+      },
+    },
+  });
   if (!lease) throw ApiError.notFound('Lease not found');
   if (lease.state !== 'ACTIVE') {
     throw ApiError.conflict(`Only ACTIVE leases may be terminated (current: ${lease.state})`);
@@ -327,6 +351,12 @@ export async function terminateLease(
     },
   });
 
+  void recordSnapshotEvent(ctx, 'LEASE_STATE', {
+    propertyId: lease.unit.property.id,
+    landlordId: lease.unit.property.landlordId ?? undefined,
+    agentId: lease.unit.property.assignedAgentId ?? undefined,
+  });
+
   return { ...updated, offboardingCaseId: offboardingCase.id };
 }
 
@@ -337,10 +367,17 @@ export async function renewLease(
 ) {
   const start = parseDate(input.startDate);
   const end = parseDate(input.endDate);
-  return db.$transaction(async (tx) => {
+  const successor = await db.$transaction(async (tx) => {
     const predecessor = await tx.lease.findFirst({
       where: { id, orgId: ctx.orgId },
-      include: { tenants: true },
+      include: {
+        tenants: true,
+        unit: {
+          include: {
+            property: { select: { id: true, landlordId: true, assignedAgentId: true } },
+          },
+        },
+      },
     });
     if (!predecessor) throw ApiError.notFound('Lease not found');
     if (predecessor.state !== 'ACTIVE') throw ApiError.conflict('Only ACTIVE leases can be renewed');
@@ -380,8 +417,18 @@ export async function renewLease(
     });
 
     await tx.lease.update({ where: { id: predecessor.id }, data: { state: 'RENEWED' } });
-    return successor;
+    return {
+      lease: successor,
+      refs: {
+        propertyId: predecessor.unit.property.id,
+        landlordId: predecessor.unit.property.landlordId ?? undefined,
+        agentId: predecessor.unit.property.assignedAgentId ?? undefined,
+      },
+    };
   });
+
+  void recordSnapshotEvent(ctx, 'LEASE_STATE', successor.refs);
+  return successor.lease;
 }
 
 export async function setPrimaryTenant(ctx: RouteCtx, leaseId: string, tenantId: string) {

@@ -54,6 +54,18 @@ function normalizePhone(raw: string): string | null {
   return null;
 }
 
+export async function sendSms(args: { to: string | string[]; text: string }): Promise<SendResult> {
+  const normalized = (Array.isArray(args.to) ? args.to : [args.to])
+    .map((value) => normalizePhone(value))
+    .filter((value): value is string => Boolean(value));
+
+  if (normalized.length === 0) {
+    return { sent: false, reason: 'No valid phone numbers' };
+  }
+
+  return postMessage(args.text, normalized);
+}
+
 function opsRecipients(): string[] {
   const raw = process.env.OPS_SMS_RECIPIENTS?.trim();
   if (!raw) return [];

@@ -33,5 +33,5 @@ export const POST = withOrg<Params>(
     const sig = await signInspection(ctx, id, input);
     return NextResponse.json({ data: sig }, { status: 201 });
   },
-  { requireRole: ['ADMIN', 'PROPERTY_MANAGER', 'LANDLORD', 'TENANT'] },
+  { requireRole: ['ADMIN', 'PROPERTY_MANAGER', 'LANDLORD', 'TENANT', 'MANAGING_AGENT'] },
 );

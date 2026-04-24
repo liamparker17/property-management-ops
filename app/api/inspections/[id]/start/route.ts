@@ -10,5 +10,5 @@ export const POST = withOrg<Params>(
     const row = await startInspection(ctx, id);
     return NextResponse.json({ data: row });
   },
-  { requireRole: ['ADMIN', 'PROPERTY_MANAGER'] },
+  { requireRole: ['ADMIN', 'PROPERTY_MANAGER', 'MANAGING_AGENT'] },
 );

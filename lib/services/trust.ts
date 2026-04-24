@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { ApiError } from '@/lib/errors';
 import type { RouteCtx } from '@/lib/auth/with-org';
 import { writeAudit } from '@/lib/services/audit';
+import { recordSnapshotEvent } from '@/lib/services/snapshots';
 import { stitchPayoutsAdapter } from '@/lib/integrations/stitch/payouts-adapter';
 import type {
   disburseToLandlordSchema,
@@ -193,6 +194,7 @@ export async function recordManualLedgerEntry(
     action: 'manualLedgerEntry',
     payload: { landlordId, type: input.type, amountCents: input.amountCents },
   });
+  void recordSnapshotEvent(ctx, 'LEDGER', { landlordId });
   return entry;
 }
 
@@ -238,5 +240,6 @@ export async function disburseToLandlord(
     action: 'disburseToLandlord',
     payload: { landlordId: input.landlordId, amountCents: input.amountCents, payoutExternalId },
   });
+  void recordSnapshotEvent(ctx, 'LEDGER', { landlordId: input.landlordId });
   return entry;
 }

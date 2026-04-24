@@ -32,6 +32,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: user.name,
           role: user.role,
           orgId: user.orgId,
+          landlordId: user.landlordId,
+          managingAgentId: user.managingAgentId,
+          smsOptIn: user.smsOptIn,
         };
       },
     }),

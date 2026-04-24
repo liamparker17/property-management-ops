@@ -10,6 +10,9 @@ declare module 'next-auth' {
       name: string | null;
       role: Role;
       orgId: string;
+      landlordId: string | null;
+      managingAgentId: string | null;
+      smsOptIn: boolean;
     };
   }
 }
@@ -19,5 +22,8 @@ declare module 'next-auth/jwt' {
     userId: string;
     role: Role;
     orgId: string;
+    landlordId: string | null;
+    managingAgentId: string | null;
+    smsOptIn: boolean;
   }
 }

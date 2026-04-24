@@ -1,12 +1,9 @@
 import { db } from '@/lib/db';
 import { ApiError } from '@/lib/errors';
-import {
-  sendLeaseSignedOpsSms,
-  sendReviewRequestOpsSms,
-  sendReviewResponseTenantSms,
-} from '@/lib/sms';
 import type { RouteCtx } from '@/lib/auth/with-org';
 import type { z } from 'zod';
+
+import { createNotification } from '@/lib/services/notifications';
 import type {
   signLeaseSchema,
   createReviewRequestSchema,
@@ -27,6 +24,57 @@ async function assertTenantOnLease(tenantId: string, leaseId: string) {
     where: { leaseId_tenantId: { leaseId, tenantId } },
   });
   if (!link) throw ApiError.forbidden('Not a tenant on this lease');
+}
+
+async function notifyOps(
+  orgId: string,
+  actorUserId: string,
+  input: {
+    type: string;
+    subject: string;
+    body: string;
+    entityType: string;
+    entityId: string;
+    payload?: unknown;
+  },
+) {
+  const recipients = await db.user.findMany({
+    where: {
+      orgId,
+      role: { in: ['ADMIN', 'PROPERTY_MANAGER'] },
+      disabledAt: null,
+    },
+    select: { id: true, role: true },
+  });
+
+  const ctx = {
+    orgId,
+    userId: actorUserId,
+    role: 'TENANT' as const,
+    user: {
+      id: actorUserId,
+      orgId,
+      role: 'TENANT' as const,
+      landlordId: null,
+      managingAgentId: null,
+      smsOptIn: false,
+    },
+  };
+
+  await Promise.all(
+    recipients.map((recipient) =>
+      createNotification(ctx, {
+        userId: recipient.id,
+        role: recipient.role,
+        type: input.type,
+        subject: input.subject,
+        body: input.body,
+        payload: input.payload,
+        entityType: input.entityType,
+        entityId: input.entityId,
+      }),
+    ),
+  );
 }
 
 export type LeaseSignatureMeta = {
@@ -66,10 +114,14 @@ export async function signLeaseAsTenant(
     select: { unit: { select: { label: true, property: { select: { name: true } } } } },
   });
   if (lease) {
-    const unitLabel = `${lease.unit.property.name} · ${lease.unit.label}`;
-    await sendLeaseSignedOpsSms({
-      tenantName: `${tenant.firstName} ${tenant.lastName}`.trim(),
-      unitLabel,
+    const unitLabel = `${lease.unit.property.name} / ${lease.unit.label}`;
+    await notifyOps(tenant.orgId, userId, {
+      type: 'LEASE_SIGNED',
+      subject: 'Lease signed',
+      body: `${tenant.firstName} ${tenant.lastName}`.trim() + ` signed for ${unitLabel}.`,
+      entityType: 'Lease',
+      entityId: leaseId,
+      payload: { leaseId, tenantId: tenant.id },
     });
   }
 
@@ -116,10 +168,15 @@ export async function createReviewRequest(
     select: { unit: { select: { label: true, property: { select: { name: true } } } } },
   });
   if (lease) {
-    await sendReviewRequestOpsSms({
-      tenantName: `${tenant.firstName} ${tenant.lastName}`.trim(),
-      unitLabel: `${lease.unit.property.name} · ${lease.unit.label}`,
-      clauseExcerpt: input.clauseExcerpt,
+    await notifyOps(tenant.orgId, userId, {
+      type: 'LEASE_REVIEW_REQUEST',
+      subject: 'Lease review request',
+      body:
+        `${tenant.firstName} ${tenant.lastName}`.trim() +
+        ` flagged a clause for ${lease.unit.property.name} / ${lease.unit.label}.`,
+      entityType: 'LeaseReviewRequest',
+      entityId: request.id,
+      payload: { leaseId, clauseExcerpt: input.clauseExcerpt },
     });
   }
 
@@ -177,13 +234,18 @@ export async function respondToReviewRequest(
 
   const tenant = await db.tenant.findUnique({
     where: { id: updated.tenantId },
-    select: { firstName: true, lastName: true, phone: true },
+    select: { firstName: true, lastName: true, userId: true },
   });
-  if (tenant?.phone) {
-    await sendReviewResponseTenantSms({
-      to: tenant.phone,
-      tenantName: `${tenant.firstName} ${tenant.lastName}`.trim(),
-      status: updated.status,
+  if (tenant?.userId) {
+    await createNotification(ctx, {
+      userId: tenant.userId,
+      role: 'TENANT',
+      type: 'LEASE_REVIEW_RESPONSE',
+      subject: 'Lease review response',
+      body: `Your lease review request has been ${updated.status.toLowerCase()}.`,
+      payload: { reviewRequestId: updated.id, status: updated.status },
+      entityType: 'LeaseReviewRequest',
+      entityId: updated.id,
     });
   }
 

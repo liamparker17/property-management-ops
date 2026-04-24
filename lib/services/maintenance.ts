@@ -10,6 +10,7 @@ import {
 import type { RouteCtx } from '@/lib/auth/with-org';
 import type { z } from 'zod';
 import { writeAudit } from '@/lib/services/audit';
+import { recordSnapshotEvent } from '@/lib/services/snapshots';
 import { ensureTrustAccount } from '@/lib/services/trust';
 import type {
   addMaintenanceWorklogSchema,
@@ -66,7 +67,14 @@ export async function createTenantMaintenanceRequest(
     },
     include: {
       tenant: { select: { firstName: true, lastName: true, phone: true } },
-      unit: { select: { label: true, property: { select: { name: true } } } },
+      unit: {
+        select: {
+          label: true,
+          property: {
+            select: { id: true, name: true, assignedAgentId: true },
+          },
+        },
+      },
     },
   });
 
@@ -88,6 +96,15 @@ export async function createTenantMaintenanceRequest(
         })
       : Promise.resolve(),
   ]);
+
+  void recordSnapshotEvent(
+    { orgId: tenant.orgId, userId, role: 'TENANT' },
+    'MAINTENANCE',
+    {
+      propertyId: request.unit.property.id,
+      agentId: request.unit.property.assignedAgentId ?? undefined,
+    },
+  );
 
   return request;
 }
@@ -166,6 +183,11 @@ export async function updateMaintenanceRequest(
     },
     include: {
       tenant: { select: { firstName: true, lastName: true, phone: true } },
+      unit: {
+        select: {
+          property: { select: { id: true, assignedAgentId: true } },
+        },
+      },
     },
   });
 
@@ -176,6 +198,13 @@ export async function updateMaintenanceRequest(
       tenantName,
       ticketTitle: updated.title,
       status: updated.status,
+    });
+  }
+
+  if (statusChanged) {
+    void recordSnapshotEvent(ctx, 'MAINTENANCE', {
+      propertyId: updated.unit.property.id,
+      agentId: updated.unit.property.assignedAgentId ?? undefined,
     });
   }
 
@@ -190,12 +219,29 @@ async function requireRequestInOrg(ctx: RouteCtx, id: string) {
   return row;
 }
 
+async function loadMaintenanceScope(ctx: RouteCtx, id: string) {
+  const row = await db.maintenanceRequest.findFirst({
+    where: { id, orgId: ctx.orgId },
+    include: {
+      unit: {
+        select: {
+          property: {
+            select: { id: true, landlordId: true, assignedAgentId: true },
+          },
+        },
+      },
+    },
+  });
+  if (!row) throw ApiError.notFound('Request not found');
+  return row.unit.property;
+}
+
 export async function assignVendor(
   ctx: RouteCtx,
   requestId: string,
   input: z.infer<typeof assignVendorSchema>,
 ): Promise<MaintenanceRequest> {
-  await requireRequestInOrg(ctx, requestId);
+  const property = await loadMaintenanceScope(ctx, requestId);
   const vendor = await db.vendor.findFirst({
     where: { id: input.vendorId, orgId: ctx.orgId },
     select: { id: true, name: true, archivedAt: true },
@@ -234,6 +280,11 @@ export async function assignVendor(
       estimatedCostCents: input.estimatedCostCents,
       scheduledFor: input.scheduledFor,
     },
+  });
+
+  void recordSnapshotEvent(ctx, 'MAINTENANCE', {
+    propertyId: property.id,
+    agentId: property.assignedAgentId ?? undefined,
   });
 
   return updated;
@@ -291,6 +342,7 @@ export async function scheduleMaintenance(
   input: z.infer<typeof scheduleMaintenanceSchema>,
 ): Promise<MaintenanceRequest> {
   const request = await requireRequestInOrg(ctx, requestId);
+  const property = await loadMaintenanceScope(ctx, requestId);
   if (!request.assignedVendorId) {
     throw ApiError.conflict('Assign a vendor before scheduling');
   }
@@ -307,6 +359,11 @@ export async function scheduleMaintenance(
     payload: { scheduledFor: input.scheduledFor },
   });
 
+  void recordSnapshotEvent(ctx, 'MAINTENANCE', {
+    propertyId: property.id,
+    agentId: property.assignedAgentId ?? undefined,
+  });
+
   return updated;
 }
 
@@ -316,6 +373,7 @@ export async function completeMaintenance(
   input: z.infer<typeof completeMaintenanceSchema>,
 ): Promise<MaintenanceRequest> {
   const request = await requireRequestInOrg(ctx, requestId);
+  const property = await loadMaintenanceScope(ctx, requestId);
 
   const completedAt = input.completedAt ? new Date(input.completedAt) : new Date();
 
@@ -345,6 +403,11 @@ export async function completeMaintenance(
     payload: { completedAt: completedAt.toISOString(), summary: input.summary },
   });
 
+  void recordSnapshotEvent(ctx, 'MAINTENANCE', {
+    propertyId: property.id,
+    agentId: property.assignedAgentId ?? undefined,
+  });
+
   return updated;
 }
 
@@ -355,7 +418,13 @@ export async function captureMaintenanceInvoice(
 ): Promise<MaintenanceRequest> {
   const request = await db.maintenanceRequest.findFirst({
     where: { id: requestId, orgId: ctx.orgId },
-    include: { unit: { select: { property: { select: { landlordId: true } } } } },
+    include: {
+      unit: {
+        select: {
+          property: { select: { id: true, landlordId: true, assignedAgentId: true } },
+        },
+      },
+    },
   });
   if (!request) throw ApiError.notFound('Request not found');
 
@@ -397,6 +466,12 @@ export async function captureMaintenanceInvoice(
       trustAccountId: trustAccount.id,
     },
   });
+
+  void recordSnapshotEvent(ctx, 'MAINTENANCE', {
+    propertyId: request.unit.property.id,
+    agentId: request.unit.property.assignedAgentId ?? undefined,
+  });
+  void recordSnapshotEvent(ctx, 'LEDGER', { landlordId });
 
   return updated;
 }

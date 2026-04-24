@@ -103,8 +103,8 @@ before(async () => {
       org: org ? { name: org.name } : { name: '' },
       lease: lease ? { id: lease.id } : { id: row.leaseId },
       unit: unit
-        ? { label: unit.label, property: { name: property?.name ?? '' } }
-        : { label: '', property: { name: '' } },
+        ? { label: unit.label, property: property ?? { id: '', name: '', orgId: row.orgId, assignedAgentId: null } }
+        : { label: '', property: { id: '', name: '', orgId: row.orgId, assignedAgentId: null } },
       areas,
       signatures,
     };
@@ -196,7 +196,12 @@ beforeEach(() => {
 
 function seed() {
   orgRows.set('org-1', { id: 'org-1', name: 'Test Org' });
-  propertyRows.set('p-1', { id: 'p-1', orgId: 'org-1', name: 'Rosebank Mews' });
+  propertyRows.set('p-1', {
+    id: 'p-1',
+    orgId: 'org-1',
+    name: 'Rosebank Mews',
+    assignedAgentId: 'agent-1',
+  });
   unitRows.set('u-1', { id: 'u-1', orgId: 'org-1', propertyId: 'p-1', label: 'Unit 1' });
   leaseRows.set('l-1', { id: 'l-1', orgId: 'org-1', unitId: 'u-1' });
   userRows.set('u-1', { id: 'u-1', name: 'Staffer', email: 's@example.com' });

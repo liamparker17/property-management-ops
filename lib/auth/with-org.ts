@@ -7,6 +7,14 @@ export type RouteCtx = {
   orgId: string;
   userId: string;
   role: Role;
+  user?: {
+    id: string;
+    orgId: string;
+    role: Role;
+    landlordId?: string | null;
+    managingAgentId?: string | null;
+    smsOptIn?: boolean;
+  };
 };
 
 type Handler<P> = (
@@ -32,6 +40,14 @@ export function withOrg<P = Record<string, string>>(
         orgId: session.user.orgId,
         userId: session.user.id,
         role: session.user.role,
+        user: {
+          id: session.user.id,
+          orgId: session.user.orgId,
+          role: session.user.role,
+          landlordId: session.user.landlordId ?? null,
+          managingAgentId: session.user.managingAgentId ?? null,
+          smsOptIn: session.user.smsOptIn ?? false,
+        },
       };
       const params = (await routeParams.params) as P;
       return await handler(req, ctx, params);

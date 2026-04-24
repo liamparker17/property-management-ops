@@ -23,6 +23,8 @@ export function __setUploaderForTests(u: Uploader) {
   currentUploader = u;
 }
 import { writeAudit } from '@/lib/services/audit';
+import { assertCanReadProperty, withRoleScopeFilter, withTenantLeaseFilter } from '@/lib/services/role-scope';
+import { recordSnapshotEvent } from '@/lib/services/snapshots';
 import type { RouteCtx } from '@/lib/auth/with-org';
 import { renderInspectionReport, type InspectionReportData } from '@/lib/reports/inspection-pdf';
 import type {
@@ -56,6 +58,11 @@ export async function listInspections(
       ...(filters.unitId ? { unitId: filters.unitId } : {}),
       ...(filters.type ? { type: filters.type } : {}),
       ...(filters.status ? { status: filters.status } : {}),
+      ...(ctx.role === 'TENANT'
+        ? { lease: withTenantLeaseFilter(ctx) }
+        : ctx.role === 'LANDLORD' || ctx.role === 'MANAGING_AGENT'
+          ? { unit: { property: withRoleScopeFilter(ctx, { deletedAt: null }) } }
+          : {}),
     },
     orderBy: [{ scheduledAt: 'desc' }, { id: 'asc' }],
   });
@@ -66,7 +73,15 @@ export async function getInspection(
   id: string,
 ): Promise<InspectionWithAreas> {
   const row = await db.inspection.findFirst({
-    where: { id, orgId: ctx.orgId },
+    where: {
+      id,
+      orgId: ctx.orgId,
+      ...(ctx.role === 'TENANT'
+        ? { lease: withTenantLeaseFilter(ctx) }
+        : ctx.role === 'LANDLORD' || ctx.role === 'MANAGING_AGENT'
+          ? { unit: { property: withRoleScopeFilter(ctx, { deletedAt: null }) } }
+          : {}),
+    },
     include: {
       areas: {
         orderBy: [{ orderIndex: 'asc' }, { id: 'asc' }],
@@ -120,7 +135,28 @@ async function requireInspectionInOrg(ctx: RouteCtx, id: string): Promise<Inspec
   return row;
 }
 
+async function loadInspectionScope(ctx: RouteCtx, id: string) {
+  const inspection = await db.inspection.findUnique({
+    where: { id },
+    include: {
+      unit: {
+        select: {
+          property: { select: { id: true, assignedAgentId: true, orgId: true } },
+        },
+      },
+    },
+  });
+  if (!inspection || inspection.unit.property.orgId !== ctx.orgId) {
+    throw ApiError.notFound('Inspection not found');
+  }
+  return inspection.unit.property;
+}
+
 export async function startInspection(ctx: RouteCtx, id: string): Promise<Inspection> {
+  const property = await loadInspectionScope(ctx, id);
+  if (ctx.role === 'LANDLORD' || ctx.role === 'MANAGING_AGENT' || ctx.role === 'TENANT') {
+    await assertCanReadProperty(ctx, property.id);
+  }
   const existing = await requireInspectionInOrg(ctx, id);
   if (existing.status !== 'SCHEDULED') {
     throw ApiError.conflict('Inspection can only be started from SCHEDULED');
@@ -283,6 +319,10 @@ export async function completeInspection(
   input: z.infer<typeof completeInspectionSchema>,
 ): Promise<Inspection> {
   const existing = await requireInspectionInOrg(ctx, id);
+  const property = await loadInspectionScope(ctx, id);
+  if (ctx.role === 'LANDLORD' || ctx.role === 'MANAGING_AGENT' || ctx.role === 'TENANT') {
+    await assertCanReadProperty(ctx, property.id);
+  }
   if (existing.status !== 'IN_PROGRESS') {
     throw ApiError.conflict('Inspection can only be completed from IN_PROGRESS');
   }
@@ -317,6 +357,11 @@ export async function completeInspection(
     payload: { reportKey: uploaded.pathname, summary: input.summary },
   });
 
+  void recordSnapshotEvent(ctx, 'INSPECTION', {
+    propertyId: property.id,
+    agentId: property.assignedAgentId ?? undefined,
+  });
+
   return updated;
 }
 
@@ -326,6 +371,10 @@ export async function signInspection(
   input: z.infer<typeof signInspectionSchema>,
 ): Promise<InspectionSignature> {
   const existing = await requireInspectionInOrg(ctx, id);
+  const property = await loadInspectionScope(ctx, id);
+  if (ctx.role === 'LANDLORD' || ctx.role === 'MANAGING_AGENT' || ctx.role === 'TENANT') {
+    await assertCanReadProperty(ctx, property.id);
+  }
 
   const signature = await db.inspectionSignature.create({
     data: {
@@ -360,6 +409,11 @@ export async function signInspection(
       signerRole: input.signerRole,
       transitionedToSignedOff: shouldFlip,
     },
+  });
+
+  void recordSnapshotEvent(ctx, 'INSPECTION', {
+    propertyId: property.id,
+    agentId: property.assignedAgentId ?? undefined,
   });
 
   return signature;

@@ -12,7 +12,8 @@ import { db } from '@/lib/db';
 import { ApiError } from '@/lib/errors';
 import { writeAudit } from '@/lib/services/audit';
 import { getOrgFeatures } from '@/lib/services/org-features';
-import { writeLedgerEntry } from '@/lib/services/trust.js';
+import { recordSnapshotEvent } from '@/lib/services/snapshots';
+import { writeLedgerEntry } from '@/lib/services/trust';
 import {
   renderSettlementStatement,
   type SettlementChargeData,
@@ -346,6 +347,11 @@ export async function finaliseDepositSettlement(
     },
   });
 
+  void recordSnapshotEvent(ctx, 'OFFBOARDING', {
+    propertyId: lease.unit.property.id,
+    landlordId: lease.unit.property.landlordId ?? undefined,
+  });
+
   return stamped;
 }
 
@@ -452,6 +458,23 @@ export async function closeOffboardingCase(
     entityId: caseId,
     action: 'closed',
   });
+
+  const scopedLease = await db.lease.findFirst({
+    where: { id: c.leaseId, orgId: ctx.orgId },
+    include: {
+      unit: {
+        include: {
+          property: { select: { id: true, landlordId: true } },
+        },
+      },
+    },
+  });
+  if (scopedLease) {
+    void recordSnapshotEvent(ctx, 'OFFBOARDING', {
+      propertyId: scopedLease.unit.property.id,
+      landlordId: scopedLease.unit.property.landlordId ?? undefined,
+    });
+  }
 
   return updated;
 }

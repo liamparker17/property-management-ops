@@ -26,7 +26,7 @@ export const GET = withOrg(
     const rows = await listInspections(ctx, filters);
     return NextResponse.json({ data: rows });
   },
-  { requireRole: ['ADMIN', 'PROPERTY_MANAGER'] },
+  { requireRole: ['ADMIN', 'PROPERTY_MANAGER', 'MANAGING_AGENT'] },
 );
 
 export const POST = withOrg(

@@ -1,13 +1,17 @@
 'use client';
 
-import { LayoutDashboard } from 'lucide-react';
+import { Bell, Building2, ClipboardCheck, LayoutDashboard, Wrench, Zap } from 'lucide-react';
 
 import { SidebarBody } from './sidebar';
 
-// T-P0-10 / decision #7: keep agent nav on the dashboard route until later-milestone pages are built.
-// Missing destinations are reported by the planner script instead of being shipped as dead links.
 const NAV = [
   { href: '/agent', label: 'Operations Dash', icon: LayoutDashboard, match: (p: string) => p === '/agent' },
+  { href: '/agent/properties', label: 'Properties', icon: Building2, match: (p: string) => p.startsWith('/agent/properties') },
+  { href: '/agent/maintenance', label: 'Maintenance', icon: Wrench, match: (p: string) => p.startsWith('/agent/maintenance') },
+  { href: '/agent/repairs', label: 'Repairs', icon: Wrench, match: (p: string) => p.startsWith('/agent/repairs') },
+  { href: '/agent/inspections', label: 'Inspections', icon: ClipboardCheck, match: (p: string) => p.startsWith('/agent/inspections') },
+  { href: '/agent/notices', label: 'Notices', icon: Bell, match: (p: string) => p.startsWith('/agent/notices') },
+  { href: '/agent/outages', label: 'Outages', icon: Zap, match: (p: string) => p.startsWith('/agent/outages') },
 ];
 
 export function getAgentNavItems() {

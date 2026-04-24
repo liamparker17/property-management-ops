@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { ApiError } from '@/lib/errors';
 import type { RouteCtx } from '@/lib/auth/with-org';
 import { writeAudit } from '@/lib/services/audit';
+import { recordSnapshotEvent } from '@/lib/services/snapshots';
 import { writeLedgerEntry } from '@/lib/services/trust';
 import { resolveDialect, type BankCsvDialect } from '@/lib/integrations/bank-csv/dialects';
 import type {
@@ -71,7 +72,7 @@ export async function recordIncomingPayment(
   ctx: RouteCtx,
   input: z.infer<typeof recordIncomingPaymentSchema>,
 ): Promise<PaymentReceipt> {
-  const receipt = await db.$transaction(async (tx) => {
+  const result = await db.$transaction(async (tx) => {
     const created = await tx.paymentReceipt.create({
       data: {
         orgId: ctx.orgId,
@@ -105,16 +106,19 @@ export async function recordIncomingPayment(
         tx,
       );
     }
-    return created;
+    return { receipt: created, landlordId };
   });
 
   await writeAudit(ctx, {
     entityType: 'PaymentReceipt',
-    entityId: receipt.id,
+    entityId: result.receipt.id,
     action: 'recordIncomingPayment',
-    payload: { amountCents: receipt.amountCents, source: receipt.source },
+    payload: { amountCents: result.receipt.amountCents, source: result.receipt.source },
   });
-  return receipt;
+  void recordSnapshotEvent(ctx, 'PAYMENT', {
+    landlordId: result.landlordId ?? undefined,
+  });
+  return result.receipt;
 }
 
 function parseCsvLine(line: string): string[] {
@@ -299,7 +303,7 @@ export async function allocateReceipt(
   receiptId: string,
   input: z.infer<typeof allocateReceiptSchema>,
 ): Promise<Allocation[]> {
-  return db.$transaction(async (tx) => {
+  const result = await db.$transaction(async (tx) => {
     const receipt = await tx.paymentReceipt.findFirst({
       where: { id: receiptId, orgId: ctx.orgId },
       include: { allocations: true },
@@ -363,8 +367,13 @@ export async function allocateReceipt(
       action: 'allocateReceipt',
       payload: { count: created.length, total },
     });
-    return created;
+    return { allocations: created, landlordId };
   });
+
+  void recordSnapshotEvent(ctx, 'ALLOCATION', {
+    landlordId: result.landlordId ?? undefined,
+  });
+  return result.allocations;
 }
 
 export async function reverseAllocation(
@@ -372,7 +381,7 @@ export async function reverseAllocation(
   allocationId: string,
   reason: string,
 ): Promise<void> {
-  await db.$transaction(async (tx) => {
+  const landlordId = await db.$transaction(async (tx) => {
     const allocation = await tx.allocation.findUnique({
       where: { id: allocationId },
       include: { receipt: true },
@@ -413,6 +422,8 @@ export async function reverseAllocation(
         tx,
       );
     }
+
+    return landlordId;
   });
 
   await writeAudit(ctx, {
@@ -420,5 +431,8 @@ export async function reverseAllocation(
     entityId: allocationId,
     action: 'reverseAllocation',
     payload: { reason },
+  });
+  void recordSnapshotEvent(ctx, 'ALLOCATION', {
+    landlordId: landlordId ?? undefined,
   });
 }

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
+  Bell,
   LayoutDashboard,
   Building2,
   Users,
@@ -19,6 +20,7 @@ import {
   SlidersHorizontal,
   Wallet,
   Wrench,
+  Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -26,6 +28,10 @@ type NavItem = { href: string; label: string; icon: React.ComponentType<{ classN
 
 const NAV: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, match: (p) => p === '/dashboard' },
+  { href: '/dashboard/portfolio', label: 'Portfolio', icon: Building2, match: (p) => p.startsWith('/dashboard/portfolio') },
+  { href: '/dashboard/operations', label: 'Operations', icon: ClipboardCheck, match: (p) => p.startsWith('/dashboard/operations') },
+  { href: '/dashboard/finance', label: 'Finance', icon: Wallet, match: (p) => p.startsWith('/dashboard/finance') },
+  { href: '/dashboard/maintenance', label: 'Maint View', icon: Wrench, match: (p) => p.startsWith('/dashboard/maintenance') },
   { href: '/properties', label: 'Properties', icon: Building2, match: (p) => p.startsWith('/properties') },
   { href: '/tenants', label: 'Tenants', icon: Users, match: (p) => p.startsWith('/tenants') },
   { href: '/applications', label: 'Applications', icon: ClipboardList, match: (p) => p.startsWith('/applications') },
@@ -34,6 +40,8 @@ const NAV: NavItem[] = [
   { href: '/maintenance/vendors', label: 'Vendors', icon: Wrench, match: (p) => p.startsWith('/maintenance/vendors') },
   { href: '/inspections', label: 'Inspections', icon: ClipboardCheck, match: (p) => p.startsWith('/inspections') },
   { href: '/offboarding', label: 'Offboarding', icon: DoorClosed, match: (p) => p.startsWith('/offboarding') },
+  { href: '/notices', label: 'Notices', icon: Bell, match: (p) => p.startsWith('/notices') },
+  { href: '/outages', label: 'Outages', icon: Zap, match: (p) => p.startsWith('/outages') },
 ];
 
 const FINANCE_NAV: NavItem[] = [
@@ -42,6 +50,8 @@ const FINANCE_NAV: NavItem[] = [
   { href: '/payments', label: 'Payments', icon: Wallet, match: (p) => p.startsWith('/payments') },
   { href: '/trust', label: 'Trust', icon: ShieldCheck, match: (p) => p.startsWith('/trust') },
   { href: '/statements', label: 'Statements', icon: FileSpreadsheet, match: (p) => p.startsWith('/statements') },
+  { href: '/alerts/usage', label: 'Usage Alerts', icon: Gauge, match: (p) => p.startsWith('/alerts/usage') },
+  { href: '/alerts/payments', label: 'Pay Alerts', icon: Wallet, match: (p) => p.startsWith('/alerts/payments') },
 ];
 
 export function getStaffNavItems(role: string): NavItem[] {

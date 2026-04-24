@@ -94,6 +94,7 @@ enum IntegrationProvider {
   STITCH_PAYOUTS
   QUICKBOOKS
   TPN
+  ESKOM_SE_PUSH
 }
 
 enum IntegrationStatus {
@@ -225,6 +226,37 @@ enum DebiCheckMandateStatus {
   FAILED
 }
 
+enum AnalyticsPeriod {
+  MONTH
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SMS
+}
+
+enum NotificationStatus {
+  QUEUED
+  SENT
+  FAILED
+  SKIPPED
+}
+
+enum AreaNoticeType {
+  OUTAGE
+  ESTATE
+  SECURITY
+  WATER
+  POWER
+  GENERAL
+}
+
+enum OutageSource {
+  PM
+  ESKOM_SE_PUSH
+}
+
 // ---------- Org & Auth ----------
 
 model Org {
@@ -263,6 +295,14 @@ model Org {
   vendors             Vendor[]
   inspections         Inspection[]
   offboardingCases    OffboardingCase[]
+  monthlySnapshots    OrgMonthlySnapshot[]
+  propertySnapshots   PropertyMonthlySnapshot[]
+  landlordSnapshots   LandlordMonthlySnapshot[]
+  agentSnapshots      AgentMonthlySnapshot[]
+  areaNotices         AreaNotice[]
+  usageAlertRules     UsageAlertRule[]
+  usageAlertEvents    UsageAlertEvent[]
+  loadSheddingOutages LoadSheddingOutage[]
 }
 
 model OrgFeature {
@@ -330,6 +370,7 @@ model Landlord {
   approvals   Approval[]
   trustAccounts      TrustAccount[]
   trustLedgerEntries TrustLedgerEntry[]
+  monthlySnapshots   LandlordMonthlySnapshot[]
 
   @@index([orgId, name])
   @@index([orgId, archivedAt])
@@ -349,6 +390,7 @@ model ManagingAgent {
 
   users              User[]
   assignedProperties Property[]
+  monthlySnapshots   AgentMonthlySnapshot[]
 
   @@index([orgId, name])
   @@index([orgId, archivedAt])
@@ -368,6 +410,7 @@ model User {
   managingAgent   ManagingAgent? @relation(fields: [managingAgentId], references: [id])
   emailVerified   DateTime?
   image           String?
+  smsOptIn        Boolean   @default(false)
   disabledAt      DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -377,6 +420,7 @@ model User {
   uploaded      Document[] @relation("DocumentUploader")
   auditLogs     AuditLog[]
   notifications Notification[]
+  noticeDeliveries NoticeDelivery[]
   assignedApplications Application[] @relation("ApplicationReviewer")
   applicationNotesAuthored ApplicationNote[]
   maintenanceWorklogs  MaintenanceWorklog[]
@@ -438,6 +482,7 @@ model Property {
   province         SAProvince
   postalCode       String
   notes            String?
+  eskomAreaCode    String?
   deletedAt        DateTime?
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
@@ -446,6 +491,8 @@ model Property {
   documents     Document[]
   applications  Application[]
   utilityTariffs UtilityTariff[]
+  monthlySnapshots PropertyMonthlySnapshot[]
+  loadSheddingOutages LoadSheddingOutage[]
 
   @@index([orgId, name])
   @@index([orgId, deletedAt])
@@ -609,8 +656,26 @@ model Notification {
   createdAt  DateTime @default(now())
   org        Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
   user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries NotificationDelivery[]
+  noticeDeliveries NoticeDelivery[]
+  usageAlertEvents UsageAlertEvent[]
 
   @@index([orgId, userId, readAt])
+}
+
+model NotificationDelivery {
+  id             String              @id @default(cuid())
+  notificationId String
+  channel        NotificationChannel
+  status         NotificationStatus  @default(QUEUED)
+  lastAttemptAt  DateTime?
+  error          String?
+  providerRef    String?
+  createdAt      DateTime            @default(now())
+  notification   Notification        @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@index([notificationId])
+  @@index([status, lastAttemptAt])
 }
 
 model Lease {
@@ -647,6 +712,7 @@ model Lease {
   trustLedgerEntries  TrustLedgerEntry[]
   inspections         Inspection[]
   offboardingCase     OffboardingCase?
+  usageAlertEvents    UsageAlertEvent[]
 
   @@index([orgId, unitId, state])
   @@index([orgId, endDate])
@@ -782,6 +848,7 @@ model Meter {
   org         Org            @relation(fields: [orgId], references: [id], onDelete: Cascade)
   unit        Unit           @relation(fields: [unitId], references: [id], onDelete: Cascade)
   readings    MeterReading[]
+  usageAlertEvents UsageAlertEvent[]
 
   @@index([orgId, unitId, type])
 }
@@ -1247,4 +1314,171 @@ model DepositSettlement {
   statementKey        String?
   finalizedAt         DateTime?
   case                OffboardingCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+}
+
+model OrgMonthlySnapshot {
+  id                String   @id @default(cuid())
+  orgId             String
+  periodStart       DateTime @db.Date
+  occupiedUnits     Int
+  totalUnits        Int
+  vacantUnits       Int
+  activeLeases      Int
+  expiringLeases30  Int
+  openMaintenance   Int
+  blockedApprovals  Int
+  billedCents       Int
+  collectedCents    Int
+  arrearsCents      Int
+  trustBalanceCents Int
+  unallocatedCents  Int
+  refreshedAt       DateTime @default(now())
+  org               Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, periodStart])
+}
+
+model PropertyMonthlySnapshot {
+  id              String   @id @default(cuid())
+  orgId           String
+  propertyId      String
+  periodStart     DateTime @db.Date
+  occupiedUnits   Int
+  totalUnits      Int
+  openMaintenance Int
+  arrearsCents    Int
+  grossRentCents  Int
+  refreshedAt     DateTime @default(now())
+  org             Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  property        Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([propertyId, periodStart])
+  @@index([orgId, periodStart])
+}
+
+model LandlordMonthlySnapshot {
+  id                    String    @id @default(cuid())
+  orgId                 String
+  landlordId            String
+  periodStart           DateTime  @db.Date
+  grossRentCents        Int
+  collectedCents        Int
+  disbursedCents        Int
+  maintenanceSpendCents Int
+  vacancyDragCents      Int
+  trustBalanceCents     Int       @default(0)
+  refreshedAt           DateTime  @default(now())
+  org                   Org       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  landlord              Landlord  @relation(fields: [landlordId], references: [id], onDelete: Cascade)
+
+  @@unique([landlordId, periodStart])
+  @@index([orgId, periodStart])
+}
+
+model AgentMonthlySnapshot {
+  id                  String        @id @default(cuid())
+  orgId               String
+  agentId             String
+  periodStart         DateTime      @db.Date
+  openTickets         Int
+  blockedApprovals    Int
+  upcomingInspections Int
+  refreshedAt         DateTime      @default(now())
+  org                 Org           @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  agent               ManagingAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, periodStart])
+  @@index([orgId, periodStart])
+}
+
+model AreaNotice {
+  id           String          @id @default(cuid())
+  orgId        String
+  type         AreaNoticeType
+  title        String
+  body         String
+  startsAt     DateTime?
+  endsAt       DateTime?
+  audienceQuery Json
+  createdById  String
+  createdAt    DateTime        @default(now())
+  publishedAt  DateTime?
+  org          Org             @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  deliveries   NoticeDelivery[]
+
+  @@index([orgId, createdAt])
+  @@index([orgId, publishedAt])
+}
+
+model NoticeDelivery {
+  id             String              @id @default(cuid())
+  noticeId        String
+  userId          String
+  notificationId  String?
+  channel         NotificationChannel
+  status          NotificationStatus
+  lastAttemptAt   DateTime?
+  error           String?
+  createdAt       DateTime            @default(now())
+  notice          AreaNotice          @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notification    Notification?       @relation(fields: [notificationId], references: [id], onDelete: SetNull)
+
+  @@unique([noticeId, userId, channel])
+  @@index([userId, createdAt])
+}
+
+model UsageAlertRule {
+  id           String      @id @default(cuid())
+  orgId        String
+  utilityType  UtilityType
+  thresholdPct Int
+  enabled      Boolean     @default(true)
+  org          Org         @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  events       UsageAlertEvent[]
+
+  @@unique([orgId, utilityType])
+}
+
+model UsageAlertEvent {
+  id             String        @id @default(cuid())
+  orgId          String
+  ruleId         String
+  leaseId        String
+  meterId        String?
+  notificationId String?
+  periodStart    DateTime
+  observedQty    Decimal
+  baselineQty    Decimal
+  deltaPct       Int
+  createdAt      DateTime      @default(now())
+  org            Org           @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  rule           UsageAlertRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  lease          Lease         @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  meter          Meter?        @relation(fields: [meterId], references: [id], onDelete: SetNull)
+  notification   Notification? @relation(fields: [notificationId], references: [id], onDelete: SetNull)
+
+  @@unique([meterId, periodStart])
+  @@index([orgId, periodStart])
+}
+
+model LoadSheddingOutage {
+  id              String       @id @default(cuid())
+  orgId           String
+  propertyId      String?
+  eskomAreaCode   String?
+  source          OutageSource
+  startsAt        DateTime
+  endsAt          DateTime
+  stage           Int?
+  note            String?
+  externalEventId String?
+  createdById     String?
+  createdAt       DateTime     @default(now())
+  org             Org          @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  property        Property?    @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, propertyId, externalEventId])
+  @@index([orgId, startsAt])
+  @@index([propertyId, startsAt])
 }

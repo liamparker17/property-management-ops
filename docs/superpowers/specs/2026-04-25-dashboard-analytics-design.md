@@ -11,6 +11,79 @@ A one-stop analytics command centre for property managers. The first three secon
 
 Positioning: **"Your rental portfolio at a glance: income, arrears, occupancy, maintenance, and risk — all in one command centre."**
 
+## Existing implementation audit (added 2026-04-25 after manifest re-check)
+
+The original draft of this spec was written assuming greenfield. A code audit found a substantial analytics foundation already shipped. The plan in this spec must build on it, not replace it.
+
+### Already exists
+- **KPI registry:** `lib/analytics/kpis.ts` — 14 KPIs (`OCCUPANCY_PCT`, `ARREARS_CENTS`, `COLLECTION_RATE`, `TRUST_BALANCE`, `UNALLOCATED_CENTS`, `OPEN_MAINTENANCE`, `EXPIRING_LEASES_30`, `BLOCKED_APPROVALS`, `GROSS_RENT`, `DISBURSED_CENTS`, `MAINTENANCE_SPEND`, `VACANCY_DRAG`, `AGENT_OPEN_TICKETS`, `AGENT_UPCOMING_INSPECTIONS`) with `KpiDefinition { id, label, eyebrow, sources, formula, drillTarget, comparisonMode, format }`.
+- **Formatters / chart theme / drill-targets:** `lib/analytics/{formatters,drill-targets,chart-theme}.ts`.
+- **Components:** `components/analytics/{kpi-tile,ranked-list,status-strip,empty-metric}.tsx` and `components/analytics/charts/{area-chart,bar-chart,donut-chart,trend-card}.tsx` and `components/analytics/maps/{map-panel,portfolio-pins}.tsx`. `KpiTile` already renders prior-period delta % and a drill link.
+- **Services:** `lib/services/{staff,landlord,agent,tenant}-analytics.ts`. Staff exports `getStaffCommandCenter`, `getStaffPortfolio`, `getStaffFinance`, `getStaffMaintenance`, `getStaffOperations`. Returns include `kpis`, `priorKpis`, `collectionsTrend`, `maintenanceByStatus`, `portfolioPins`, `expiringLeases`, `topArrears`, `openMaintenance`, `blockedApprovals`. Snapshot reads with lazy recompute on miss.
+- **Routes:** `/dashboard` and 4 sub-tabs `/dashboard/{finance,portfolio,operations,maintenance}` already render.
+- **Snapshots service:** `lib/services/snapshots.ts` — recompute helpers per scope.
+
+### Tile-by-tile gap status
+
+| # | Tile | Status |
+|---|---|---|
+| 1 | Net rental income | **gap** — KPI id not in registry; need new id derived from snapshots `collectedCents - disbursedCents - maintenanceSpendCents` (or chosen formula) |
+| 2 | Rent billed | **gap** — `GROSS_RENT` exists but is gross; `RENT_BILLED` from `OrgMonthlySnapshot.billedCents` is missing as a KPI id |
+| 3 | Rent collected | **gap** — `OrgMonthlySnapshot.collectedCents` not surfaced as a KPI id |
+| 4 | Collection rate | **exists** (`COLLECTION_RATE`) |
+| 5 | Occupancy | **exists** (`OCCUPANCY_PCT`) |
+| 6 | Total arrears | **exists** (`ARREARS_CENTS`) |
+| 7 | Trust balance | **exists** (`TRUST_BALANCE`) |
+| 8 | Invoiced vs Collected combo | **partial** — currently rendered as two-series `AreaChart`; need a `ComboChart` line+bars and a prior-period faded overlay |
+| 9 | Arrears aging horizontal stacked bar | **partial** — `getStaffFinance` returns `arrearsBuckets` as `ChartPoint[]` rendered with `BarChart`; need a horizontal stacked single-bar primitive |
+| 10 | Occupancy donut | **partial** — `DonutChart` exists; not currently used on Overview |
+| 11 | Lease expiry buckets stacked bar | **partial** — `expiringLeases` list exists; need stacked-bar visual over 0–30/31–60/61–90/>90 |
+| 12 | Maintenance spend 12-mo line | **gap** — `MAINTENANCE_SPEND` KPI id exists; trend series for it doesn't |
+| 13 | Open urgent maintenance | **gap** — `OPEN_MAINTENANCE` exists; urgent-only count is missing |
+| 14 | Utility recovery / shortfall | **gap** — no service surface; spec accepts `billed − collected` proxy until `MunicipalBill` lands |
+| 15 | Top 10 overdue tenants | **partial** — `topArrears` `RankedList` exists; spec wants table with mini-bars |
+| 16 | Property health ranking | **partial** — Portfolio page shows table with occupancy/maint/arrears; no composite score, no Map↔Table toggle |
+| Map hero band | **partial** — `MapPanel` + `PortfolioPins` exist; pins not coloured by composite health; no side-panel drill on click |
+
+### Sibling tab status
+
+| Tab | Route | Status |
+|---|---|---|
+| Overview | `/dashboard` | exists (hero KPI tiles + 2 trend cards + 2 ranked lists + map panel) — needs hero re-curation, ComboChart, sparklines |
+| Money | `/dashboard/finance` | exists; rename to `/dashboard/money` deferred (keep `finance` to avoid breaking links) |
+| Properties | `/dashboard/portfolio` | exists; rename to `/dashboard/properties` deferred |
+| Operations | `/dashboard/operations` | exists |
+| Maintenance | `/dashboard/maintenance` | exists (note: spec has 7 tabs incl. Maintenance separate; actual code has Maintenance separate too — keep) |
+| Tenants | `/dashboard/tenants` | **missing** |
+| Utilities | `/dashboard/utilities` | **missing** |
+| Trust | `/dashboard/trust` | **missing** (root `/trust` route exists for ops, but not analytics) |
+
+Tab routes in the spec called them `/dashboard/money` / `/dashboard/properties`. The existing code uses `/dashboard/finance` and `/dashboard/portfolio`. **Decision: keep existing route names** to avoid breaking existing nav and bookmarks; the tab labels can still read "Money" and "Properties" without changing the URL slug.
+
+### Service architecture decision (revised)
+
+The spec proposed splitting into `lib/services/analytics/{hero,money,portfolio,operations,...}.ts`. The existing code is already split by **role** (`staff/landlord/agent/tenant-analytics.ts`), each ~200–700 lines and self-contained. Two viable paths:
+
+- **(a) Add to existing role-scoped files.** Extend `staff-analytics.ts` with new exports for missing tiles. Pros: matches established convention; one place to reason about staff. Cons: file already 724 lines; will grow.
+- **(b) Introduce `lib/services/analytics/<section>.ts` modules and delegate from `staff-analytics.ts`.** Pros: bounded files per spec; reusable for landlord/agent. Cons: two layers of indirection.
+
+**Decision: hybrid.** Keep `staff-analytics.ts` as the page entry point (it stays the single import in pages). Extract reusable section helpers under `lib/services/analytics/` only when a function is needed across role services or when a section grows complex. Phase 1 only adds two helpers — `lib/services/analytics/hero-kpis.ts` and `lib/services/analytics/combo-chart-series.ts` — and threads them into `staff-analytics.ts`.
+
+## Revised Phase 1 scope
+
+Given the audit, Phase 1 narrows from "build the foundation" to **"close the hero-band gap and add filter/tab plumbing":**
+
+1. Extend KPI registry with `NET_RENTAL_INCOME`, `RENT_BILLED`, `RENT_COLLECTED`, `URGENT_MAINTENANCE` (Phase 1 only needs 1–3; #4 is a Phase 2 prep).
+2. Add `KpiTile` `sparkline` prop (renders mini gradient area; backed by a 12-month series passed in).
+3. Add `ComboChart` primitive (line + bars on shared X, optional prior-period faded series).
+4. Replace Overview hero block with curated 7-tile band using new KPI ids and sparklines.
+5. Replace `AreaChart` "Billed vs Collected" on `/dashboard` Overview with `ComboChart`.
+6. Filter URL contract: `lib/analytics/ctx.ts` → `AnalyticsCtx` + `resolveAnalyticsCtx(searchParams)` with Zod parser. Thread into `getStaffCommandCenter` (and Finance) as a `filters` extension. Defaults match current behaviour.
+7. `components/analytics/dashboard-shell.tsx` — sticky 7-tab horizontal bar + filter bar. Used by all 7 dashboard routes.
+8. Stub `/dashboard/{tenants,utilities,trust}` pages: PageHeader + "Coming in Phase 4" empty card. Tabs become navigable.
+
+Phase 2 picks up arrears aging horizontal bar, lease expiry buckets stacked bar, utility recovery tile, top-10 overdue mini-bars, property health composite score, map↔table toggle, drill-in drawer framework.
+
 ## Curated tile inventory (Overview, 16 tiles)
 
 ### Hero band (7 KPI tiles, always visible)

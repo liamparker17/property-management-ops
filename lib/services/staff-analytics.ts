@@ -1,6 +1,7 @@
 import type { ApprovalKind, MaintenanceStatus } from '@prisma/client';
 
 import type { ChartPoint } from '@/components/analytics/charts/area-chart';
+import type { ComboChartPoint } from '@/components/analytics/charts/combo-chart';
 import type { PortfolioPin } from '@/components/analytics/maps/portfolio-pins';
 import type { KpiId } from '@/lib/analytics/kpis';
 import type { RouteCtx } from '@/lib/auth/with-org';
@@ -78,6 +79,7 @@ export type StaffCommandCenter = {
   blockedApprovals: ApprovalRow[];
   portfolioPins: PortfolioPin[];
   collectionsTrend: ChartPoint[];
+  collectionsCombo: ComboChartPoint[];
   maintenanceByStatus: ChartPoint[];
 };
 
@@ -479,7 +481,7 @@ export async function getStaffCommandCenter(
       getTopArrears(ctx),
       getOpenMaintenance(ctx),
       getBlockedApprovals(ctx),
-      getOrgSnapshotSeries(ctx, periodStart),
+      getOrgSnapshotSeries(ctx, periodStart, 24),
     ]);
 
   const seriesMap = new Map(series.map((row) => [keyForMonth(row.periodStart), row]));
@@ -508,6 +510,19 @@ export async function getStaffCommandCenter(
     };
   });
   const kpiSparks = buildKpiSparks(sparkRows);
+
+  const comboWindow = Array.from({ length: 12 }, (_, index) => addMonths(periodStart, index - 11));
+  const collectionsCombo: ComboChartPoint[] = comboWindow.map((month) => {
+    const row = seriesMap.get(keyForMonth(month));
+    const priorMonth = addMonths(month, -12);
+    const priorRow = seriesMap.get(keyForMonth(priorMonth));
+    return {
+      x: labelForMonth(month),
+      bars: row?.billedCents ?? 0,
+      line: row?.collectedCents ?? 0,
+      ...(priorRow ? { priorLine: priorRow.collectedCents } : {}),
+    };
+  });
 
   const statusCountsSource = await db.maintenanceRequest.findMany({
     where: { orgId: ctx.orgId, status: { in: ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'] } },
@@ -547,6 +562,7 @@ export async function getStaffCommandCenter(
       .map((row, index) => buildPropertyPin(row, index))
       .filter((pin): pin is PortfolioPin => pin !== null),
     collectionsTrend,
+    collectionsCombo,
     maintenanceByStatus,
   };
 }

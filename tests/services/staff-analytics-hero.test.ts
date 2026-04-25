@@ -150,3 +150,36 @@ describe('getStaffCommandCenter — kpiSparks', () => {
     }
   });
 });
+
+describe('getStaffCommandCenter — collectionsCombo', () => {
+  it('returns a combo-chart payload with x, bars (billed), line (collected), and priorLine when 24mo of snapshots exist', async () => {
+    db.orgMonthlySnapshot.findMany = async (args: any) => {
+      const lte = args.where.periodStart.lte as Date;
+      const gte = args.where.periodStart.gte as Date;
+      const months: Date[] = [];
+      const cursor = new Date(gte);
+      while (cursor <= lte) {
+        months.push(new Date(cursor));
+        cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+      }
+      return months.map((periodStart, idx) => ({
+        orgId: ORG_ID,
+        periodStart,
+        occupiedUnits: 18, totalUnits: 20,
+        arrearsCents: 0,
+        billedCents: 1_000_000_00 + idx * 1_000_00,
+        collectedCents: 900_000_00 + idx * 1_000_00,
+        trustBalanceCents: 0, unallocatedCents: 0,
+        openMaintenance: 0, expiringLeases30: 0, blockedApprovals: 0,
+      }));
+    };
+    const result = await getStaffCommandCenter(ROUTE_CTX);
+    assert.ok(Array.isArray(result.collectionsCombo), 'collectionsCombo array');
+    assert.ok(result.collectionsCombo.length >= 1);
+    const last = result.collectionsCombo.at(-1)!;
+    assert.equal(typeof last.x, 'string');
+    assert.equal(typeof last.bars, 'number');
+    assert.equal(typeof last.line, 'number');
+    assert.ok(result.collectionsCombo.some((p: any) => typeof p.priorLine === 'number'));
+  });
+});

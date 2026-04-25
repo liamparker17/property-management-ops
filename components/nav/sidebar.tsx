@@ -130,7 +130,7 @@ export function SidebarBody({
     <div className="flex h-full w-full flex-col bg-sidebar text-sidebar-foreground">
       <div className="flex h-20 items-center gap-3 border-b border-sidebar-border px-5">
         <span className="inline-flex overflow-hidden rounded-md dark:bg-white">
-          <img src="/regalis.svg" alt={brand} className="h-10 w-auto object-contain" />
+          <img src="/regalis.svg" alt={brand} className="h-12 w-auto object-contain" />
         </span>
         <div className="min-w-0">
           <div className="truncate font-serif text-[18px] uppercase tracking-[0.08em] text-sidebar-foreground">

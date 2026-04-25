@@ -38,7 +38,7 @@ export function MarketingHeader() {
       <div className="flex items-center justify-between px-6 py-4 md:px-14">
         <Link href="/" className="flex items-center gap-2.5 no-underline" onClick={() => setOpen(false)}>
           <span className="inline-flex overflow-hidden rounded-sm">
-            <img src="/regalis.svg" alt="Regalis" className="h-9 w-auto object-contain" />
+            <img src="/regalis.svg" alt="Regalis" className="h-11 w-auto object-contain" />
           </span>
           <span className="flex flex-col leading-none">
             <span className="font-serif text-[20px] font-normal uppercase tracking-[0.08em]" style={{ color: INK }}>

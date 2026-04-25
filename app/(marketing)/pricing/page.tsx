@@ -127,30 +127,31 @@ export default function PricingPage() {
   return (
     <main style={{ background: T.creamSoft, color: T.ink }} className="font-sans">
       <section
-        className="relative overflow-hidden px-6 pb-20 pt-36 text-center md:px-14 md:pb-24 md:pt-48"
+        className="relative overflow-hidden px-6 pb-20 pt-36 md:px-14 md:pb-24 md:pt-48"
         style={{ background: `linear-gradient(180deg, ${T.inkDeep}, ${T.ink})` }}
       >
         <div aria-hidden className="pointer-events-none absolute inset-0 bg-architect-grid" />
-        <div
-          className="relative z-[1] mb-6 flex items-center justify-center gap-3 font-mono text-[10px] uppercase tracking-[0.25em]"
-          style={{ color: T.gold }}
-        >
-          <span className="block h-px w-8" style={{ background: T.gold }} />
-          Pricing
-          <span className="block h-px w-8" style={{ background: T.gold }} />
+        <div className="relative z-[1] mx-auto max-w-3xl">
+          <div
+            className="mb-6 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.25em]"
+            style={{ color: T.gold }}
+          >
+            <span className="block h-px w-8" style={{ background: T.gold }} />
+            Pricing
+          </div>
+          <h1
+            className="font-serif text-[44px] font-light leading-[1.08] tracking-[-0.01em] sm:text-[60px] md:text-[72px]"
+            style={{ color: T.cream }}
+          >
+            Pricing shaped around your operation, <em style={{ color: T.goldSoft }}>not a one-size-fits-all tier table.</em>
+          </h1>
+          <p
+            className="mt-6 max-w-2xl text-[14px] leading-[1.75]"
+            style={{ color: T.textOnDark }}
+          >
+            We scope pricing around portfolio size, team shape, workflow depth, and the level of rollout support you need.
+          </p>
         </div>
-        <h1
-          className="relative z-[1] mx-auto max-w-3xl font-serif text-[44px] font-light leading-[1.08] tracking-[-0.01em] sm:text-[60px] md:text-[72px]"
-          style={{ color: T.cream }}
-        >
-          Pricing shaped around your operation, <em style={{ color: T.goldSoft }}>not a one-size-fits-all tier table.</em>
-        </h1>
-        <p
-          className="relative z-[1] mx-auto mt-6 max-w-2xl text-[14px] leading-[1.75]"
-          style={{ color: T.textOnDark }}
-        >
-          We scope pricing around portfolio size, team shape, workflow depth, and the level of rollout support you need.
-        </p>
       </section>
 
       <MarketingJourneyGrid

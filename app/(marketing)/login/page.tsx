@@ -22,7 +22,7 @@ export default function LoginPage() {
 
         <Link href="/" className="relative z-[1] inline-flex items-center gap-3 self-start no-underline">
           <span className="inline-flex overflow-hidden rounded-sm bg-white">
-            <img src="/regalis.svg" alt="Regalis" className="h-10 w-auto object-contain" />
+            <img src="/regalis.svg" alt="Regalis" className="h-12 w-auto object-contain" />
           </span>
           <span className="flex flex-col leading-none">
             <span className="font-serif text-[22px] font-normal uppercase tracking-[0.08em]" style={{ color: T.cream }}>
@@ -58,7 +58,7 @@ export default function LoginPage() {
         <div className="w-full max-w-[22rem]">
           <Link href="/" className="mb-10 inline-flex items-center gap-2.5 no-underline lg:hidden">
             <span className="inline-flex overflow-hidden rounded-sm">
-              <img src="/regalis.svg" alt="Regalis" className="h-9 w-auto object-contain" />
+              <img src="/regalis.svg" alt="Regalis" className="h-11 w-auto object-contain" />
             </span>
             <span className="font-serif text-[20px] uppercase tracking-[0.08em]" style={{ color: T.ink }}>
               Regalis

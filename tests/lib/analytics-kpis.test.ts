@@ -8,7 +8,7 @@ describe('KPI registry — Phase 1 additions', () => {
     const kpi = getKpi('NET_RENTAL_INCOME');
     assert.equal(kpi.format, 'CENTS');
     assert.equal(kpi.comparisonMode, 'PRIOR_PERIOD');
-    assert.equal(kpi.label, 'Net rental income');
+    assert.equal(kpi.label, 'Net Rental Income');
   });
 
   it('exposes RENT_BILLED and RENT_COLLECTED as CENTS', () => {

@@ -128,7 +128,7 @@ export const KPIS: Record<KpiId, KpiDefinition> = {
   },
   URGENT_MAINTENANCE: {
     id: 'URGENT_MAINTENANCE',
-    label: 'Urgent maintenance',
+    label: 'Urgent Maintenance',
     eyebrow: 'Operations',
     sources: ['MaintenanceRequest.priority', 'MaintenanceRequest.status'],
     formula: 'count(priority in HIGH/URGENT and status in OPEN/IN_PROGRESS)',
@@ -188,13 +188,13 @@ export const KPIS: Record<KpiId, KpiDefinition> = {
   },
   NET_RENTAL_INCOME: {
     id: 'NET_RENTAL_INCOME',
-    label: 'Net rental income',
+    label: 'Net Rental Income',
     eyebrow: 'Income',
     sources: [
       'OrgMonthlySnapshot.collectedCents',
       'LandlordMonthlySnapshot.maintenanceSpendCents',
     ],
-    formula: 'collectedCents − sum(landlord.maintenanceSpendCents)',
+    formula: 'collectedCents - sum(landlord.maintenanceSpendCents)',
     drillTarget: ({ role }) =>
       byRole(
         role,
@@ -206,10 +206,10 @@ export const KPIS: Record<KpiId, KpiDefinition> = {
   },
   RENT_BILLED: {
     id: 'RENT_BILLED',
-    label: 'Rent billed',
+    label: 'Rent Billed',
     eyebrow: 'Income',
     sources: ['OrgMonthlySnapshot.billedCents'],
-    formula: 'sum(invoice.totalCents)',
+    formula: 'billedCents',
     drillTarget: ({ role }) =>
       byRole(
         role,
@@ -221,10 +221,10 @@ export const KPIS: Record<KpiId, KpiDefinition> = {
   },
   RENT_COLLECTED: {
     id: 'RENT_COLLECTED',
-    label: 'Rent collected',
+    label: 'Rent Collected',
     eyebrow: 'Income',
     sources: ['OrgMonthlySnapshot.collectedCents'],
-    formula: 'sum(allocated receipts)',
+    formula: 'collectedCents',
     drillTarget: ({ role }) =>
       byRole(
         role,

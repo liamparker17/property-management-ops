@@ -48,8 +48,7 @@ export function MarketingHeader() {
               className="mt-[2px] font-mono text-[9px] uppercase tracking-[0.2em]"
               style={{
                 color: GOLD,
-                WebkitTextStroke: `0.35px ${INK}`,
-                textShadow: `0 0 1px ${INK}`,
+                WebkitTextStroke: `0.15px ${INK}`,
               }}
             >
               Property Ops

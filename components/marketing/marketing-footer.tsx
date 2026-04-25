@@ -60,8 +60,7 @@ export function MarketingFooter() {
                   className="mt-[2px] font-mono text-[9px] uppercase tracking-[0.2em]"
                   style={{
                     color: GOLD,
-                    WebkitTextStroke: `0.35px ${CREAM}`,
-                    textShadow: `0 0 1px ${CREAM}`,
+                    WebkitTextStroke: `0.15px ${CREAM}`,
                   }}
                 >
                   Property Ops

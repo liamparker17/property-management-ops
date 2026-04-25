@@ -217,6 +217,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | File | Exports | Lines |
 |------|---------|-------|
 | dashboard.ts | `getDashboardSummary(ctx)` → portfolio totals, occupancy, lease expiries, invoice overview (invoiced vs paid, overdue accounts, cashflow by unit, expiry buckets), recent leases; M2 adds `incomeByKind` (RENT vs UTILITY_* split sourced from `InvoiceLineItem`) | 301 |
+| staff-analytics.ts | `getStaffCommandCenter(ctx, filters?)` (Phase 1: `kpis` includes NET_RENTAL_INCOME / RENT_BILLED / RENT_COLLECTED / URGENT_MAINTENANCE; adds `kpiSparks` per-KPI 12-mo series and `collectionsCombo` ComboChartPoint[] for billed/collected/prior overlay), `getStaffPortfolio`, `getStaffFinance`, `getStaffMaintenance`, `getStaffOperations` | 813 |
 | leases.ts | `DerivedStatus` type, `deriveStatus()`, `listLeases()`, `getLease()`, `createLease()`, `updateDraftLease()`, `activateLease()` (M2: writes `DEPOSIT_IN` ledger entry when `depositReceivedAt` set), `terminateLease()`, `renewLease()`, `setPrimaryTenant()`, `setSelfManagedDebitOrder()` | — |
 | properties.ts | `listProperties()`, `getProperty()`, `createProperty()`, `updateProperty()`, `softDeleteProperty()` | 51 |
 | tenants.ts | `listTenants()`, `getTenant()`, `detectDuplicates()`, `createTenant()`, `updateTenant()`, `archiveTenant()`, `unarchiveTenant()`, `deleteTenant()` (hard delete — requires archived; cascades LeaseTenant, MaintenanceRequest, LeaseSignature, LeaseReviewRequest, linked User; nulls Document.tenantId), `inviteTenantToPortal()` — creates a TENANT User, links via Tenant.userId, returns one-time temp password | 170 |
@@ -264,6 +265,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 ### lib/zod/
 | File | Exports | Lines |
 |------|---------|-------|
+| analytics.ts | `rangePresetSchema`, `compareModeSchema`, `analyticsSearchParamsSchema`, `AnalyticsSearchParams` — URL search-param shapes for the dashboard analytics filter contract | 16 |
 | lease.ts | `leaseStateEnum`, `createLeaseSchema`, `updateDraftLeaseSchema`, `terminateLeaseSchema`, `leaseListQuerySchema` | 51 |
 | property.ts | `provinceEnum`, `createPropertySchema`, `updatePropertySchema` | 17 |
 | tenant.ts | `createTenantSchema`, `updateTenantSchema` | 12 |
@@ -377,7 +379,11 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | — | (marketing)/layout.tsx | Public layout shell |
 | /login | (marketing)/login/page.tsx | Renders `<LoginForm>` in Suspense |
 | — | (staff)/layout.tsx | Auth guard + `<StaffNav>` |
-| /dashboard | (staff)/dashboard/page.tsx | Staff dashboard with portfolio KPIs, drill-through cards, invoiced vs paid chart, receivables donut, overdue accounts, cashflow by unit, expiring leases |
+| — | (staff)/dashboard/layout.tsx | Wraps all `/dashboard/*` routes with `DashboardShell` (sticky tab bar + range/compare URL filters) |
+| /dashboard | (staff)/dashboard/page.tsx | Staff Overview: 7-KPI hero band with sparklines, Invoiced-vs-Collected combo chart with prior-period overlay, status strip, map + ranked lists, maintenance-by-status; threads AnalyticsCtx from URL search params |
+| /dashboard/tenants | (staff)/dashboard/tenants/page.tsx | Tab stub — Phase 4 placeholder |
+| /dashboard/utilities | (staff)/dashboard/utilities/page.tsx | Tab stub — Phase 4 placeholder |
+| /dashboard/trust | (staff)/dashboard/trust/page.tsx | Tab stub — Phase 4 placeholder |
 | /properties | (staff)/properties/page.tsx | Property list |
 | /properties/new | (staff)/properties/new/page.tsx | Create property form |
 | /properties/[id] | (staff)/properties/[id]/page.tsx | Property detail + units list |
@@ -716,14 +722,18 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | lib/services/maintenance.ts | Maintenance service; request creation/status changes/vendor assignment/scheduling/completion/invoice capture now also trigger `recordSnapshotEvent('MAINTENANCE')`, and invoice capture also triggers `recordSnapshotEvent('LEDGER')` | 447 |
 | lib/services/inspections.ts | Inspection service; `completeInspection()` and `signInspection()` now also trigger `recordSnapshotEvent('INSPECTION')` after successful mutations | 354 |
 | lib/services/offboarding.ts | Offboarding service; `finaliseDepositSettlement()` and `closeOffboardingCase()` now also trigger `recordSnapshotEvent('OFFBOARDING')` | 426 |
-| lib/analytics/kpis.ts | `KpiId`, `KpiDefinition`, `KPIS`, `getKpi()` - role-aware KPI registry for M4 drill targets and display metadata | 188 |
+| lib/analytics/kpis.ts | `KpiId`, `KpiDefinition`, `KPIS`, `getKpi()` - role-aware KPI registry for M4 drill targets and display metadata; Phase 1 adds `NET_RENTAL_INCOME`, `RENT_BILLED`, `RENT_COLLECTED`, `URGENT_MAINTENANCE` KPI definitions | 308 |
+| lib/analytics/ctx.ts | `AnalyticsCtx`, `resolveAnalyticsCtx(searchParams, base)`, `DateRange`, `CompareMode`, `Scope` — URL→typed analytics context with date range + compare + scope filters | 78 |
 | lib/analytics/formatters.ts | `formatKpi()` - shared KPI formatter for cents, counts, and percentages | 7 |
 | lib/analytics/chart-theme.ts | `chartTheme`, `getSeriesPalette()` - shared Regalis chart token registry and deterministic palette helper | 31 |
 | lib/analytics/drill-targets.ts | `resolveDrillTarget()` - central KPI drill-through path builder with optional scope query params | 16 |
 | components/analytics/empty-metric.tsx | `EmptyMetric` - compact analytics empty-state panel | 22 |
 | components/analytics/status-strip.tsx | `StatusStrip` - strip of compact KPI/status cells for dashboard modules | 42 |
 | components/analytics/ranked-list.tsx | `RankedList` - editorial top-N list with optional links | 66 |
-| components/analytics/kpi-tile.tsx | `KpiTile` - registry-backed KPI card with trend chip and drill-through link | 60 |
+| components/analytics/sparkline.tsx | `Sparkline`, `sparklinePathD()` — pure SVG mini area chart used by `KpiTile` | 77 |
+| components/analytics/kpi-tile.tsx | `KpiTile` - registry-backed KPI card with trend chip and drill-through link; Phase 1 adds optional `series?: number[]` prop for sparkline rendering | 74 |
+| components/analytics/dashboard-shell.tsx | `DashboardShell` — sticky 8-tab nav + range/compare URL-filter bar wrapping all `/dashboard/*` routes | 102 |
+| components/analytics/charts/combo-chart.tsx | `ComboChart`, `ComboChartPoint` — Recharts ComposedChart line+bars with optional dashed prior-period overlay | 140 |
 | components/analytics/charts/area-chart.tsx | `ChartPoint`, `AreaChart` - shared Recharts area chart wrapper using the analytics theme registry | 66 |
 | components/analytics/charts/bar-chart.tsx | `BarChart` - shared Recharts bar chart wrapper using the analytics theme registry | 40 |
 | components/analytics/charts/donut-chart.tsx | `DonutChart` - shared Recharts donut chart wrapper using the analytics theme registry | 41 |

@@ -246,6 +246,8 @@ function snapshotKpis(snapshot?: {
   openMaintenance: number;
   expiringLeases30: number;
   blockedApprovals: number;
+  maintenanceSpendCents?: number;
+  urgentMaintenance?: number;
 }) {
   return {
     OCCUPANCY_PCT: percent(snapshot?.occupiedUnits ?? 0, snapshot?.totalUnits ?? 0),
@@ -254,9 +256,13 @@ function snapshotKpis(snapshot?: {
     TRUST_BALANCE: snapshot?.trustBalanceCents ?? 0,
     UNALLOCATED_CENTS: snapshot?.unallocatedCents ?? 0,
     OPEN_MAINTENANCE: snapshot?.openMaintenance ?? 0,
+    URGENT_MAINTENANCE: snapshot?.urgentMaintenance ?? 0,
     EXPIRING_LEASES_30: snapshot?.expiringLeases30 ?? 0,
     BLOCKED_APPROVALS: snapshot?.blockedApprovals ?? 0,
     GROSS_RENT: snapshot?.billedCents ?? 0,
+    NET_RENTAL_INCOME: (snapshot?.collectedCents ?? 0) - (snapshot?.maintenanceSpendCents ?? 0),
+    RENT_BILLED: snapshot?.billedCents ?? 0,
+    RENT_COLLECTED: snapshot?.collectedCents ?? 0,
     DISBURSED_CENTS: 0,
     MAINTENANCE_SPEND: 0,
     VACANCY_DRAG: 0,

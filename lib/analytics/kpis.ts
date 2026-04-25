@@ -7,9 +7,13 @@ export type KpiId =
   | 'TRUST_BALANCE'
   | 'UNALLOCATED_CENTS'
   | 'OPEN_MAINTENANCE'
+  | 'URGENT_MAINTENANCE'
   | 'EXPIRING_LEASES_30'
   | 'BLOCKED_APPROVALS'
   | 'GROSS_RENT'
+  | 'NET_RENTAL_INCOME'
+  | 'RENT_BILLED'
+  | 'RENT_COLLECTED'
   | 'DISBURSED_CENTS'
   | 'MAINTENANCE_SPEND'
   | 'VACANCY_DRAG'
@@ -122,6 +126,21 @@ export const KPIS: Record<KpiId, KpiDefinition> = {
     comparisonMode: 'PRIOR_PERIOD',
     format: 'COUNT',
   },
+  URGENT_MAINTENANCE: {
+    id: 'URGENT_MAINTENANCE',
+    label: 'Urgent maintenance',
+    eyebrow: 'Operations',
+    sources: ['MaintenanceRequest.priority', 'MaintenanceRequest.status'],
+    formula: 'count(priority in HIGH/URGENT and status in OPEN/IN_PROGRESS)',
+    drillTarget: ({ role }) =>
+      byRole(
+        role,
+        { TENANT: '/tenant/repairs' },
+        '/maintenance',
+      ),
+    comparisonMode: 'PRIOR_PERIOD',
+    format: 'COUNT',
+  },
   EXPIRING_LEASES_30: {
     id: 'EXPIRING_LEASES_30',
     label: 'Expiring in 30 Days',
@@ -162,6 +181,54 @@ export const KPIS: Record<KpiId, KpiDefinition> = {
       byRole(
         role,
         { LANDLORD: '/landlord/invoices', MANAGING_AGENT: '/agent/properties', TENANT: '/tenant/invoices' },
+        '/dashboard/finance',
+      ),
+    comparisonMode: 'PRIOR_PERIOD',
+    format: 'CENTS',
+  },
+  NET_RENTAL_INCOME: {
+    id: 'NET_RENTAL_INCOME',
+    label: 'Net rental income',
+    eyebrow: 'Income',
+    sources: [
+      'OrgMonthlySnapshot.collectedCents',
+      'LandlordMonthlySnapshot.maintenanceSpendCents',
+    ],
+    formula: 'collectedCents − sum(landlord.maintenanceSpendCents)',
+    drillTarget: ({ role }) =>
+      byRole(
+        role,
+        { LANDLORD: '/landlord/reports', MANAGING_AGENT: '/agent/maintenance', TENANT: '/tenant/payments' },
+        '/dashboard/finance',
+      ),
+    comparisonMode: 'PRIOR_PERIOD',
+    format: 'CENTS',
+  },
+  RENT_BILLED: {
+    id: 'RENT_BILLED',
+    label: 'Rent billed',
+    eyebrow: 'Income',
+    sources: ['OrgMonthlySnapshot.billedCents'],
+    formula: 'sum(invoice.totalCents)',
+    drillTarget: ({ role }) =>
+      byRole(
+        role,
+        { LANDLORD: '/landlord/invoices', TENANT: '/tenant/invoices' },
+        '/dashboard/finance',
+      ),
+    comparisonMode: 'PRIOR_PERIOD',
+    format: 'CENTS',
+  },
+  RENT_COLLECTED: {
+    id: 'RENT_COLLECTED',
+    label: 'Rent collected',
+    eyebrow: 'Income',
+    sources: ['OrgMonthlySnapshot.collectedCents'],
+    formula: 'sum(allocated receipts)',
+    drillTarget: ({ role }) =>
+      byRole(
+        role,
+        { LANDLORD: '/landlord/reports', TENANT: '/tenant/payments' },
         '/dashboard/finance',
       ),
     comparisonMode: 'PRIOR_PERIOD',

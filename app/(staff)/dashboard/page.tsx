@@ -1,11 +1,15 @@
 import Link from 'next/link';
 
-import { ComboChart } from '@/components/analytics/charts/combo-chart';
+import { AgingBar } from '@/components/analytics/charts/aging-bar';
+import { AreaChart } from '@/components/analytics/charts/area-chart';
 import { BarChart } from '@/components/analytics/charts/bar-chart';
+import { ComboChart } from '@/components/analytics/charts/combo-chart';
+import { DonutChart } from '@/components/analytics/charts/donut-chart';
 import { KpiTile } from '@/components/analytics/kpi-tile';
 import { MapPanel } from '@/components/analytics/maps/map-panel';
 import { RankedList } from '@/components/analytics/ranked-list';
 import { StatusStrip } from '@/components/analytics/status-strip';
+import { TopOverdueTable } from '@/components/analytics/top-overdue-table';
 import { PageHeader } from '@/components/page-header';
 import { Card } from '@/components/ui/card';
 import { auth } from '@/lib/auth';
@@ -81,20 +85,83 @@ export default async function DashboardPage({
         />
       </Card>
 
+      {/* 4-up cockpit grid: aging, occupancy donut, expiry buckets, maint spend */}
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <Card className="border border-border p-5">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--accent)]">Receivables</p>
+          <h2 className="mt-2 mb-4 font-serif text-[22px] font-light text-foreground">Arrears aging</h2>
+          <AgingBar segments={data.arrearsAging} />
+        </Card>
+        <Card className="border border-border p-5">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--accent)]">Portfolio</p>
+          <h2 className="mt-2 mb-4 font-serif text-[22px] font-light text-foreground">Occupancy</h2>
+          <DonutChart
+            data={[
+              { x: 'Occupied', y: data.occupancyBreakdown.occupied },
+              { x: 'Vacant', y: data.occupancyBreakdown.vacant },
+            ]}
+          />
+        </Card>
+        <Card className="border border-border p-5">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--accent)]">Renewals</p>
+          <h2 className="mt-2 mb-4 font-serif text-[22px] font-light text-foreground">Lease expiries</h2>
+          <BarChart data={data.leaseExpiryBuckets.map((b) => ({ x: b.label, y: b.count }))} />
+        </Card>
+        <Card className="border border-border p-5">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--accent)]">Operations</p>
+          <h2 className="mt-2 mb-4 font-serif text-[22px] font-light text-foreground">Maintenance spend</h2>
+          <AreaChart data={data.maintenanceSpendTrend} yFormat="cents" />
+        </Card>
+      </div>
+
+      {/* 3-up: top overdue table + urgent maintenance + utility recovery */}
       <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr_1fr]">
+        <Card className="border border-border p-5">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--accent)]">Finance</p>
+          <h2 className="mt-2 mb-4 font-serif text-[22px] font-light text-foreground">Top 10 overdue</h2>
+          <TopOverdueTable rows={data.topArrears} />
+        </Card>
+        <Card className="border border-border p-5">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--accent)]">Operations</p>
+          <h2 className="mt-2 mb-4 font-serif text-[22px] font-light text-foreground">Urgent maintenance</h2>
+          <RankedList
+            title=""
+            eyebrow=""
+            items={data.urgentMaintenanceList.map((row) => ({
+              id: row.id,
+              title: row.title,
+              subtitle: `${row.subtitle} · ${row.priority}`,
+              value: row.status.replace('_', ' '),
+              href: row.href,
+            }))}
+            emptyCopy="No urgent tickets right now."
+          />
+        </Card>
+        <Card className="border border-border p-5">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--accent)]">Utilities</p>
+          <h2 className="mt-2 mb-4 font-serif text-[22px] font-light text-foreground">Utility recovery</h2>
+          <div className="space-y-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Billed</span>
+              <span className="font-medium text-foreground">{formatZar(data.utilityRecovery.billedCents)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Collected</span>
+              <span className="font-medium text-foreground">{formatZar(data.utilityRecovery.collectedCents)}</span>
+            </div>
+            <div className="flex justify-between border-t border-border pt-3 text-sm">
+              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Shortfall</span>
+              <span className="font-medium text-[color:var(--accent)]">{formatZar(data.utilityRecovery.shortfallCents)}</span>
+            </div>
+            <p className="pt-2 text-xs text-muted-foreground">
+              Proxy: utility line items billed minus utility line items collected. True recovery rate lands when municipal-bill capture ships.
+            </p>
+          </div>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
         <MapPanel title="Portfolio footprint" eyebrow="Portfolio" pins={data.portfolioPins} />
-        <RankedList
-          title="Top arrears"
-          eyebrow="Finance"
-          items={data.topArrears.map((row) => ({
-            id: row.id,
-            title: row.title,
-            subtitle: row.subtitle,
-            value: formatZar(row.amountCents),
-            href: row.href,
-          }))}
-          emptyCopy="No overdue invoices are currently pushing into arrears."
-        />
         <RankedList
           title="Open maintenance"
           eyebrow="Operations"

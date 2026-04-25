@@ -25,7 +25,9 @@ export function EmptyState({
       )}
     >
       {icon ? (
-        <div className="flex h-10 w-10 items-center justify-center border border-[color:var(--accent)]/40 text-[color:var(--accent)]">
+        <div className="relative flex h-12 w-12 items-center justify-center border border-[color:var(--accent)]/45 bg-[color:var(--accent)]/8 text-[color:var(--accent)] shadow-[0_0_0_4px_color-mix(in_oklch,var(--accent)_6%,transparent)]">
+          <span aria-hidden className="absolute -left-px -top-px h-2 w-2 border-l border-t border-[color:var(--accent)]" />
+          <span aria-hidden className="absolute -right-px -bottom-px h-2 w-2 border-r border-b border-[color:var(--accent)]" />
           {icon}
         </div>
       ) : null}

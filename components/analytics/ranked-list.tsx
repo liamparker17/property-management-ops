@@ -54,8 +54,13 @@ export function RankedList({
 }: RankedListProps) {
   return (
     <section className={cn('border border-border bg-card', className)}>
-      <header className="border-b border-border/70 px-5 py-4">
-        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--accent)]">
+      <header className="relative border-b border-border/70 px-5 py-4">
+        <span
+          aria-hidden
+          className="absolute left-0 top-4 bottom-4 w-0.5 bg-[color:var(--accent)]/70"
+        />
+        <p className="flex items-center gap-2 font-mono text-[10px] font-medium uppercase tracking-[0.24em] text-[color:var(--accent)]">
+          <span aria-hidden className="block h-px w-6 bg-[color:var(--accent)]/80" />
           {eyebrow}
         </p>
         <h3 className="mt-2 font-serif text-2xl leading-none text-foreground">{title}</h3>

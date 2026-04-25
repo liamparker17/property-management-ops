@@ -53,8 +53,10 @@ export default async function PropertiesPage() {
               <Card className="relative h-full overflow-hidden border border-border p-0 transition-colors duration-200 hover:bg-[color:var(--muted)]/40">
                 <span aria-hidden className="absolute inset-x-0 top-0 h-0.5 bg-[color:var(--accent)] opacity-70" />
                 <div className="flex items-start justify-between p-5">
-                  <div className="flex h-11 w-11 items-center justify-center border border-[color:var(--accent)]/25 text-[color:var(--accent)]">
-                    <Building2 className="h-5 w-5" />
+                  <div className="relative flex h-12 w-12 items-center justify-center border border-[color:var(--accent)]/35 bg-[color:var(--accent)]/8 text-[color:var(--accent)] transition-all duration-200 group-hover:border-[color:var(--accent)]/65 group-hover:bg-[color:var(--accent)]/14 group-hover:shadow-[0_0_0_4px_color-mix(in_oklch,var(--accent)_10%,transparent)]">
+                    <span aria-hidden className="absolute -left-px -top-px h-2 w-2 border-l border-t border-[color:var(--accent)]" />
+                    <span aria-hidden className="absolute -right-px -bottom-px h-2 w-2 border-r border-b border-[color:var(--accent)]" />
+                    <Building2 className="h-5 w-5" strokeWidth={1.6} />
                   </div>
                   <ArrowUpRight className="h-4 w-4 text-muted-foreground/55 transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-[color:var(--accent)]" />
                 </div>

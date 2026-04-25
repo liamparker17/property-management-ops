@@ -26,14 +26,15 @@ export function PageHeader({
     >
       <div className="space-y-3">
         {eyebrow ? (
-          <div className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.25em] text-[color:var(--accent)]">
-            <span aria-hidden className="block h-px w-6 bg-[color:var(--accent)]" />
+          <div className="flex items-center gap-3 font-mono text-[10px] font-medium uppercase tracking-[0.28em] text-[color:var(--accent)]">
+            <span aria-hidden className="block h-px w-10 bg-[color:var(--accent)]" />
             {eyebrow}
           </div>
         ) : null}
-        <h1 className="font-serif text-[34px] font-light leading-[1.05] tracking-[-0.01em] text-foreground sm:text-[44px]">
+        <h1 className="page-header-title font-serif text-[34px] font-light leading-[1.05] tracking-[-0.01em] text-foreground sm:text-[44px]">
           {title}
         </h1>
+        <span aria-hidden className="block h-px w-12 bg-[color:var(--accent)]/55" />
         {description ? (
           <p className="max-w-2xl text-sm leading-[1.7] text-muted-foreground">{description}</p>
         ) : null}

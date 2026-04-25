@@ -80,6 +80,7 @@ export type StaffCommandCenter = {
   occupancyBreakdown: { occupied: number; vacant: number; total: number };
   leaseExpiryBuckets: { id: string; label: string; count: number }[];
   maintenanceSpendTrend: ChartPoint[];
+  urgentMaintenanceList: MaintenanceRow[];
   openMaintenance: MaintenanceRow[];
   blockedApprovals: ApprovalRow[];
   portfolioPins: PortfolioPin[];
@@ -497,6 +498,33 @@ async function getOpenMaintenance(ctx: RouteCtx, filters?: { status?: Maintenanc
   }));
 }
 
+async function getUrgentMaintenance(ctx: RouteCtx, limit = 5): Promise<MaintenanceRow[]> {
+  const propertyIds = await getPropertyIds(ctx);
+  if (propertyIds.length === 0) return [];
+  const rows = await db.maintenanceRequest.findMany({
+    where: {
+      orgId: ctx.orgId,
+      priority: { in: ['HIGH', 'URGENT'] },
+      status: { in: ['OPEN', 'IN_PROGRESS'] },
+      unit: { propertyId: { in: propertyIds } },
+    },
+    orderBy: [{ priority: 'asc' }, { createdAt: 'desc' }],
+    include: {
+      unit: { include: { property: { select: { name: true } } } },
+    },
+    take: limit,
+  });
+  return rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    subtitle: `${row.unit.property.name} / ${row.unit.label}`,
+    status: row.status,
+    priority: row.priority,
+    scheduledFor: row.scheduledFor,
+    href: `/maintenance/${row.id}`,
+  }));
+}
+
 async function getBlockedApprovals(ctx: RouteCtx): Promise<ApprovalRow[]> {
   const propertyIds = await getPropertyIds(ctx);
   const properties = propertyIds.length
@@ -565,7 +593,7 @@ export async function getStaffCommandCenter(
       console.error('[staff-analytics] lazy org snapshot hydrate failed', err);
     }
   }
-  const [currentSnapshot, priorSnapshot, properties, expiringLeases, topArrears, openMaintenance, blockedApprovals, series] =
+  const [currentSnapshot, priorSnapshot, properties, expiringLeases, topArrears, openMaintenance, urgentMaintenanceList, blockedApprovals, series] =
     await Promise.all([
       Promise.resolve(currentSnapshotRow),
       db.orgMonthlySnapshot.findFirst({ where: { orgId: ctx.orgId, periodStart: priorPeriodStart } }),
@@ -573,6 +601,7 @@ export async function getStaffCommandCenter(
       getExpiringLeases(ctx, 30),
       getTopArrears(ctx),
       getOpenMaintenance(ctx),
+      getUrgentMaintenance(ctx),
       getBlockedApprovals(ctx),
       getOrgSnapshotSeries(ctx, periodStart, 24),
     ]);
@@ -663,6 +692,7 @@ export async function getStaffCommandCenter(
     occupancyBreakdown,
     leaseExpiryBuckets,
     maintenanceSpendTrend,
+    urgentMaintenanceList,
     openMaintenance,
     blockedApprovals,
     portfolioPins: properties

@@ -331,3 +331,26 @@ describe('getStaffCommandCenter — leaseExpiryBuckets', () => {
     assert.equal(byId['90+'], 1);
   });
 });
+
+describe('getStaffCommandCenter — urgentMaintenanceList', () => {
+  it('returns the top 5 OPEN/IN_PROGRESS HIGH/URGENT requests', async () => {
+    db.property.findMany = async () => [
+      { id: 'p1', name: 'A', latitude: null, longitude: null, suburb: null, city: 'Johannesburg', province: 'GP', addressLine1: '', landlord: null, assignedAgent: null },
+    ];
+    db.maintenanceRequest.findMany = async (args: any) => {
+      // Only assert on the urgent-maintenance call (which has priority filter)
+      if (args?.where?.priority) {
+        assert.deepEqual(args.where.priority, { in: ['HIGH', 'URGENT'] });
+        assert.deepEqual(args.where.status, { in: ['OPEN', 'IN_PROGRESS'] });
+        return [
+          { id: 'm1', title: 'Burst geyser', priority: 'URGENT', status: 'OPEN', scheduledFor: null, unit: { label: '12B', property: { name: 'Acme Tower' } } },
+          { id: 'm2', title: 'Power out', priority: 'HIGH', status: 'IN_PROGRESS', scheduledFor: null, unit: { label: '5A', property: { name: 'Beta House' } } },
+        ];
+      }
+      return [];
+    };
+    const result = await getStaffCommandCenter(ROUTE_CTX);
+    assert.equal(result.urgentMaintenanceList.length, 2);
+    assert.equal(result.urgentMaintenanceList[0].title, 'Burst geyser');
+  });
+});

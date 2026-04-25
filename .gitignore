@@ -49,3 +49,4 @@ next-env.d.ts
 .vercel
 .warm.log
 .geocode.log
+.superpowers/

@@ -29,9 +29,7 @@ export function MarketingHeader() {
     <header
       className="fixed inset-x-0 top-0 z-50 transition-all"
       style={{
-        background: scrolled ? 'rgba(253,252,250,0.88)' : 'rgba(253,252,250,0.6)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
+        background: '#fdfcfa',
         boxShadow: scrolled ? `0 1px 0 ${INK}14` : 'none',
       }}
     >

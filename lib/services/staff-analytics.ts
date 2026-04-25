@@ -421,7 +421,7 @@ async function getTopArrears(ctx: RouteCtx): Promise<ArrearsRow[]> {
         },
       },
     },
-    take: 5,
+    take: 10,
   });
 
   const mapped = rows.map((row) => ({
@@ -517,7 +517,7 @@ async function getUrgentMaintenance(ctx: RouteCtx, limit = 5): Promise<Maintenan
       status: { in: ['OPEN', 'IN_PROGRESS'] },
       unit: { propertyId: { in: propertyIds } },
     },
-    orderBy: [{ priority: 'asc' }, { createdAt: 'desc' }],
+    orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
     include: {
       unit: { include: { property: { select: { name: true } } } },
     },
@@ -755,7 +755,8 @@ function computeHealthScore(row: { occupiedUnits: number; totalUnits: number; ar
   const occupancy = row.totalUnits > 0 ? row.occupiedUnits / row.totalUnits : 0;
   const collectionRate = row.grossRentCents > 0 ? Math.max(0, 1 - row.arrearsCents / row.grossRentCents) : 1;
   const urgentRatio = row.totalUnits > 0 ? Math.min(1, row.openMaintenance / row.totalUnits) : 0;
-  const score = 0.4 * collectionRate + 0.3 * occupancy + 0.2 * (1 - urgentRatio) + 0.1 * 1;
+  // 0.1 weight for leaseExpiryRisk lands in Phase 3; until then, max score is 90.
+  const score = 0.4 * collectionRate + 0.3 * occupancy + 0.2 * (1 - urgentRatio);
   return Math.round(Math.max(0, Math.min(1, score)) * 100);
 }
 

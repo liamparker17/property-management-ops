@@ -71,6 +71,7 @@ export type StaffCommandCenter = {
   periodStart: Date;
   kpis: KpiMap;
   priorKpis: Partial<KpiMap>;
+  kpiSparks: Partial<Record<KpiId, number[]>>;
   expiringLeases: ExpiringLeaseRow[];
   topArrears: ArrearsRow[];
   openMaintenance: MaintenanceRow[];
@@ -267,6 +268,25 @@ function snapshotKpis(snapshot?: {
     AGENT_OPEN_TICKETS: 0,
     AGENT_UPCOMING_INSPECTIONS: 0,
   } satisfies KpiMap;
+}
+
+function buildKpiSparks(rows: Array<{
+  occupiedUnits: number;
+  totalUnits: number;
+  arrearsCents: number;
+  billedCents: number;
+  collectedCents: number;
+  trustBalanceCents: number;
+}>): Partial<Record<KpiId, number[]>> {
+  return {
+    OCCUPANCY_PCT: rows.map((r) => percent(r.occupiedUnits, r.totalUnits)),
+    ARREARS_CENTS: rows.map((r) => r.arrearsCents),
+    COLLECTION_RATE: rows.map((r) => percent(r.collectedCents, r.billedCents)),
+    TRUST_BALANCE: rows.map((r) => r.trustBalanceCents),
+    RENT_BILLED: rows.map((r) => r.billedCents),
+    RENT_COLLECTED: rows.map((r) => r.collectedCents),
+    NET_RENTAL_INCOME: rows.map((r) => r.collectedCents), // refined in Phase 2
+  };
 }
 
 async function getExpiringLeases(
@@ -476,6 +496,19 @@ export async function getStaffCommandCenter(
   const firstNonZero = rawTrend.findIndex((p) => p.y > 0 || (p.y2 ?? 0) > 0);
   const collectionsTrend = firstNonZero > 0 ? rawTrend.slice(firstNonZero) : rawTrend;
 
+  const sparkRows = Array.from({ length: 12 }, (_, index) => addMonths(periodStart, index - 11)).map((month) => {
+    const row = seriesMap.get(keyForMonth(month));
+    return {
+      occupiedUnits: row?.occupiedUnits ?? 0,
+      totalUnits: row?.totalUnits ?? 0,
+      arrearsCents: row?.arrearsCents ?? 0,
+      billedCents: row?.billedCents ?? 0,
+      collectedCents: row?.collectedCents ?? 0,
+      trustBalanceCents: row?.trustBalanceCents ?? 0,
+    };
+  });
+  const kpiSparks = buildKpiSparks(sparkRows);
+
   const statusCountsSource = await db.maintenanceRequest.findMany({
     where: { orgId: ctx.orgId, status: { in: ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'] } },
     select: { status: true },
@@ -505,6 +538,7 @@ export async function getStaffCommandCenter(
       netRentalIncome: priorNet,
       urgentMaintenance: 0, // prior-period urgent count is not tracked yet; show as 0 → no delta
     }),
+    kpiSparks,
     expiringLeases,
     topArrears,
     openMaintenance,

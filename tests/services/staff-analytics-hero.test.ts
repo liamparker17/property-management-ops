@@ -108,3 +108,45 @@ describe('getStaffCommandCenter — Phase 1 hero KPIs', () => {
     assert.equal(observedWhere.orgId, ORG_ID);
   });
 });
+
+describe('getStaffCommandCenter — kpiSparks', () => {
+  beforeEach(() => {
+    db.orgMonthlySnapshot.findMany = async (args: any) => {
+      const periodTo = args.where.periodStart.lte as Date;
+      const months: Date[] = [];
+      for (let i = 11; i >= 0; i -= 1) {
+        const d = new Date(Date.UTC(periodTo.getUTCFullYear(), periodTo.getUTCMonth() - i, 1));
+        months.push(d);
+      }
+      return months.map((periodStart, idx) => ({
+        orgId: ORG_ID,
+        periodStart,
+        occupiedUnits: 17 + (idx % 3),
+        totalUnits: 20,
+        arrearsCents: 5_000_00 + idx * 100_00,
+        billedCents: 1_000_000_00 + idx * 10_000_00,
+        collectedCents: 950_000_00 + idx * 9_500_00,
+        trustBalanceCents: 400_000_00,
+        unallocatedCents: 0,
+        openMaintenance: 10,
+        expiringLeases30: 2,
+        blockedApprovals: 0,
+      }));
+    };
+  });
+
+  it('returns a 12-element series for each headline KPI', async () => {
+    const result = await getStaffCommandCenter(ROUTE_CTX);
+    for (const id of ['OCCUPANCY_PCT', 'ARREARS_CENTS', 'COLLECTION_RATE', 'TRUST_BALANCE', 'RENT_BILLED', 'RENT_COLLECTED'] as const) {
+      assert.ok(result.kpiSparks[id], `missing kpiSparks.${id}`);
+      assert.equal(result.kpiSparks[id]!.length, 12, `${id} series length`);
+    }
+  });
+
+  it('OCCUPANCY_PCT series values are bounded 0..100', async () => {
+    const result = await getStaffCommandCenter(ROUTE_CTX);
+    for (const v of result.kpiSparks.OCCUPANCY_PCT!) {
+      assert.ok(v >= 0 && v <= 100, `out-of-range pct ${v}`);
+    }
+  });
+});

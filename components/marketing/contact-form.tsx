@@ -128,7 +128,7 @@ export function ContactForm() {
         className="mt-1 h-10 w-full gap-2 text-[15px] font-medium shadow-sm shadow-primary/25"
       >
         {pending && <Loader2 className="h-4 w-4 animate-spin" />}
-        {pending ? 'Sendingâ€¦' : 'Send message'}
+        {pending ? 'Sending…' : 'Send message'}
       </Button>
     </form>
   );

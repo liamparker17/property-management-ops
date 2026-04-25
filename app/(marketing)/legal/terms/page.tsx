@@ -33,7 +33,7 @@ export default function TermsPage() {
           <div className="border-l-2 p-6" style={{ borderColor: T.gold, background: T.cream }}>
             <p className="m-0">
               <strong>These terms are under review by our legal counsel.</strong> The current operational
-              version is available on request â€” contact{' '}
+              version is available on request — contact{' '}
               <a href="mailto:hello@regalis.co.za" className="underline" style={{ color: T.inkSoft }}>
                 hello@regalis.co.za
               </a>{' '}

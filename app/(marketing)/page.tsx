@@ -60,7 +60,7 @@ export default function LandingPage() {
               className="group text-[12px] font-medium uppercase tracking-[0.12em] no-underline transition"
               style={{ color: T.textOnDark }}
             >
-              See product <span className="ml-1 inline-block transition group-hover:translate-x-1">-&gt;</span>
+              See product <ArrowRight size={14} className="ml-1 inline-block transition group-hover:translate-x-1" />
             </Link>
           </div>
         </div>

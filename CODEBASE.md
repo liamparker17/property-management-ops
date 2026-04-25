@@ -3,7 +3,7 @@
 > **This is the LLM source of truth.** Check here BEFORE reading any file.
 > Last updated: 2026-04-24 (M2 — Itemised billing, payments, trust, statements)
 
-> Refresh note: 2026-04-24 M5 landed â€” year-end reporting, tax packs, backup & DR.
+> Refresh note: 2026-04-24 M5 landed — year-end reporting, tax packs, backup & DR.
 
 ## Stack
 
@@ -127,9 +127,9 @@ Next.js 16.2 | React 19 | TypeScript strict | Prisma 7 + Neon Postgres | NextAut
 | TrustAccount | orgId, landlordId, name, bankRef?, openedAt | org, landlord, entries — unique(orgId, landlordId) (per-landlord) |
 | TrustLedgerEntry | trustAccountId, landlordId (required, must match account), occurredAt, type (LedgerEntryType), amountCents, tenantId?, leaseId?, sourceType?, sourceId?, note? | trustAccount, landlord, tenant?, lease? |
 | ReconciliationRun | orgId, periodStart, periodEnd, status, summary? (Json) | org, exceptions |
-| FinancialYear | orgId, startDate, endDate, lockedAt?, lockedById? | org, lockedBy?, reconciliations, taxPacks â€” unique(orgId, startDate) |
+| FinancialYear | orgId, startDate, endDate, lockedAt?, lockedById? | org, lockedBy?, reconciliations, taxPacks — unique(orgId, startDate) |
 | AnnualReconciliation | orgId, yearId, scopeType, scopeId?, summary, storageKey?, generatedAt | org, year |
-| TaxPack | orgId, yearId, subjectType, subjectId, totalsJson, storageKey?, csvKey?, previousStorageKeys[], previousCsvKeys[], regeneratedAt?, regenerationCount, transmissionAdapter, transmissionResult? | org, year, lines â€” unique(orgId, yearId, subjectType, subjectId) |
+| TaxPack | orgId, yearId, subjectType, subjectId, totalsJson, storageKey?, csvKey?, previousStorageKeys[], previousCsvKeys[], regeneratedAt?, regenerationCount, transmissionAdapter, transmissionResult? | org, year, lines — unique(orgId, yearId, subjectType, subjectId) |
 | TaxPackLine | packId, category, subCategory?, amountCents, evidenceRefs? (Json) | pack |
 | ReconciliationException | runId, kind (UNMATCHED_BANK_TX/UNALLOCATED_RECEIPT/OVER_ALLOCATED/MISSING_LEDGER_ENTRY/BALANCE_MISMATCH), entityType, entityId, detail (Json), resolvedAt?, resolvedById? | run |
 | Statement | orgId, type (StatementType), subjectType, subjectId, periodStart, periodEnd, openingBalanceCents, closingBalanceCents, totalsJson, storageKey?, generatedAt | org, lines |
@@ -205,8 +205,8 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | reports/inspection-pdf.ts | `renderInspectionReport(data)` — deterministic HTML/PDF buffer for an Inspection with nested areas/items/photos + signatures; same idiom as `lease-template.ts` | — |
 | reports/settlement-pdf.ts | `renderSettlementStatement(data)` — deterministic HTML/PDF buffer summarising deposit held, charges applied, refund due, balance owed | 87 |
 
-| reports/tax-pack-pdf.ts | `renderTaxPackPdf(input)` â€” deterministic accountant-ready HTML/PDF buffer for landlord/tenant tax support packs with totals, category breakdown, audit-chain evidence, and the approved encryption disclosure copy | 158 |
-| reports/tax-pack-csv.ts | `renderTaxPackCsv(input)` â€” deterministic RFC 4180 CSV export for tax packs with one row per evidence ref (or a blank-evidence row fallback) | 65 |
+| reports/tax-pack-pdf.ts | `renderTaxPackPdf(input)` — deterministic accountant-ready HTML/PDF buffer for landlord/tenant tax support packs with totals, category breakdown, audit-chain evidence, and the approved encryption disclosure copy | 158 |
+| reports/tax-pack-csv.ts | `renderTaxPackCsv(input)` — deterministic RFC 4180 CSV export for tax packs with one row per evidence ref (or a blank-evidence row fallback) | 65 |
 
 **Manifest refresh (2026-04-23) - supersedes older `lib/email.ts` entry above**
 | File | Exports | Lines |
@@ -221,7 +221,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | properties.ts | `listProperties()`, `getProperty()`, `createProperty()`, `updateProperty()`, `softDeleteProperty()` | 51 |
 | tenants.ts | `listTenants()`, `getTenant()`, `detectDuplicates()`, `createTenant()`, `updateTenant()`, `archiveTenant()`, `unarchiveTenant()`, `deleteTenant()` (hard delete — requires archived; cascades LeaseTenant, MaintenanceRequest, LeaseSignature, LeaseReviewRequest, linked User; nulls Document.tenantId), `inviteTenantToPortal()` — creates a TENANT User, links via Tenant.userId, returns one-time temp password | 170 |
 | units.ts | `UnitOccupancy` type, `getUnitOccupancy()`, `listUnits()`, `getUnit()`, `createUnit()`, `updateUnit()`, `deleteUnit()` | 97 |
-| documents.ts | `uploadLeaseAgreement()`, `getDocumentForDownload()` â€” lease-doc upload now records SHA-256 checksum + `encryptionNote="provider-default"` on insert | 40 |
+| documents.ts | `uploadLeaseAgreement()`, `getDocumentForDownload()` — lease-doc upload now records SHA-256 checksum + `encryptionNote="provider-default"` on insert | 40 |
 | team.ts | `listTeam()`, `createTeamUser()`, `updateTeamUser()`, `getOrg()`, `updateOrg()`, `changeOwnPassword()` | 102 |
 | tenant-portal.ts | `getTenantProfile()`, `getActiveLeaseForTenant()`, `getPendingLeaseForTenant()` (DRAFT lease w/ signatures+reviewRequests filtered to tenant), `getTenantLeases()`, `listTenantDocuments()`, `getTenantDocumentForDownload()` — all scoped by User.id → Tenant.userId | 106 |
 | signatures.ts | `signLeaseAsTenant()`, `getTenantSignatureForLease()`, `listLeaseSignatures(ctx)`, `createReviewRequest()`, `listTenantReviewRequests()`, `listLeaseReviewRequests(ctx)`, `respondToReviewRequest(ctx)` — M4 routes lease-signature/review comms through `createNotification()` instead of direct SMS sends | 231 |
@@ -257,9 +257,9 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | stitch-payments.ts | `InitiateInboundPaymentInput`, `initiateInboundPayment` (returns hosted-checkout redirect URL), `StitchWebhookResult`, `handleStitchWebhook` (signature-verified; creates `PaymentReceipt { source: STITCH }` + auto-allocates), `isStitchPaymentsConnectedAnywhere` | 148 |
 | debicheck.ts | `createMandateRequest`, `submitMonthlyCollection` (cap-aware; refuses when `amountCents > upperCapCents`), `retryUnpaidCollection` (day +2; flips invoice to OVERDUE + notifies when still unpaid), `isDebicheckConnectedAnywhere`, `applyMandateWebhookStatus` | 175 |
 
-| year-end.ts | `openYear()`, `lockYear()`, `unlockYearForRegeneration()`, `getYearOrThrow()`, `listYears()`, `generateAnnualReconciliation()` â€” financial-year lifecycle + deterministic annual reconciliation summaries | 270 |
+| year-end.ts | `openYear()`, `lockYear()`, `unlockYearForRegeneration()`, `getYearOrThrow()`, `listYears()`, `generateAnnualReconciliation()` — financial-year lifecycle + deterministic annual reconciliation summaries | 270 |
 | tax-reporting.ts | `TaxPackTotals`, `TaxPackEvidenceRef`, `TransmissionAdapter`, `recordOnlyAdapter`, `registerTransmissionAdapter()`, `generateLandlordTaxPack()`, `generateTenantTaxPack()`, `getPackOrThrow()`, `listPacksForYear()`, `regenerateTaxPackPdf()`, `regenerateTaxPackCsv()`, `TaxPackWithLines`, `TaxPackSummary` | 705 |
-| backup.ts | `runDailyBackup()`, `runBlobIndex()`, `runVerification()`, `pruneOldBackups()`, `latestSnapshot()`, `latestVerification()`, `__setBackupRuntimeForTests()` â€” pg_dump/blob-manifest backup service with weekly verification and 730-day retention pruning | 372 |
+| backup.ts | `runDailyBackup()`, `runBlobIndex()`, `runVerification()`, `pruneOldBackups()`, `latestSnapshot()`, `latestVerification()`, `__setBackupRuntimeForTests()` — pg_dump/blob-manifest backup service with weekly verification and 730-day retention pruning | 372 |
 
 ### lib/zod/
 | File | Exports | Lines |
@@ -679,19 +679,19 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 
 | File | Type | Exports | Lines |
 |------|------|---------|-------|
-| empty-state.tsx | Client | `EmptyState` â€” shared empty-state panel with optional icon + action | 43 |
-| page-header.tsx | Client | `PageHeader` â€” shared eyebrow/title/description/action header shell | 46 |
-| stat-card.tsx | Client | `StatTone`, `StatCard` â€” editorial metric card with left accent rail | 64 |
-| lease-status-badge.tsx | Server | `LeaseStatusBadge` â€” lease state pill with editorial status colours | 39 |
-| occupancy-badge.tsx | Server | `OccupancyBadge` â€” occupancy pill (VACANT/OCCUPIED/UPCOMING/CONFLICT) | 33 |
-| maintenance-badges.tsx | Server | `MaintenanceStatusBadge`, `MaintenancePriorityBadge` â€” maintenance status/priority pills | 36 |
-| nav/breadcrumbs.tsx | Client | `Breadcrumbs` â€” pathname-based breadcrumb trail for internal layouts | 70 |
-| nav/mobile-nav.tsx | Client | `MobileNav` â€” mobile drawer nav wrapper around `SidebarBody` | 97 |
-| nav/sidebar.tsx | Client | `getStaffNavItems()`, `Sidebar`, `SidebarBody`, `DesktopSidebar` â€” shared editorial sidebar shell for portal nav, incl. year-end, tax-pack, and admin backup destinations | 193 |
-| nav/tenant-sidebar.tsx | Client | `getTenantNavItems()`, `TenantSidebar`, `DesktopTenantSidebar` â€” tenant portal nav config + wrappers, now including `/tenant/reports` | 32 |
-| nav/agent-sidebar.tsx | Client | `getAgentNavItems()`, `AgentSidebar`, `DesktopAgentSidebar` â€” agent portal nav config + wrappers (dashboard-only until more routes land) | 29 |
-| nav/landlord-sidebar.tsx | Client | `getLandlordNavItems()`, `LandlordSidebar`, `DesktopLandlordSidebar` â€” landlord portal nav config + wrappers for dashboard, invoices, statements, and reports | 29 |
-| nav/top-bar.tsx | Server | `TopBar` â€” internal top bar with breadcrumbs, theme toggle, account, sign out | 53 |
+| empty-state.tsx | Client | `EmptyState` — shared empty-state panel with optional icon + action | 43 |
+| page-header.tsx | Client | `PageHeader` — shared eyebrow/title/description/action header shell | 46 |
+| stat-card.tsx | Client | `StatTone`, `StatCard` — editorial metric card with left accent rail | 64 |
+| lease-status-badge.tsx | Server | `LeaseStatusBadge` — lease state pill with editorial status colours | 39 |
+| occupancy-badge.tsx | Server | `OccupancyBadge` — occupancy pill (VACANT/OCCUPIED/UPCOMING/CONFLICT) | 33 |
+| maintenance-badges.tsx | Server | `MaintenanceStatusBadge`, `MaintenancePriorityBadge` — maintenance status/priority pills | 36 |
+| nav/breadcrumbs.tsx | Client | `Breadcrumbs` — pathname-based breadcrumb trail for internal layouts | 70 |
+| nav/mobile-nav.tsx | Client | `MobileNav` — mobile drawer nav wrapper around `SidebarBody` | 97 |
+| nav/sidebar.tsx | Client | `getStaffNavItems()`, `Sidebar`, `SidebarBody`, `DesktopSidebar` — shared editorial sidebar shell for portal nav, incl. year-end, tax-pack, and admin backup destinations | 193 |
+| nav/tenant-sidebar.tsx | Client | `getTenantNavItems()`, `TenantSidebar`, `DesktopTenantSidebar` — tenant portal nav config + wrappers, now including `/tenant/reports` | 32 |
+| nav/agent-sidebar.tsx | Client | `getAgentNavItems()`, `AgentSidebar`, `DesktopAgentSidebar` — agent portal nav config + wrappers (dashboard-only until more routes land) | 29 |
+| nav/landlord-sidebar.tsx | Client | `getLandlordNavItems()`, `LandlordSidebar`, `DesktopLandlordSidebar` — landlord portal nav config + wrappers for dashboard, invoices, statements, and reports | 29 |
+| nav/top-bar.tsx | Server | `TopBar` — internal top bar with breadcrumbs, theme toggle, account, sign out | 53 |
 
 **Marketing refresh (2026-04-23) - supersedes older marketing route/component entries above where duplicated**
 | Route / File | Purpose / Export | Lines |

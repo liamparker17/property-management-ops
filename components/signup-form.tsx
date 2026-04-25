@@ -27,9 +27,9 @@ const ROLE_LABELS: Record<(typeof SIGNUP_ROLES)[number], string> = {
 };
 
 const SIZE_LABELS: Record<(typeof SIGNUP_PORTFOLIO_SIZES)[number], string> = {
-  '1-10': '1â€“10 units',
-  '11-50': '11â€“50 units',
-  '51-250': '51â€“250 units',
+  '1-10': '1–10 units',
+  '11-50': '11–50 units',
+  '51-250': '51–250 units',
   '250+': '250+ units',
 };
 
@@ -230,7 +230,7 @@ export function SignupForm() {
         className="mt-1 h-10 w-full gap-2 text-[15px] font-medium shadow-sm shadow-primary/25"
       >
         {pending && <Loader2 className="h-4 w-4 animate-spin" />}
-        {pending ? 'Sendingâ€¦' : 'Request access'}
+        {pending ? 'Sending…' : 'Request access'}
       </Button>
 
       <p className="text-center text-[13px]" style={{ color: 'rgba(0,16,48,0.55)' }}>

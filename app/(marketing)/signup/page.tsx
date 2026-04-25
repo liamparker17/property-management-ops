@@ -58,7 +58,7 @@ export default function SignupPage() {
           <ul className="space-y-3 text-[13px]" style={{ color: T.textOnDark }}>
             <li className="flex gap-3">
               <span className="mt-2 block h-px w-4 flex-shrink-0" style={{ background: T.gold }} />
-              Built for SA rentals â€” TPN-ready, SARS-ready
+              Built for SA rentals — TPN-ready, SARS-ready
             </li>
             <li className="flex gap-3">
               <span className="mt-2 block h-px w-4 flex-shrink-0" style={{ background: T.gold }} />

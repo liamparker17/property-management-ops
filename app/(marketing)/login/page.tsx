@@ -45,7 +45,7 @@ export default function LoginPage() {
             <em style={{ color: T.goldSoft }}>workspace.</em>
           </h2>
           <p className="max-w-sm text-[14px] leading-[1.75]" style={{ color: T.textOnDark }}>
-            Leases, tenants, and maintenance â€” one focused workspace for South African property managers.
+            Leases, tenants, and maintenance — one focused workspace for South African property managers.
           </p>
         </div>
 

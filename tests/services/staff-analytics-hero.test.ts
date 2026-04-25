@@ -277,6 +277,31 @@ describe('getStaffCommandCenter — occupancyBreakdown', () => {
   });
 });
 
+describe('getStaffCommandCenter — maintenanceSpendTrend', () => {
+  it('returns a 12-month trend summed from landlord snapshots', async () => {
+    db.landlordMonthlySnapshot.groupBy = async (args: any) => {
+      const lte = args.where.periodStart.lte as Date;
+      const gte = args.where.periodStart.gte as Date;
+      const months: Date[] = [];
+      const cursor = new Date(gte);
+      while (cursor <= lte) {
+        months.push(new Date(cursor));
+        cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+      }
+      return months.map((d, idx) => ({
+        periodStart: d,
+        _sum: { maintenanceSpendCents: 5_000_00 + idx * 1_000_00 },
+      }));
+    };
+    const result = await getStaffCommandCenter(ROUTE_CTX);
+    assert.equal(result.maintenanceSpendTrend.length, 12);
+    for (const point of result.maintenanceSpendTrend) {
+      assert.equal(typeof point.x, 'string');
+      assert.equal(typeof point.y, 'number');
+    }
+  });
+});
+
 describe('getStaffCommandCenter — leaseExpiryBuckets', () => {
   beforeEach(() => {
     db.property.findMany = async () => [

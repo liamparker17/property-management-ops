@@ -79,6 +79,7 @@ export type StaffCommandCenter = {
   arrearsAging: AgingSegment[];
   occupancyBreakdown: { occupied: number; vacant: number; total: number };
   leaseExpiryBuckets: { id: string; label: string; count: number }[];
+  maintenanceSpendTrend: ChartPoint[];
   openMaintenance: MaintenanceRow[];
   blockedApprovals: ApprovalRow[];
   portfolioPins: PortfolioPin[];
@@ -240,6 +241,23 @@ async function getOrgSnapshotSeries(ctx: RouteCtx, periodStart: Date, months = 1
     orderBy: { periodStart: 'asc' },
   });
   return rows;
+}
+
+async function getMaintenanceSpendTrend(ctx: RouteCtx, periodStart: Date): Promise<ChartPoint[]> {
+  const from = addMonths(periodStart, -11);
+  const groups = await db.landlordMonthlySnapshot.groupBy({
+    by: ['periodStart'],
+    where: { orgId: ctx.orgId, periodStart: { gte: from, lte: periodStart } },
+    _sum: { maintenanceSpendCents: true },
+  });
+  const map = new Map<string, number>();
+  for (const g of groups) {
+    map.set(keyForMonth(g.periodStart as Date), g._sum.maintenanceSpendCents ?? 0);
+  }
+  return Array.from({ length: 12 }, (_, i) => addMonths(periodStart, i - 11)).map((m) => ({
+    x: labelForMonth(m),
+    y: map.get(keyForMonth(m)) ?? 0,
+  }));
 }
 
 function snapshotKpis(snapshot?: {
@@ -613,12 +631,13 @@ export async function getStaffCommandCenter(
     y: statusCounts.get(status) ?? 0,
   }));
 
-  const [urgentCount, currentNet, priorNet, arrearsAging, leaseExpiryBuckets] = await Promise.all([
+  const [urgentCount, currentNet, priorNet, arrearsAging, leaseExpiryBuckets, maintenanceSpendTrend] = await Promise.all([
     getUrgentMaintenanceCount(ctx),
     computeNetRentalIncome(ctx, periodStart, currentSnapshot?.collectedCents ?? 0),
     computeNetRentalIncome(ctx, priorPeriodStart, priorSnapshot?.collectedCents ?? 0),
     getArrearsAging(ctx, now),
     getLeaseExpiryBuckets(ctx, now),
+    getMaintenanceSpendTrend(ctx, periodStart),
   ]);
 
   const occupancyBreakdown = {
@@ -643,6 +662,7 @@ export async function getStaffCommandCenter(
     arrearsAging,
     occupancyBreakdown,
     leaseExpiryBuckets,
+    maintenanceSpendTrend,
     openMaintenance,
     blockedApprovals,
     portfolioPins: properties

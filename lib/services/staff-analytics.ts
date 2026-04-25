@@ -1,4 +1,4 @@
-import type { ApprovalKind, MaintenanceStatus } from '@prisma/client';
+import type { ApprovalKind, InvoiceLineItemKind, MaintenanceStatus } from '@prisma/client';
 
 import type { ChartPoint } from '@/components/analytics/charts/area-chart';
 import type { ComboChartPoint } from '@/components/analytics/charts/combo-chart';
@@ -81,6 +81,7 @@ export type StaffCommandCenter = {
   leaseExpiryBuckets: { id: string; label: string; count: number }[];
   maintenanceSpendTrend: ChartPoint[];
   urgentMaintenanceList: MaintenanceRow[];
+  utilityRecovery: { billedCents: number; collectedCents: number; shortfallCents: number };
   openMaintenance: MaintenanceRow[];
   blockedApprovals: ApprovalRow[];
   portfolioPins: PortfolioPin[];
@@ -576,6 +577,42 @@ async function computeNetRentalIncome(
   return collectedCents - maint;
 }
 
+async function getUtilityRecovery(ctx: RouteCtx, periodStart: Date): Promise<{ billedCents: number; collectedCents: number; shortfallCents: number }> {
+  const propertyIds = await getPropertyIds(ctx);
+  if (propertyIds.length === 0) return { billedCents: 0, collectedCents: 0, shortfallCents: 0 };
+  const periodEnd = addMonths(periodStart, 1);
+  const utilityKinds: InvoiceLineItemKind[] = ['UTILITY_WATER', 'UTILITY_ELECTRICITY', 'UTILITY_GAS', 'UTILITY_SEWER', 'UTILITY_REFUSE'];
+  const billed = await db.invoiceLineItem.aggregate({
+    where: {
+      kind: { in: utilityKinds },
+      invoice: {
+        orgId: ctx.orgId,
+        periodStart: { gte: periodStart, lt: periodEnd },
+        lease: { unit: { propertyId: { in: propertyIds } } },
+      },
+    },
+    _sum: { amountCents: true },
+  });
+  const collected = await db.allocation.aggregate({
+    where: {
+      reversedAt: null,
+      target: 'INVOICE_LINE_ITEM',
+      invoiceLineItem: {
+        kind: { in: utilityKinds },
+        invoice: {
+          orgId: ctx.orgId,
+          periodStart: { gte: periodStart, lt: periodEnd },
+          lease: { unit: { propertyId: { in: propertyIds } } },
+        },
+      },
+    },
+    _sum: { amountCents: true },
+  });
+  const billedCents = (billed._sum as { amountCents?: number | null } | undefined)?.amountCents ?? 0;
+  const collectedCents = (collected._sum as { amountCents?: number | null } | undefined)?.amountCents ?? 0;
+  return { billedCents, collectedCents, shortfallCents: Math.max(0, billedCents - collectedCents) };
+}
+
 export async function getStaffCommandCenter(
   ctx: RouteCtx,
   filters?: { periodStart?: Date; compare?: 'prior' | 'yoy' | 'off' },
@@ -660,13 +697,14 @@ export async function getStaffCommandCenter(
     y: statusCounts.get(status) ?? 0,
   }));
 
-  const [urgentCount, currentNet, priorNet, arrearsAging, leaseExpiryBuckets, maintenanceSpendTrend] = await Promise.all([
+  const [urgentCount, currentNet, priorNet, arrearsAging, leaseExpiryBuckets, maintenanceSpendTrend, utilityRecovery] = await Promise.all([
     getUrgentMaintenanceCount(ctx),
     computeNetRentalIncome(ctx, periodStart, currentSnapshot?.collectedCents ?? 0),
     computeNetRentalIncome(ctx, priorPeriodStart, priorSnapshot?.collectedCents ?? 0),
     getArrearsAging(ctx, now),
     getLeaseExpiryBuckets(ctx, now),
     getMaintenanceSpendTrend(ctx, periodStart),
+    getUtilityRecovery(ctx, periodStart),
   ]);
 
   const occupancyBreakdown = {
@@ -693,6 +731,7 @@ export async function getStaffCommandCenter(
     leaseExpiryBuckets,
     maintenanceSpendTrend,
     urgentMaintenanceList,
+    utilityRecovery,
     openMaintenance,
     blockedApprovals,
     portfolioPins: properties

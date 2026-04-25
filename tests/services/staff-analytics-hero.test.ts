@@ -8,6 +8,8 @@ let originalOrgSnapshotFindFirst: any;
 let originalOrgSnapshotFindMany: any;
 let originalLandlordSnapshotAggregate: any;
 let originalLandlordSnapshotGroupBy: any;
+let originalInvoiceLineItemAggregate: any;
+let originalAllocationAggregate: any;
 let originalMaintenanceCount: any;
 let originalPropertyFindMany: any;
 let originalLeaseFindMany: any;
@@ -26,6 +28,8 @@ before(async () => {
   originalOrgSnapshotFindMany = db.orgMonthlySnapshot.findMany;
   originalLandlordSnapshotAggregate = db.landlordMonthlySnapshot.aggregate;
   originalLandlordSnapshotGroupBy = db.landlordMonthlySnapshot.groupBy;
+  originalInvoiceLineItemAggregate = db.invoiceLineItem.aggregate;
+  originalAllocationAggregate = db.allocation.aggregate;
   originalMaintenanceCount = db.maintenanceRequest.count;
   originalMaintenanceFindMany = db.maintenanceRequest.findMany;
   originalPropertyFindMany = db.property.findMany;
@@ -42,6 +46,8 @@ after(() => {
   db.orgMonthlySnapshot.findMany = originalOrgSnapshotFindMany;
   db.landlordMonthlySnapshot.aggregate = originalLandlordSnapshotAggregate;
   db.landlordMonthlySnapshot.groupBy = originalLandlordSnapshotGroupBy;
+  db.invoiceLineItem.aggregate = originalInvoiceLineItemAggregate;
+  db.allocation.aggregate = originalAllocationAggregate;
   db.maintenanceRequest.count = originalMaintenanceCount;
   db.maintenanceRequest.findMany = originalMaintenanceFindMany;
   db.property.findMany = originalPropertyFindMany;
@@ -73,6 +79,10 @@ beforeEach(() => {
   db.orgMonthlySnapshot.findMany = async () => [];
   db.landlordMonthlySnapshot.aggregate = async () => ({ _sum: { maintenanceSpendCents: 92_000_00 } });
   db.landlordMonthlySnapshot.groupBy = async () => [];
+  db.invoiceLineItem = db.invoiceLineItem ?? {};
+  db.invoiceLineItem.aggregate = async () => ({ _sum: { amountCents: 0 } });
+  db.allocation = db.allocation ?? {};
+  db.allocation.aggregate = async () => ({ _sum: { amountCents: 0 } });
   db.maintenanceRequest.count = async () => 4;
   db.maintenanceRequest.findMany = async () => [];
   db.property.findMany = async () => [];
@@ -352,5 +362,23 @@ describe('getStaffCommandCenter — urgentMaintenanceList', () => {
     const result = await getStaffCommandCenter(ROUTE_CTX);
     assert.equal(result.urgentMaintenanceList.length, 2);
     assert.equal(result.urgentMaintenanceList[0].title, 'Burst geyser');
+  });
+});
+
+describe('getStaffCommandCenter — utilityRecovery', () => {
+  it('returns billedCents and collectedCents totals from utility line items', async () => {
+    db.property.findMany = async () => [
+      { id: 'p1', name: 'A', latitude: null, longitude: null, suburb: null, city: 'Johannesburg', province: 'GP', addressLine1: '', landlord: null, assignedAgent: null },
+    ];
+    db.invoiceLineItem.aggregate = async (args: any) => {
+      const isUtilityKind = (args.where.kind as any).in?.every((k: string) => k.startsWith('UTILITY_'));
+      assert.ok(isUtilityKind, 'where.kind must filter on UTILITY_*');
+      return { _sum: { amountCents: 200_000_00 } };
+    };
+    db.allocation.aggregate = async () => ({ _sum: { amountCents: 145_000_00 } });
+    const result = await getStaffCommandCenter(ROUTE_CTX);
+    assert.equal(result.utilityRecovery.billedCents, 200_000_00);
+    assert.equal(result.utilityRecovery.collectedCents, 145_000_00);
+    assert.equal(result.utilityRecovery.shortfallCents, 55_000_00);
   });
 });

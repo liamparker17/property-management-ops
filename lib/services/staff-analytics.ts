@@ -77,6 +77,7 @@ export type StaffCommandCenter = {
   expiringLeases: ExpiringLeaseRow[];
   topArrears: ArrearsRow[];
   arrearsAging: AgingSegment[];
+  occupancyBreakdown: { occupied: number; vacant: number; total: number };
   openMaintenance: MaintenanceRow[];
   blockedApprovals: ApprovalRow[];
   portfolioPins: PortfolioPin[];
@@ -584,6 +585,12 @@ export async function getStaffCommandCenter(
     getArrearsAging(ctx, now),
   ]);
 
+  const occupancyBreakdown = {
+    occupied: currentSnapshot?.occupiedUnits ?? 0,
+    vacant: Math.max(0, (currentSnapshot?.totalUnits ?? 0) - (currentSnapshot?.occupiedUnits ?? 0)),
+    total: currentSnapshot?.totalUnits ?? 0,
+  };
+
   return {
     periodStart,
     kpis: snapshotKpis(currentSnapshot ?? undefined, {
@@ -598,6 +605,7 @@ export async function getStaffCommandCenter(
     expiringLeases,
     topArrears,
     arrearsAging,
+    occupancyBreakdown,
     openMaintenance,
     blockedApprovals,
     portfolioPins: properties

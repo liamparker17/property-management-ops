@@ -263,3 +263,12 @@ describe('getStaffCommandCenter — arrearsAging', () => {
     assert.equal(byId['90+'], 40_000_00);
   });
 });
+
+describe('getStaffCommandCenter — occupancyBreakdown', () => {
+  it('returns occupied/vacant counts from the current org snapshot', async () => {
+    const result = await getStaffCommandCenter(ROUTE_CTX);
+    assert.equal(result.occupancyBreakdown.occupied, 18);
+    assert.equal(result.occupancyBreakdown.vacant, 2);
+    assert.equal(result.occupancyBreakdown.total, 20);
+  });
+});

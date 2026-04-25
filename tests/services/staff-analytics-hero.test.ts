@@ -7,6 +7,7 @@ let getStaffCommandCenter: any;
 let originalOrgSnapshotFindFirst: any;
 let originalOrgSnapshotFindMany: any;
 let originalLandlordSnapshotAggregate: any;
+let originalLandlordSnapshotGroupBy: any;
 let originalMaintenanceCount: any;
 let originalPropertyFindMany: any;
 let originalLeaseFindMany: any;
@@ -24,6 +25,7 @@ before(async () => {
   originalOrgSnapshotFindFirst = db.orgMonthlySnapshot.findFirst;
   originalOrgSnapshotFindMany = db.orgMonthlySnapshot.findMany;
   originalLandlordSnapshotAggregate = db.landlordMonthlySnapshot.aggregate;
+  originalLandlordSnapshotGroupBy = db.landlordMonthlySnapshot.groupBy;
   originalMaintenanceCount = db.maintenanceRequest.count;
   originalMaintenanceFindMany = db.maintenanceRequest.findMany;
   originalPropertyFindMany = db.property.findMany;
@@ -39,6 +41,7 @@ after(() => {
   db.orgMonthlySnapshot.findFirst = originalOrgSnapshotFindFirst;
   db.orgMonthlySnapshot.findMany = originalOrgSnapshotFindMany;
   db.landlordMonthlySnapshot.aggregate = originalLandlordSnapshotAggregate;
+  db.landlordMonthlySnapshot.groupBy = originalLandlordSnapshotGroupBy;
   db.maintenanceRequest.count = originalMaintenanceCount;
   db.maintenanceRequest.findMany = originalMaintenanceFindMany;
   db.property.findMany = originalPropertyFindMany;
@@ -69,6 +72,7 @@ beforeEach(() => {
   };
   db.orgMonthlySnapshot.findMany = async () => [];
   db.landlordMonthlySnapshot.aggregate = async () => ({ _sum: { maintenanceSpendCents: 92_000_00 } });
+  db.landlordMonthlySnapshot.groupBy = async () => [];
   db.maintenanceRequest.count = async () => 4;
   db.maintenanceRequest.findMany = async () => [];
   db.property.findMany = async () => [];
@@ -270,5 +274,35 @@ describe('getStaffCommandCenter — occupancyBreakdown', () => {
     assert.equal(result.occupancyBreakdown.occupied, 18);
     assert.equal(result.occupancyBreakdown.vacant, 2);
     assert.equal(result.occupancyBreakdown.total, 20);
+  });
+});
+
+describe('getStaffCommandCenter — leaseExpiryBuckets', () => {
+  beforeEach(() => {
+    db.property.findMany = async () => [
+      { id: 'p1', name: 'A', latitude: null, longitude: null, suburb: null, city: 'Johannesburg', province: 'GP', addressLine1: '', landlord: null, assignedAgent: null },
+    ];
+  });
+  it('returns 4 expiry buckets counting active leases by days-until-end', async () => {
+    const now = new Date();
+    db.lease.findMany = async (args: any) => {
+      // getLeaseExpiryBuckets uses select: { endDate: true }; getExpiringLeases uses include
+      if (args?.select?.endDate) {
+        return [
+          { endDate: new Date(now.getTime() + 10 * 86400000) },
+          { endDate: new Date(now.getTime() + 50 * 86400000) },
+          { endDate: new Date(now.getTime() + 50 * 86400000) },
+          { endDate: new Date(now.getTime() + 80 * 86400000) },
+          { endDate: new Date(now.getTime() + 200 * 86400000) },
+        ];
+      }
+      return [];
+    };
+    const result = await getStaffCommandCenter(ROUTE_CTX);
+    const byId = Object.fromEntries(result.leaseExpiryBuckets.map((b: any) => [b.id, b.count]));
+    assert.equal(byId['0-30'], 1);
+    assert.equal(byId['31-60'], 2);
+    assert.equal(byId['61-90'], 1);
+    assert.equal(byId['90+'], 1);
   });
 });

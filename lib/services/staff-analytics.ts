@@ -78,6 +78,7 @@ export type StaffCommandCenter = {
   topArrears: ArrearsRow[];
   arrearsAging: AgingSegment[];
   occupancyBreakdown: { occupied: number; vacant: number; total: number };
+  leaseExpiryBuckets: { id: string; label: string; count: number }[];
   openMaintenance: MaintenanceRow[];
   blockedApprovals: ApprovalRow[];
   portfolioPins: PortfolioPin[];
@@ -340,6 +341,40 @@ async function getExpiringLeases(
   }));
 }
 
+async function getLeaseExpiryBuckets(ctx: RouteCtx, now: Date): Promise<Array<{ id: string; label: string; count: number }>> {
+  const propertyIds = await getPropertyIds(ctx);
+  const empty = [
+    { id: '0-30', label: '0–30 days', count: 0 },
+    { id: '31-60', label: '31–60 days', count: 0 },
+    { id: '61-90', label: '61–90 days', count: 0 },
+    { id: '90+', label: '90+ days', count: 0 },
+  ];
+  if (propertyIds.length === 0) return empty;
+  const leases = await db.lease.findMany({
+    where: {
+      orgId: ctx.orgId,
+      state: { in: ['ACTIVE', 'RENEWED'] },
+      endDate: { gte: now },
+      unit: { propertyId: { in: propertyIds } },
+    },
+    select: { endDate: true },
+  });
+  const buckets: Record<'0-30' | '31-60' | '61-90' | '90+', number> = { '0-30': 0, '31-60': 0, '61-90': 0, '90+': 0 };
+  for (const l of leases) {
+    const days = Math.ceil((l.endDate.getTime() - now.getTime()) / 86400000);
+    if (days <= 30) buckets['0-30'] += 1;
+    else if (days <= 60) buckets['31-60'] += 1;
+    else if (days <= 90) buckets['61-90'] += 1;
+    else buckets['90+'] += 1;
+  }
+  return [
+    { id: '0-30', label: '0–30 days', count: buckets['0-30'] },
+    { id: '31-60', label: '31–60 days', count: buckets['31-60'] },
+    { id: '61-90', label: '61–90 days', count: buckets['61-90'] },
+    { id: '90+', label: '90+ days', count: buckets['90+'] },
+  ];
+}
+
 async function getTopArrears(ctx: RouteCtx): Promise<ArrearsRow[]> {
   const propertyIds = await getPropertyIds(ctx);
   if (propertyIds.length === 0) return [];
@@ -578,11 +613,12 @@ export async function getStaffCommandCenter(
     y: statusCounts.get(status) ?? 0,
   }));
 
-  const [urgentCount, currentNet, priorNet, arrearsAging] = await Promise.all([
+  const [urgentCount, currentNet, priorNet, arrearsAging, leaseExpiryBuckets] = await Promise.all([
     getUrgentMaintenanceCount(ctx),
     computeNetRentalIncome(ctx, periodStart, currentSnapshot?.collectedCents ?? 0),
     computeNetRentalIncome(ctx, priorPeriodStart, priorSnapshot?.collectedCents ?? 0),
     getArrearsAging(ctx, now),
+    getLeaseExpiryBuckets(ctx, now),
   ]);
 
   const occupancyBreakdown = {
@@ -606,6 +642,7 @@ export async function getStaffCommandCenter(
     topArrears,
     arrearsAging,
     occupancyBreakdown,
+    leaseExpiryBuckets,
     openMaintenance,
     blockedApprovals,
     portfolioPins: properties

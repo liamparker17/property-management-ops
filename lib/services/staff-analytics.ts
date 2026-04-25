@@ -67,6 +67,7 @@ export type PropertyAnalyticsRow = {
   openMaintenance: number;
   arrearsCents: number;
   grossRentCents: number;
+  healthScore: number;
   href: string;
 };
 
@@ -750,6 +751,14 @@ export async function getStaffCommandCenter(
   };
 }
 
+function computeHealthScore(row: { occupiedUnits: number; totalUnits: number; arrearsCents: number; grossRentCents: number; openMaintenance: number }): number {
+  const occupancy = row.totalUnits > 0 ? row.occupiedUnits / row.totalUnits : 0;
+  const collectionRate = row.grossRentCents > 0 ? Math.max(0, 1 - row.arrearsCents / row.grossRentCents) : 1;
+  const urgentRatio = row.totalUnits > 0 ? Math.min(1, row.openMaintenance / row.totalUnits) : 0;
+  const score = 0.4 * collectionRate + 0.3 * occupancy + 0.2 * (1 - urgentRatio) + 0.1 * 1;
+  return Math.round(Math.max(0, Math.min(1, score)) * 100);
+}
+
 export async function getStaffPortfolio(
   ctx: RouteCtx,
   filters?: { propertyId?: string },
@@ -807,6 +816,13 @@ export async function getStaffPortfolio(
         openMaintenance: snapshot?.openMaintenance ?? 0,
         arrearsCents: snapshot?.arrearsCents ?? 0,
         grossRentCents: snapshot?.grossRentCents ?? 0,
+        healthScore: computeHealthScore({
+          occupiedUnits: snapshot?.occupiedUnits ?? 0,
+          totalUnits: snapshot?.totalUnits ?? 0,
+          openMaintenance: snapshot?.openMaintenance ?? 0,
+          arrearsCents: snapshot?.arrearsCents ?? 0,
+          grossRentCents: snapshot?.grossRentCents ?? 0,
+        }),
         href: `/properties/${property.id}`,
       };
     }),

@@ -428,13 +428,20 @@ export async function sendContactRequest(args: {
     replyTo: args.email,
   });
 
-  // Fire-and-forget auto-reply from hello@ back to the submitter.
-  // Failure here must not affect the success status of the form submission —
-  // ops have already received the message.
-  void sendContactConfirmation(args).catch((err) => {
+  // Auto-reply from hello@ back to the submitter. Awaited (not fire-and-forget)
+  // because Vercel terminates the serverless function once the response is
+  // returned — pending promises silently die. Errors here are logged and
+  // swallowed so the form submission still reports success to the visitor.
+  try {
+    const confirmResult = await sendContactConfirmation(args);
+    if (!confirmResult.sent) {
+      // eslint-disable-next-line no-console
+      console.error('[contact-confirmation] auto-reply not sent:', confirmResult.reason);
+    }
+  } catch (err) {
     // eslint-disable-next-line no-console
-    console.error('[contact-confirmation] failed to send auto-reply', err);
-  });
+    console.error('[contact-confirmation] auto-reply threw', err);
+  }
 
   return opsResult;
 }

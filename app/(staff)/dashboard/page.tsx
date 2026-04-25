@@ -13,12 +13,19 @@ import { userToRouteCtx } from '@/lib/auth/page-ctx';
 import { buttonVariants } from '@/components/ui/button';
 import { formatDate, formatZar } from '@/lib/format';
 import { getStaffCommandCenter } from '@/lib/services/staff-analytics';
+import { resolveAnalyticsCtx } from '@/lib/analytics/ctx';
 import { cn } from '@/lib/utils';
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const session = await auth();
-  const ctx = userToRouteCtx(session!.user);
-  const data = await getStaffCommandCenter(ctx);
+  const baseCtx = userToRouteCtx(session!.user);
+  const sp = await searchParams;
+  const analyticsCtx = resolveAnalyticsCtx(sp, baseCtx);
+  const data = await getStaffCommandCenter(baseCtx, { periodStart: analyticsCtx.range.to });
 
   return (
     <div className="space-y-8">

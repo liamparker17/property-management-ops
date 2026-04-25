@@ -313,3 +313,138 @@
 @utility bg-login-glow {
   background-image: radial-gradient(ellipse 80% 60% at 70% 40%, color-mix(in oklch, var(--primary) 8%, transparent) 0%, transparent 70%);
 }
+
+/* ============================================================
+   Marketing motion system
+   Intentional micro-interactions on every interactive element.
+   Tuned curves: cubic-bezier(0.16, 1, 0.3, 1) — quick out, soft in.
+   All durations halved and translations zeroed under prefers-reduced-motion.
+   ============================================================ */
+
+/* Press: every button/link CTA dips on :active for tactile feedback */
+@utility press {
+  transition:
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 200ms ease,
+    color 200ms ease,
+    filter 200ms ease;
+  will-change: transform;
+}
+.press:active { transform: translateY(1px) scale(0.985); }
+
+/* Lift: cards / surfaces rise slightly with shadow bloom on hover */
+@utility lift {
+  transition:
+    transform 280ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 320ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 220ms ease,
+    background-color 220ms ease;
+  will-change: transform;
+}
+.lift:hover { transform: translateY(-3px); }
+.lift:active { transform: translateY(-1px) scale(0.995); }
+
+/* Underline that grows from the left under inline links */
+@utility link-underline {
+  position: relative;
+  transition: color 200ms ease;
+}
+.link-underline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.link-underline:hover::after,
+.link-underline:focus-visible::after { transform: scaleX(1); }
+
+/* Solid CTA: gold/ink pill — subtle inner glow grows on hover, presses on click */
+@utility cta-solid {
+  position: relative;
+  transition:
+    transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 280ms cubic-bezier(0.16, 1, 0.3, 1),
+    filter 200ms ease;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 1px 2px rgba(0, 16, 48, 0.08);
+}
+.cta-solid:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 8px 22px -8px rgba(0, 16, 48, 0.28);
+}
+.cta-solid:active { transform: translateY(0) scale(0.985); filter: brightness(0.98); }
+
+/* Animated arrow inside a CTA — child of `.group`. Slides on hover. */
+@utility cta-arrow {
+  transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.group:hover .cta-arrow { transform: translateX(4px); }
+.group:active .cta-arrow { transform: translateX(2px); }
+
+/* Drawer slide-down (mobile nav) */
+@keyframes drawer-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@utility animate-drawer-in {
+  animation: drawer-in 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Drawer item stagger (mobile nav links cascade in) */
+@keyframes drawer-item-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@utility animate-drawer-item {
+  animation: drawer-item-in 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Reveal-on-scroll: scoped to marketing surface. Server-rendered [data-reveal]
+   starts hidden, observer flips data-state="in" when in viewport. */
+[data-marketing] [data-reveal] {
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 700ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+[data-marketing] [data-reveal][data-state="in"] { opacity: 1; transform: translateY(0); }
+
+/* Soft route transition: marketing layout wraps children in this for a per-pathname remount fade */
+@keyframes route-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@utility animate-route-in {
+  animation: route-in 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Input focus animation (used on marketing forms — supplements shadcn ring) */
+@utility input-focus {
+  transition:
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    background-color 220ms ease;
+}
+
+/* Honor user motion preferences — collapse all the above to near-instant fades */
+@media (prefers-reduced-motion: reduce) {
+  .press, .lift, .link-underline, .cta-solid, .cta-arrow, .input-focus,
+  [data-marketing] [data-reveal] {
+    transition-duration: 80ms !important;
+    animation-duration: 80ms !important;
+  }
+  .lift:hover, .cta-solid:hover { transform: none !important; }
+  .link-underline::after { transition: none !important; }
+  [data-marketing] [data-reveal] { transform: none !important; }
+}

@@ -57,7 +57,7 @@ export default function AboutPage() {
         items={ABOUT_PATHS}
       />
 
-      <section id="why-we-built-it" className="px-6 py-24 md:grid md:grid-cols-[1fr_2fr] md:gap-20 md:px-14 md:py-[120px]">
+      <section data-reveal id="why-we-built-it" className="px-6 py-24 md:grid md:grid-cols-[1fr_2fr] md:gap-20 md:px-14 md:py-[120px]">
         <div className="mb-10 md:mb-0">
           <div
             className="mb-4 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.25em]"
@@ -93,7 +93,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section id="principles" className="px-6 py-24 md:px-14 md:py-[120px]" style={{ background: T.cream }}>
+      <section data-reveal id="principles" className="px-6 py-24 md:px-14 md:py-[120px]" style={{ background: T.cream }}>
         <div className="mx-auto mb-14 max-w-2xl text-center md:mb-20">
           <div
             className="mb-4 flex items-center justify-center gap-3 font-mono text-[10px] uppercase tracking-[0.25em]"
@@ -135,7 +135,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section id="team" className="px-6 py-24 md:px-14 md:py-[120px]">
+      <section data-reveal id="team" className="px-6 py-24 md:px-14 md:py-[120px]">
         <div className="mx-auto max-w-3xl">
           <div
             className="mb-4 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.25em]"
@@ -173,7 +173,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="relative overflow-hidden px-6 py-24 text-center md:px-14 md:py-[120px]" style={{ background: `linear-gradient(180deg, ${T.inkDeep}, ${T.ink})` }}>
+      <section data-reveal className="relative overflow-hidden px-6 py-24 text-center md:px-14 md:py-[120px]" style={{ background: `linear-gradient(180deg, ${T.inkDeep}, ${T.ink})` }}>
         <div
           className="relative z-[1] mb-7 flex items-center justify-center gap-3 font-mono text-[10px] uppercase tracking-[0.25em]"
           style={{ color: T.gold }}
@@ -190,10 +190,10 @@ export default function AboutPage() {
         </h2>
         <Link
           href="/contact#message"
-          className="relative z-[1] inline-flex items-center gap-2 px-9 py-4 text-[12px] font-bold uppercase tracking-[0.14em] no-underline transition hover:brightness-110"
+          className="cta-solid press group relative z-[1] inline-flex items-center gap-2 px-9 py-4 text-[12px] font-bold uppercase tracking-[0.14em] no-underline"
           style={{ background: T.gold, color: T.ink }}
         >
-          Start a conversation <ArrowRight size={14} />
+          Start a conversation <ArrowRight size={14} className="cta-arrow" />
         </Link>
       </section>
     </main>

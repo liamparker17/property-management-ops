@@ -61,7 +61,7 @@ export default function ContactPage() {
         items={CONTACT_PATHS}
       />
 
-      <section id="ways-to-reach-us" className="px-6 py-20 md:px-14 md:py-24">
+      <section data-reveal id="ways-to-reach-us" className="px-6 py-20 md:px-14 md:py-24">
         <div className="mx-auto grid max-w-6xl gap-14 md:grid-cols-2 md:gap-20">
           <div>
             <div

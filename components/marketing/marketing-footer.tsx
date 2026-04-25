@@ -48,8 +48,8 @@ export function MarketingFooter() {
       <div className="px-6 pb-14 pt-20 md:px-14 md:pb-16 md:pt-24">
         <div className="grid gap-12 md:grid-cols-[1.3fr_1fr_1fr_1fr_1fr]">
           <div>
-            <Link href="/" className="flex items-center gap-2.5 no-underline">
-              <span className="inline-flex overflow-hidden rounded-sm">
+            <Link href="/" className="press group flex items-center gap-2.5 no-underline">
+              <span className="inline-flex overflow-hidden rounded-sm transition-transform duration-500 group-hover:scale-[1.04]">
                 <img src="/regalis.svg" alt="Regalis" className="h-9 w-9 object-contain" />
               </span>
               <span className="flex flex-col leading-none">
@@ -83,7 +83,7 @@ export function MarketingFooter() {
                   <li key={`${col.title}-${link.label}`}>
                     <Link
                       href={link.href}
-                      className="text-[13px] no-underline transition hover:text-white"
+                      className="link-underline inline-block text-[13px] no-underline transition-colors duration-200 hover:text-white"
                       style={{ color: 'rgba(245,241,234,0.65)' }}
                     >
                       {link.label}

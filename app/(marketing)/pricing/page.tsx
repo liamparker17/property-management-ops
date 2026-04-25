@@ -161,7 +161,7 @@ export default function PricingPage() {
         items={PRICING_PATHS}
       />
 
-      <section id="who-its-for" className="px-6 py-20 md:px-14 md:py-24">
+      <section data-reveal id="who-its-for" className="px-6 py-20 md:px-14 md:py-24">
         <div className="mx-auto grid max-w-6xl gap-6 md:grid-cols-3">
           {SCOPES.map((scope, index) => (
             <div
@@ -191,21 +191,21 @@ export default function PricingPage() {
 
               <Link
                 href={scope.href}
-                className="mt-8 inline-flex items-center justify-center gap-2 px-6 py-3 text-[12px] font-semibold uppercase tracking-[0.14em] no-underline transition"
+                className="cta-solid press group mt-8 inline-flex items-center justify-center gap-2 px-6 py-3 text-[12px] font-semibold uppercase tracking-[0.14em] no-underline"
                 style={{
                   background: index === 1 ? T.ink : 'transparent',
                   color: index === 1 ? T.creamSoft : T.ink,
                   border: index === 1 ? 'none' : `1px solid ${T.ink}`,
                 }}
               >
-                {scope.cta} <ArrowRight size={14} />
+                {scope.cta} <ArrowRight size={14} className="cta-arrow" />
               </Link>
             </div>
           ))}
         </div>
       </section>
 
-      <section id="how-pricing-is-scoped" className="px-6 py-20 md:px-14 md:py-24" style={{ background: T.cream }}>
+      <section data-reveal id="how-pricing-is-scoped" className="px-6 py-20 md:px-14 md:py-24" style={{ background: T.cream }}>
         <div className="mx-auto max-w-5xl">
           <div
             className="mb-4 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.25em]"
@@ -246,7 +246,7 @@ export default function PricingPage() {
         items={PRICING_NEXT_STEPS}
       />
 
-      <section id="faq" className="px-6 py-20 md:px-14 md:py-24">
+      <section data-reveal id="faq" className="px-6 py-20 md:px-14 md:py-24">
         <div className="mx-auto max-w-3xl">
           <div
             className="mb-4 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.25em]"
@@ -290,7 +290,7 @@ export default function PricingPage() {
         </div>
       </section>
 
-      <section className="relative overflow-hidden px-6 py-24 text-center md:px-14 md:py-[120px]" style={{ background: `linear-gradient(180deg, ${T.ink}, ${T.inkDeep})` }}>
+      <section data-reveal className="relative overflow-hidden px-6 py-24 text-center md:px-14 md:py-[120px]" style={{ background: `linear-gradient(180deg, ${T.ink}, ${T.inkDeep})` }}>
         <h2
           className="mb-5 font-serif text-[36px] font-light leading-[1.1] tracking-[-0.01em] sm:text-[52px]"
           style={{ color: T.cream }}
@@ -302,10 +302,10 @@ export default function PricingPage() {
         </p>
         <Link
           href="/contact#message"
-          className="inline-flex items-center gap-2 px-10 py-4 text-[12px] font-bold uppercase tracking-[0.14em] no-underline transition hover:brightness-110"
+          className="cta-solid press group inline-flex items-center gap-2 px-10 py-4 text-[12px] font-bold uppercase tracking-[0.14em] no-underline"
           style={{ background: T.gold, color: T.ink }}
         >
-          Arrange a conversation <ArrowRight size={14} />
+          Arrange a conversation <ArrowRight size={14} className="cta-arrow" />
         </Link>
       </section>
     </main>

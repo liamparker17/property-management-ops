@@ -63,7 +63,7 @@ export function ContactForm() {
 
   if (success) {
     return (
-      <div className="flex flex-col gap-3 border p-6" style={{ borderColor: T.borderStrong, background: T.creamSoft }}>
+      <div className="animate-fade-in-up flex flex-col gap-3 border p-6" style={{ borderColor: T.borderStrong, background: T.creamSoft }}>
         <div className="font-mono text-[10px] uppercase tracking-[0.25em]" style={{ color: T.gold }}>
           Message received
         </div>
@@ -74,7 +74,7 @@ export function ContactForm() {
           A member of our team will respond within one business day.
         </p>
         <div className="mt-2 text-[13px]">
-          <Link href="/" className="underline" style={{ color: T.inkSoft }}>
+          <Link href="/" className="link-underline" style={{ color: T.inkSoft }}>
             Back to home
           </Link>
         </div>
@@ -125,7 +125,7 @@ export function ContactForm() {
       <Button
         type="submit"
         disabled={pending}
-        className="mt-1 h-10 w-full gap-2 text-[15px] font-medium shadow-sm shadow-primary/25"
+        className="press cta-solid mt-1 h-10 w-full gap-2 text-[15px] font-medium shadow-sm shadow-primary/25"
       >
         {pending && <Loader2 className="h-4 w-4 animate-spin" />}
         {pending ? 'Sending…' : 'Send message'}

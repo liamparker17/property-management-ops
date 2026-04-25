@@ -170,14 +170,14 @@ export function PersonaValueGrid() {
         return (
           <article
             key={persona.id}
-            className={`group relative overflow-hidden border transition-all duration-500 ease-out ${
-              active ? 'md:col-span-2 xl:col-span-4' : ''
+            className={`group relative overflow-hidden border transition-all duration-[600ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+              active ? 'md:col-span-2 xl:col-span-4' : 'hover:-translate-y-[2px] hover:shadow-[0_18px_40px_-22px_rgba(0,16,48,0.22)]'
             }`}
             style={{
               borderColor: active ? T.gold : T.borderStrong,
               background: active ? `linear-gradient(180deg, ${T.inkDeep}, ${T.ink})` : T.creamSoft,
-              boxShadow: active ? '0 24px 72px rgba(0,16,48,0.18)' : 'none',
-              transform: active ? 'translateY(-3px)' : 'translateY(0)',
+              boxShadow: active ? '0 24px 72px rgba(0,16,48,0.18)' : undefined,
+              transform: active ? 'translateY(-3px)' : undefined,
             }}
           >
             <span
@@ -190,7 +190,7 @@ export function PersonaValueGrid() {
               type="button"
               onClick={() => setSelectedId((current) => (current === persona.id ? null : persona.id))}
               aria-expanded={active}
-              className="w-full px-6 py-7 text-left md:px-7 md:py-8"
+              className="press w-full cursor-pointer px-6 py-7 text-left md:px-7 md:py-8"
             >
               <div className="mb-10 flex items-start justify-between gap-4">
                 <persona.Icon

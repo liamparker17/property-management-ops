@@ -197,6 +197,7 @@ export default function ProductPage() {
           <section
             key={section.no}
             id={section.id}
+            data-reveal
             className="grid gap-12 border-b py-20 md:grid-cols-[1fr_2fr] md:gap-20 md:py-[120px]"
             style={{ borderColor: T.border }}
           >
@@ -255,6 +256,7 @@ export default function ProductPage() {
       />
 
       <section
+        data-reveal
         className="relative overflow-hidden px-6 py-24 text-center md:px-14 md:py-[120px]"
         style={{ background: `linear-gradient(180deg, ${T.ink}, ${T.inkDeep})` }}
       >
@@ -270,14 +272,14 @@ export default function ProductPage() {
         <div className="flex flex-wrap items-center justify-center gap-5">
           <Link
             href="/contact#message"
-            className="inline-flex items-center gap-2 px-9 py-4 text-[12px] font-bold uppercase tracking-[0.14em] no-underline transition hover:brightness-110"
+            className="cta-solid press group inline-flex items-center gap-2 px-9 py-4 text-[12px] font-bold uppercase tracking-[0.14em] no-underline"
             style={{ background: T.gold, color: T.ink }}
           >
-            Arrange a walkthrough <ArrowRight size={14} />
+            Arrange a walkthrough <ArrowRight size={14} className="cta-arrow" />
           </Link>
           <Link
             href="/pricing#how-pricing-is-scoped"
-            className="border px-8 py-[15px] text-[12px] font-medium uppercase tracking-[0.14em] no-underline"
+            className="press border px-8 py-[15px] text-[12px] font-medium uppercase tracking-[0.14em] no-underline transition-colors duration-300 hover:bg-white/5 hover:border-white/40"
             style={{ color: T.textOnDark, borderColor: 'rgba(245,241,234,0.25)' }}
           >
             Pricing approach

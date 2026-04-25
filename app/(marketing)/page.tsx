@@ -50,17 +50,17 @@ export default function LandingPage() {
           <div className="relative z-[1] flex flex-wrap items-center gap-7">
             <Link
               href="/contact"
-              className="inline-flex items-center gap-2 overflow-hidden px-7 py-3 text-[12px] font-semibold uppercase tracking-[0.14em] no-underline"
+              className="cta-solid press group inline-flex items-center gap-2 overflow-hidden px-7 py-3 text-[12px] font-semibold uppercase tracking-[0.14em] no-underline"
               style={{ background: T.gold, color: T.ink }}
             >
-              Talk to us <ArrowRight size={14} />
+              Talk to us <ArrowRight size={14} className="cta-arrow" />
             </Link>
             <Link
               href="/product"
-              className="group text-[12px] font-medium uppercase tracking-[0.12em] no-underline transition"
+              className="link-underline group press text-[12px] font-medium uppercase tracking-[0.12em] no-underline"
               style={{ color: T.textOnDark }}
             >
-              See product <ArrowRight size={14} className="ml-1 inline-block transition group-hover:translate-x-1" />
+              See product <ArrowRight size={14} className="cta-arrow ml-1 inline-block" />
             </Link>
           </div>
         </div>
@@ -98,7 +98,7 @@ export default function LandingPage() {
         </span>
       </div>
 
-      <section className="px-6 py-24 md:grid md:grid-cols-2 md:gap-24 md:px-14 md:py-[120px]">
+      <section data-reveal className="px-6 py-24 md:grid md:grid-cols-2 md:gap-24 md:px-14 md:py-[120px]">
         <div className="mb-12 md:mb-0">
           <div
             className="mb-4 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.25em]"
@@ -148,7 +148,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="features" className="px-6 py-24 md:px-14 md:py-[120px]" style={{ background: T.cream }}>
+      <section data-reveal id="features" className="px-6 py-24 md:px-14 md:py-[120px]" style={{ background: T.cream }}>
         <div className="mb-16 grid items-end gap-12 md:mb-20 md:grid-cols-2">
           <div>
             <div
@@ -176,7 +176,7 @@ export default function LandingPage() {
         <PersonaValueGrid />
       </section>
 
-      <section className="px-6 py-24 md:px-14 md:py-[120px]" style={{ background: `linear-gradient(180deg, ${T.ink}, ${T.inkSoft})` }}>
+      <section data-reveal className="px-6 py-24 md:px-14 md:py-[120px]" style={{ background: `linear-gradient(180deg, ${T.ink}, ${T.inkSoft})` }}>
         <div className="mx-auto max-w-5xl">
           <div
             className="mb-8 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.25em]"
@@ -204,7 +204,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="relative overflow-hidden px-6 py-28 text-center md:px-14 md:py-[140px]" style={{ background: `linear-gradient(180deg, ${T.inkDeep}, ${T.ink})` }}>
+      <section data-reveal className="relative overflow-hidden px-6 py-28 text-center md:px-14 md:py-[140px]" style={{ background: `linear-gradient(180deg, ${T.inkDeep}, ${T.ink})` }}>
         <div
           aria-hidden
           className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap font-serif text-[22vw] font-light tracking-[0.2em]"
@@ -235,14 +235,14 @@ export default function LandingPage() {
         <div className="relative z-[1] flex flex-wrap items-center justify-center gap-6">
           <Link
             href="/contact"
-            className="inline-flex items-center gap-2 px-10 py-4 text-[12px] font-bold uppercase tracking-[0.14em] no-underline transition hover:brightness-110"
+            className="cta-solid press group inline-flex items-center gap-2 px-10 py-4 text-[12px] font-bold uppercase tracking-[0.14em] no-underline"
             style={{ background: T.gold, color: T.ink }}
           >
-            Arrange a walkthrough <ArrowRight size={14} />
+            Arrange a walkthrough <ArrowRight size={14} className="cta-arrow" />
           </Link>
           <Link
             href="/pricing"
-            className="inline-block border px-8 py-[15px] text-[12px] font-medium uppercase tracking-[0.14em] no-underline transition"
+            className="press inline-block border px-8 py-[15px] text-[12px] font-medium uppercase tracking-[0.14em] no-underline transition-colors duration-300 hover:bg-white/5 hover:border-white/40"
             style={{ color: T.textOnDark, borderColor: 'rgba(245,241,234,0.25)' }}
           >
             How pricing works

@@ -52,11 +52,16 @@ export function MarketingJourneyGrid({
             <Link
               key={`${item.href}-${item.title}`}
               href={item.href}
-              className="group border p-6 no-underline transition hover:-translate-y-0.5"
+              className="group lift relative block border p-6 no-underline hover:shadow-[0_24px_48px_-24px_rgba(0,16,48,0.22)]"
               style={{ borderColor: T.borderStrong, background: T.cream }}
             >
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 top-0 h-[2px] origin-left scale-x-0 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-x-100"
+                style={{ background: T.gold }}
+              />
               <div
-                className="mb-4 font-mono text-[10px] uppercase tracking-[0.2em]"
+                className="mb-4 font-mono text-[10px] uppercase tracking-[0.2em] transition-colors duration-300"
                 style={{ color: T.gold }}
               >
                 {item.label}
@@ -72,7 +77,7 @@ export function MarketingJourneyGrid({
                 style={{ color: T.inkSoft }}
               >
                 Take a look
-                <ArrowRight size={14} className="transition group-hover:translate-x-0.5" />
+                <ArrowRight size={14} className="cta-arrow" />
               </span>
             </Link>
           ))}

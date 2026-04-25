@@ -2,6 +2,7 @@ import type { ApprovalKind, MaintenanceStatus } from '@prisma/client';
 
 import type { ChartPoint } from '@/components/analytics/charts/area-chart';
 import type { ComboChartPoint } from '@/components/analytics/charts/combo-chart';
+import type { AgingSegment } from '@/components/analytics/charts/aging-bar';
 import type { PortfolioPin } from '@/components/analytics/maps/portfolio-pins';
 import type { KpiId } from '@/lib/analytics/kpis';
 import type { RouteCtx } from '@/lib/auth/with-org';
@@ -75,6 +76,7 @@ export type StaffCommandCenter = {
   kpiSparks: Partial<Record<KpiId, number[]>>;
   expiringLeases: ExpiringLeaseRow[];
   topArrears: ArrearsRow[];
+  arrearsAging: AgingSegment[];
   openMaintenance: MaintenanceRow[];
   blockedApprovals: ApprovalRow[];
   portfolioPins: PortfolioPin[];
@@ -375,6 +377,42 @@ async function getTopArrears(ctx: RouteCtx): Promise<ArrearsRow[]> {
   }));
 }
 
+async function getArrearsAging(ctx: RouteCtx, now: Date): Promise<AgingSegment[]> {
+  const propertyIds = await getPropertyIds(ctx);
+  const empty: AgingSegment[] = [
+    { id: '0-30', label: '0–30 days', cents: 0 },
+    { id: '31-60', label: '31–60 days', cents: 0 },
+    { id: '61-90', label: '61–90 days', cents: 0 },
+    { id: '90+', label: '90+ days', cents: 0 },
+  ];
+  if (propertyIds.length === 0) return empty;
+  const overdue = await db.invoice.findMany({
+    where: {
+      orgId: ctx.orgId,
+      paidAt: null,
+      status: { in: ['DUE', 'OVERDUE'] },
+      dueDate: { lt: now },
+      lease: { unit: { propertyId: { in: propertyIds } } },
+    },
+    select: { totalCents: true, amountCents: true, dueDate: true },
+  });
+  const buckets: Record<'0-30' | '31-60' | '61-90' | '90+', number> = { '0-30': 0, '31-60': 0, '61-90': 0, '90+': 0 };
+  for (const inv of overdue) {
+    const cents = inv.totalCents > 0 ? inv.totalCents : inv.amountCents;
+    const ageDays = Math.floor((now.getTime() - inv.dueDate.getTime()) / 86400000);
+    if (ageDays <= 30) buckets['0-30'] += cents;
+    else if (ageDays <= 60) buckets['31-60'] += cents;
+    else if (ageDays <= 90) buckets['61-90'] += cents;
+    else buckets['90+'] += cents;
+  }
+  return [
+    { id: '0-30', label: '0–30 days', cents: buckets['0-30'] },
+    { id: '31-60', label: '31–60 days', cents: buckets['31-60'] },
+    { id: '61-90', label: '61–90 days', cents: buckets['61-90'] },
+    { id: '90+', label: '90+ days', cents: buckets['90+'] },
+  ];
+}
+
 async function getOpenMaintenance(ctx: RouteCtx, filters?: { status?: MaintenanceStatus }) {
   const propertyIds = await getPropertyIds(ctx);
   if (propertyIds.length === 0) return [];
@@ -460,7 +498,8 @@ export async function getStaffCommandCenter(
   ctx: RouteCtx,
   filters?: { periodStart?: Date; compare?: 'prior' | 'yoy' | 'off' },
 ): Promise<StaffCommandCenter> {
-  const periodStart = monthFloor(filters?.periodStart ?? new Date());
+  const now = new Date();
+  const periodStart = monthFloor(filters?.periodStart ?? now);
   const priorPeriodStart = addMonths(periodStart, -1);
   let currentSnapshotRow = await db.orgMonthlySnapshot.findFirst({
     where: { orgId: ctx.orgId, periodStart },
@@ -538,10 +577,11 @@ export async function getStaffCommandCenter(
     y: statusCounts.get(status) ?? 0,
   }));
 
-  const [urgentCount, currentNet, priorNet] = await Promise.all([
+  const [urgentCount, currentNet, priorNet, arrearsAging] = await Promise.all([
     getUrgentMaintenanceCount(ctx),
     computeNetRentalIncome(ctx, periodStart, currentSnapshot?.collectedCents ?? 0),
     computeNetRentalIncome(ctx, priorPeriodStart, priorSnapshot?.collectedCents ?? 0),
+    getArrearsAging(ctx, now),
   ]);
 
   return {
@@ -557,6 +597,7 @@ export async function getStaffCommandCenter(
     kpiSparks,
     expiringLeases,
     topArrears,
+    arrearsAging,
     openMaintenance,
     blockedApprovals,
     portfolioPins: properties

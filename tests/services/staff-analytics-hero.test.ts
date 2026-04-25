@@ -238,3 +238,28 @@ describe('getStaffCommandCenter — compare filter', () => {
     assert.ok(result.collectionsCombo.some((p: any) => typeof p.priorLine === 'number'));
   });
 });
+
+describe('getStaffCommandCenter — arrearsAging', () => {
+  it('returns 4 aging buckets summed from overdue invoices', async () => {
+    const now = new Date();
+    db.property.findMany = async () => [{ id: 'p1', name: 'P', addressLine1: '', suburb: '', city: '', province: 'GP', latitude: null, longitude: null, landlord: null, assignedAgent: null }];
+    db.invoice.findMany = async () => [
+      { id: 'i1', totalCents: 10_000_00, amountCents: 10_000_00, dueDate: new Date(now.getTime() - 10 * 86400000), paidAt: null, status: 'OVERDUE',
+        leaseId: 'l1', lease: { unit: { property: { name: 'A' }, label: '1' }, tenants: [{ tenant: { firstName: 'A', lastName: 'A' } }] } },
+      { id: 'i2', totalCents: 20_000_00, amountCents: 20_000_00, dueDate: new Date(now.getTime() - 45 * 86400000), paidAt: null, status: 'OVERDUE',
+        leaseId: 'l2', lease: { unit: { property: { name: 'B' }, label: '2' }, tenants: [{ tenant: { firstName: 'B', lastName: 'B' } }] } },
+      { id: 'i3', totalCents: 30_000_00, amountCents: 30_000_00, dueDate: new Date(now.getTime() - 75 * 86400000), paidAt: null, status: 'OVERDUE',
+        leaseId: 'l3', lease: { unit: { property: { name: 'C' }, label: '3' }, tenants: [{ tenant: { firstName: 'C', lastName: 'C' } }] } },
+      { id: 'i4', totalCents: 40_000_00, amountCents: 40_000_00, dueDate: new Date(now.getTime() - 120 * 86400000), paidAt: null, status: 'OVERDUE',
+        leaseId: 'l4', lease: { unit: { property: { name: 'D' }, label: '4' }, tenants: [{ tenant: { firstName: 'D', lastName: 'D' } }] } },
+    ];
+    const result = await getStaffCommandCenter(ROUTE_CTX);
+    const ids = result.arrearsAging.map((s: any) => s.id);
+    assert.deepEqual(ids, ['0-30', '31-60', '61-90', '90+']);
+    const byId = Object.fromEntries(result.arrearsAging.map((s: any) => [s.id, s.cents]));
+    assert.equal(byId['0-30'], 10_000_00);
+    assert.equal(byId['31-60'], 20_000_00);
+    assert.equal(byId['61-90'], 30_000_00);
+    assert.equal(byId['90+'], 40_000_00);
+  });
+});

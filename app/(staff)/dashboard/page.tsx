@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-import { AreaChart } from '@/components/analytics/charts/area-chart';
+import { ComboChart } from '@/components/analytics/charts/combo-chart';
 import { BarChart } from '@/components/analytics/charts/bar-chart';
 import { KpiTile } from '@/components/analytics/kpi-tile';
 import { MapPanel } from '@/components/analytics/maps/map-panel';
@@ -25,7 +25,7 @@ export default async function DashboardPage() {
       <PageHeader
         eyebrow="Command Center"
         title="Dashboard"
-        description="Core portfolio pressure, collection health, and operations queues in one editorial view."
+        description="Income, arrears, occupancy, maintenance, and risk — your portfolio in one editorial view."
         actions={
           <Link
             href="/dashboard/portfolio"
@@ -36,22 +36,40 @@ export default async function DashboardPage() {
         }
       />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <KpiTile kpiId="OCCUPANCY_PCT" value={data.kpis.OCCUPANCY_PCT} prior={data.priorKpis.OCCUPANCY_PCT} />
-        <KpiTile kpiId="ARREARS_CENTS" value={data.kpis.ARREARS_CENTS} prior={data.priorKpis.ARREARS_CENTS} />
-        <KpiTile kpiId="COLLECTION_RATE" value={data.kpis.COLLECTION_RATE} prior={data.priorKpis.COLLECTION_RATE} />
-        <KpiTile kpiId="TRUST_BALANCE" value={data.kpis.TRUST_BALANCE} prior={data.priorKpis.TRUST_BALANCE} />
-        <KpiTile kpiId="OPEN_MAINTENANCE" value={data.kpis.OPEN_MAINTENANCE} prior={data.priorKpis.OPEN_MAINTENANCE} />
-        <KpiTile kpiId="EXPIRING_LEASES_30" value={data.kpis.EXPIRING_LEASES_30} prior={data.priorKpis.EXPIRING_LEASES_30} />
+      {/* Hero band — 7 curated KPIs with sparklines */}
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7">
+        <KpiTile kpiId="NET_RENTAL_INCOME" value={data.kpis.NET_RENTAL_INCOME} prior={data.priorKpis.NET_RENTAL_INCOME} series={data.kpiSparks.NET_RENTAL_INCOME} />
+        <KpiTile kpiId="RENT_BILLED" value={data.kpis.RENT_BILLED} prior={data.priorKpis.RENT_BILLED} series={data.kpiSparks.RENT_BILLED} />
+        <KpiTile kpiId="RENT_COLLECTED" value={data.kpis.RENT_COLLECTED} prior={data.priorKpis.RENT_COLLECTED} series={data.kpiSparks.RENT_COLLECTED} />
+        <KpiTile kpiId="COLLECTION_RATE" value={data.kpis.COLLECTION_RATE} prior={data.priorKpis.COLLECTION_RATE} series={data.kpiSparks.COLLECTION_RATE} />
+        <KpiTile kpiId="OCCUPANCY_PCT" value={data.kpis.OCCUPANCY_PCT} prior={data.priorKpis.OCCUPANCY_PCT} series={data.kpiSparks.OCCUPANCY_PCT} />
+        <KpiTile kpiId="ARREARS_CENTS" value={data.kpis.ARREARS_CENTS} prior={data.priorKpis.ARREARS_CENTS} series={data.kpiSparks.ARREARS_CENTS} />
+        <KpiTile kpiId="TRUST_BALANCE" value={data.kpis.TRUST_BALANCE} prior={data.priorKpis.TRUST_BALANCE} series={data.kpiSparks.TRUST_BALANCE} />
       </div>
 
       <StatusStrip
         items={[
+          { id: 'urgent', label: 'Urgent maintenance', value: String(data.kpis.URGENT_MAINTENANCE), tone: 'alert' },
           { id: 'blocked', label: 'Blocked approvals', value: String(data.kpis.BLOCKED_APPROVALS), tone: 'alert' },
           { id: 'expiring', label: 'Expiring leases', value: String(data.expiringLeases.length), tone: 'accent' },
           { id: 'current-period', label: 'Current period', value: formatDate(data.periodStart) },
         ]}
       />
+
+      {/* Invoiced vs Collected combo chart with prior-period overlay */}
+      <Card className="border border-border p-5">
+        <div className="mb-4">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--accent)]">Trend</p>
+          <h2 className="mt-2 font-serif text-[30px] font-light tracking-[-0.02em] text-foreground">
+            Invoiced vs Collected
+          </h2>
+        </div>
+        <ComboChart
+          data={data.collectionsCombo}
+          yFormat="cents"
+          seriesLabels={{ bars: 'Billed', line: 'Collected', priorLine: 'Collected (prior year)' }}
+        />
+      </Card>
 
       <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr_1fr]">
         <MapPanel title="Portfolio footprint" eyebrow="Portfolio" pins={data.portfolioPins} />
@@ -81,30 +99,15 @@ export default async function DashboardPage() {
         />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        <Card className="border border-border p-5">
-          <div className="mb-4">
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--accent)]">Trend</p>
-            <h2 className="mt-2 font-serif text-[30px] font-light tracking-[-0.02em] text-foreground">
-              Collections trend
-            </h2>
-          </div>
-          <AreaChart
-            data={data.collectionsTrend}
-            yFormat="cents"
-            seriesLabels={{ y: 'Billed', y2: 'Collected' }}
-          />
-        </Card>
-        <Card className="border border-border p-5">
-          <div className="mb-4">
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--accent)]">Workload</p>
-            <h2 className="mt-2 font-serif text-[30px] font-light tracking-[-0.02em] text-foreground">
-              Maintenance by status
-            </h2>
-          </div>
-          <BarChart data={data.maintenanceByStatus} />
-        </Card>
-      </div>
+      <Card className="border border-border p-5">
+        <div className="mb-4">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--accent)]">Workload</p>
+          <h2 className="mt-2 font-serif text-[30px] font-light tracking-[-0.02em] text-foreground">
+            Maintenance by status
+          </h2>
+        </div>
+        <BarChart data={data.maintenanceByStatus} />
+      </Card>
     </div>
   );
 }

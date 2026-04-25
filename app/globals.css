@@ -85,37 +85,69 @@
 }
 
 .dark {
-  --background: oklch(0.14 0.07 262);
-  --foreground: oklch(0.94 0.015 80);
-  --card: oklch(0.18 0.08 262);
-  --card-foreground: oklch(0.94 0.015 80);
-  --popover: oklch(0.18 0.08 262);
-  --popover-foreground: oklch(0.94 0.015 80);
-  --primary: oklch(0.66 0.09 75);
-  --primary-foreground: oklch(0.14 0.05 265);
-  --secondary: oklch(0.22 0.12 262);
-  --secondary-foreground: oklch(0.94 0.015 80);
-  --muted: oklch(0.22 0.1 262);
-  --muted-foreground: oklch(0.68 0.04 80);
-  --accent: oklch(0.75 0.08 75);
-  --accent-foreground: oklch(0.14 0.05 265);
-  --destructive: oklch(0.65 0.19 27);
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 16%);
-  --ring: oklch(0.66 0.09 75);
-  --chart-1: oklch(0.66 0.09 75);
-  --chart-2: oklch(0.75 0.08 75);
-  --chart-3: oklch(0.55 0.12 262);
-  --chart-4: oklch(0.6 0.12 160);
-  --chart-5: oklch(0.65 0.19 27);
-  --sidebar: oklch(0.1 0.05 262);
-  --sidebar-foreground: oklch(0.94 0.015 80);
-  --sidebar-primary: oklch(0.66 0.09 75);
-  --sidebar-primary-foreground: oklch(0.14 0.05 265);
-  --sidebar-accent: oklch(0.22 0.12 262);
-  --sidebar-accent-foreground: oklch(0.97 0.015 80);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.66 0.09 75);
+  /* Layered ink surfaces — each step a perceptible elevation */
+  --background: oklch(0.155 0.035 262);
+  --foreground: oklch(0.965 0.008 85);
+  --card: oklch(0.215 0.04 262);
+  --card-foreground: oklch(0.965 0.008 85);
+  --popover: oklch(0.245 0.045 262);
+  --popover-foreground: oklch(0.965 0.008 85);
+
+  /* Gold is the only saturated accent — reserved for primary actions */
+  --primary: oklch(0.74 0.108 75);
+  --primary-foreground: oklch(0.16 0.04 262);
+
+  /* Neutral elevated chip — no blue cast, no yellow cast */
+  --secondary: oklch(0.28 0.018 260);
+  --secondary-foreground: oklch(0.94 0.008 85);
+
+  --muted: oklch(0.245 0.018 260);
+  --muted-foreground: oklch(0.74 0.012 250);
+
+  /* Subtle hover/selected surface — slightly warmer than card */
+  --accent: oklch(0.295 0.035 262);
+  --accent-foreground: oklch(0.965 0.008 85);
+
+  --destructive: oklch(0.7 0.18 27);
+
+  /* Visible-but-quiet borders */
+  --border: oklch(1 0 0 / 14%);
+  --input: oklch(1 0 0 / 18%);
+  --ring: oklch(0.74 0.108 75);
+
+  /* Diversified chart palette: gold + cool blue + burnt + teal + pale gold */
+  --chart-1: oklch(0.74 0.108 75);
+  --chart-2: oklch(0.68 0.13 235);
+  --chart-3: oklch(0.62 0.17 27);
+  --chart-4: oklch(0.66 0.11 165);
+  --chart-5: oklch(0.82 0.055 80);
+
+  /* Sidebar = deepest layer, almost true ink */
+  --sidebar: oklch(0.11 0.04 262);
+  --sidebar-foreground: oklch(0.93 0.008 85);
+  --sidebar-primary: oklch(0.74 0.108 75);
+  --sidebar-primary-foreground: oklch(0.14 0.04 262);
+  --sidebar-accent: oklch(0.18 0.04 262);
+  --sidebar-accent-foreground: oklch(0.965 0.008 85);
+  --sidebar-border: oklch(1 0 0 / 9%);
+  --sidebar-ring: oklch(0.74 0.108 75);
+}
+
+/* Dark-mode tuning for editorial gold patterns and shadows */
+.dark .bg-architect-grid,
+.dark.bg-architect-grid {
+  background-image:
+    linear-gradient(rgba(184,150,90,0.13) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(184,150,90,0.13) 1px, transparent 1px);
+}
+
+.dark .bg-architect-hatch,
+.dark.bg-architect-hatch {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(184,150,90,0.07) 0px, rgba(184,150,90,0.07) 1px,
+    transparent 1px, transparent 48px
+  );
 }
 
 @layer base {
@@ -194,6 +226,24 @@
 
 @utility shadow-elevated {
   box-shadow: 0 4px 6px -1px oklch(0 0 0 / 0.06), 0 10px 24px -8px oklch(0 0 0 / 0.12);
+}
+
+/* Dark-mode shadow recalibration — black drop-shadows disappear against
+   navy, so deepen them and add a subtle rim-light border for definition. */
+.dark .shadow-card,
+.dark.shadow-card {
+  box-shadow:
+    0 1px 0 0 oklch(1 0 0 / 0.04) inset,
+    0 1px 2px 0 oklch(0 0 0 / 0.4),
+    0 2px 6px -1px oklch(0 0 0 / 0.3);
+}
+
+.dark .shadow-elevated,
+.dark.shadow-elevated {
+  box-shadow:
+    0 1px 0 0 oklch(1 0 0 / 0.05) inset,
+    0 6px 12px -2px oklch(0 0 0 / 0.45),
+    0 16px 32px -10px oklch(0 0 0 / 0.55);
 }
 
 @utility shadow-glow-primary {

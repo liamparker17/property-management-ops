@@ -1,3 +1,7 @@
+'use client';
+
+import { useId } from 'react';
+
 import { cn } from '@/lib/utils';
 
 const DEFAULT_WIDTH = 120;
@@ -38,7 +42,8 @@ export function Sparkline({
   className,
 }: SparklineProps) {
   const d = sparklinePathD(series, width, height);
-  const gradientId = `spark-grad-${Math.random().toString(36).slice(2, 8)}`;
+  const reactId = useId();
+  const gradientId = `spark-grad-${reactId.replace(/[:]/g, '')}`;
   const empty = series.length === 0;
 
   return (

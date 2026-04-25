@@ -49,7 +49,7 @@ export function MarketingFooter() {
         <div className="grid gap-12 md:grid-cols-[1.3fr_1fr_1fr_1fr_1fr]">
           <div>
             <Link href="/" className="flex items-center gap-2.5 no-underline">
-              <span className="inline-flex overflow-hidden rounded-sm bg-white">
+              <span className="inline-flex overflow-hidden rounded-sm">
                 <img src="/regalis.svg" alt="Regalis" className="h-9 w-9 object-contain" />
               </span>
               <span className="flex flex-col leading-none">
@@ -103,7 +103,7 @@ export function MarketingFooter() {
             Regalis
           </span>
           <span className="font-mono text-[10px] tracking-[0.15em]" style={{ color: 'rgba(245,241,234,0.3)' }}>
-            Â© {year} Â· Property Ops Platform Â· South Africa
+            © {year} · Property Ops Platform · South Africa
           </span>
         </div>
       </div>

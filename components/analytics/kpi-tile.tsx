@@ -3,6 +3,7 @@
 import type { Role } from '@prisma/client';
 import Link from 'next/link';
 
+import { Sparkline } from '@/components/analytics/sparkline';
 import { formatKpi } from '@/lib/analytics/formatters';
 import { resolveDrillTarget } from '@/lib/analytics/drill-targets';
 import { getKpi, type KpiId } from '@/lib/analytics/kpis';
@@ -12,6 +13,7 @@ type KpiTileProps = {
   kpiId: KpiId;
   value: number;
   prior?: number | null;
+  series?: number[];
   href?: string;
   role?: Role;
   className?: string;
@@ -28,6 +30,7 @@ export function KpiTile({
   kpiId,
   value,
   prior,
+  series,
   href,
   role = 'ADMIN',
   className,
@@ -58,6 +61,11 @@ export function KpiTile({
           </span>
         ) : null}
       </div>
+      {series && series.length > 0 ? (
+        <div className="mt-4">
+          <Sparkline series={series} width={140} height={28} />
+        </div>
+      ) : null}
       <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
         View detail
       </p>

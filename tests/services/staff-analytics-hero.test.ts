@@ -382,3 +382,20 @@ describe('getStaffCommandCenter — utilityRecovery', () => {
     assert.equal(result.utilityRecovery.shortfallCents, 55_000_00);
   });
 });
+
+describe('getStaffCommandCenter — topArrears.fraction', () => {
+  it('attaches a fraction (0..1) to each row, with the largest = 1', async () => {
+    db.property.findMany = async () => [
+      { id: 'p1', name: 'A', latitude: null, longitude: null, suburb: null, city: 'Johannesburg', province: 'GP', addressLine1: '', landlord: null, assignedAgent: null },
+    ];
+    db.invoice.findMany = async () => [
+      { id: 'i1', totalCents: 100_000_00, amountCents: 100_000_00, leaseId: 'l1', dueDate: new Date(), status: 'OVERDUE', paidAt: null,
+        lease: { unit: { property: { name: 'A' }, label: '1' }, tenants: [{ tenant: { firstName: 'Alice', lastName: 'L' } }] } },
+      { id: 'i2', totalCents: 50_000_00, amountCents: 50_000_00, leaseId: 'l2', dueDate: new Date(), status: 'OVERDUE', paidAt: null,
+        lease: { unit: { property: { name: 'B' }, label: '2' }, tenants: [{ tenant: { firstName: 'Bob', lastName: 'M' } }] } },
+    ];
+    const result = await getStaffCommandCenter(ROUTE_CTX);
+    assert.equal(result.topArrears[0].fraction, 1);
+    assert.equal(result.topArrears[1].fraction, 0.5);
+  });
+});

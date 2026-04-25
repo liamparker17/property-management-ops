@@ -31,6 +31,7 @@ export type ArrearsRow = {
   title: string;
   subtitle: string;
   amountCents: number;
+  fraction: number;
   href: string;
 };
 
@@ -422,14 +423,20 @@ async function getTopArrears(ctx: RouteCtx): Promise<ArrearsRow[]> {
     take: 5,
   });
 
-  return rows.map((row) => ({
+  const mapped = rows.map((row) => ({
     id: row.id,
     title: `${row.lease.unit.property.name} / ${row.lease.unit.label}`,
     subtitle: row.lease.tenants[0]?.tenant
       ? `${row.lease.tenants[0].tenant.firstName} ${row.lease.tenants[0].tenant.lastName}`
       : 'Primary tenant missing',
     amountCents: row.totalCents > 0 ? row.totalCents : row.amountCents,
+    fraction: 0,
     href: `/leases/${row.leaseId}#invoices`,
+  }));
+  const maxAmount = mapped.reduce((m, r) => Math.max(m, r.amountCents), 0);
+  return mapped.map((r) => ({
+    ...r,
+    fraction: maxAmount > 0 ? r.amountCents / maxAmount : 0,
   }));
 }
 

@@ -1,6 +1,10 @@
 import nodemailer from 'nodemailer';
 
 import { CONTACT_CONFIRMATION_HTML } from '@/lib/email/templates/contact-confirmation';
+import {
+  REGALIS_LOGO_CID,
+  REGALIS_LOGO_PNG_BASE64,
+} from '@/lib/email/templates/regalis-logo';
 
 type Transporter = ReturnType<typeof nodemailer.createTransport>;
 
@@ -176,6 +180,14 @@ export function resolveMailboxConfig(mailbox: EmailMailbox = 'default'): Mailbox
   };
 }
 
+export type EmailAttachment = {
+  filename: string;
+  content: Buffer | string;
+  contentType?: string;
+  /** Set for inline images referenced via cid:<id> in the HTML body. */
+  cid?: string;
+};
+
 export async function sendEmail(args: {
   mailbox?: EmailMailbox;
   to: string | string[];
@@ -184,6 +196,7 @@ export async function sendEmail(args: {
   text: string;
   from?: string;
   replyTo?: string;
+  attachments?: EmailAttachment[];
 }): Promise<SendResult> {
   const mailbox = args.mailbox ?? 'default';
   const transporter = getTransporter(mailbox);
@@ -200,6 +213,9 @@ export async function sendEmail(args: {
       html: args.html,
       text: args.text,
       ...(replyTo ? { replyTo } : {}),
+      ...(args.attachments && args.attachments.length > 0
+        ? { attachments: args.attachments }
+        : {}),
     });
     return { sent: true };
   } catch (e) {
@@ -387,6 +403,14 @@ async function sendContactConfirmation(args: {
     subject: 'We received your message — Regalis',
     html,
     text,
+    attachments: [
+      {
+        filename: 'regalis-logo.png',
+        content: Buffer.from(REGALIS_LOGO_PNG_BASE64, 'base64'),
+        contentType: 'image/png',
+        cid: REGALIS_LOGO_CID,
+      },
+    ],
   });
 }
 

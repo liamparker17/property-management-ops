@@ -217,7 +217,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | File | Exports | Lines |
 |------|---------|-------|
 | dashboard.ts | `getDashboardSummary(ctx)` → portfolio totals, occupancy, lease expiries, invoice overview (invoiced vs paid, overdue accounts, cashflow by unit, expiry buckets), recent leases; M2 adds `incomeByKind` (RENT vs UTILITY_* split sourced from `InvoiceLineItem`) | 301 |
-| staff-analytics.ts | `getStaffCommandCenter(ctx, filters?)` (Phase 1: `kpis` includes NET_RENTAL_INCOME / RENT_BILLED / RENT_COLLECTED / URGENT_MAINTENANCE; adds `kpiSparks` per-KPI 12-mo series and `collectionsCombo` ComboChartPoint[] for billed/collected/prior overlay), `getStaffPortfolio`, `getStaffFinance`, `getStaffMaintenance`, `getStaffOperations` | 813 |
+| staff-analytics.ts | `getStaffCommandCenter(ctx, filters?)` (Phase 1: `kpis` includes NET_RENTAL_INCOME / RENT_BILLED / RENT_COLLECTED / URGENT_MAINTENANCE; adds `kpiSparks` per-KPI 12-mo series and `collectionsCombo` ComboChartPoint[] for billed/collected/prior overlay; Phase 2a: also returns `arrearsAging`, `occupancyBreakdown`, `leaseExpiryBuckets`, `maintenanceSpendTrend`, `urgentMaintenanceList`, `utilityRecovery`; `topArrears` rows include `fraction` for mini-bar widths). `getStaffPortfolio` rows include `healthScore` (0-90 composite weighted: 0.4*collectionRate + 0.3*occupancy + 0.2*(1-urgentMaintRatio); +0.1 leaseExpiryRisk in Phase 3). Also `getStaffFinance`, `getStaffMaintenance`, `getStaffOperations`. | 876 |
 | leases.ts | `DerivedStatus` type, `deriveStatus()`, `listLeases()`, `getLease()`, `createLease()`, `updateDraftLease()`, `activateLease()` (M2: writes `DEPOSIT_IN` ledger entry when `depositReceivedAt` set), `terminateLease()`, `renewLease()`, `setPrimaryTenant()`, `setSelfManagedDebitOrder()` | — |
 | properties.ts | `listProperties()`, `getProperty()`, `createProperty()`, `updateProperty()`, `softDeleteProperty()` | 51 |
 | tenants.ts | `listTenants()`, `getTenant()`, `detectDuplicates()`, `createTenant()`, `updateTenant()`, `archiveTenant()`, `unarchiveTenant()`, `deleteTenant()` (hard delete — requires archived; cascades LeaseTenant, MaintenanceRequest, LeaseSignature, LeaseReviewRequest, linked User; nulls Document.tenantId), `inviteTenantToPortal()` — creates a TENANT User, links via Tenant.userId, returns one-time temp password | 170 |
@@ -380,7 +380,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | /login | (marketing)/login/page.tsx | Renders `<LoginForm>` in Suspense |
 | — | (staff)/layout.tsx | Auth guard + `<StaffNav>` |
 | — | (staff)/dashboard/layout.tsx | Wraps all `/dashboard/*` routes with `DashboardShell` (sticky tab bar + range/compare URL filters) |
-| /dashboard | (staff)/dashboard/page.tsx | Staff Overview: 7-KPI hero band with sparklines, Invoiced-vs-Collected combo chart with prior-period overlay, status strip, map + ranked lists, maintenance-by-status; threads AnalyticsCtx from URL search params |
+| /dashboard | (staff)/dashboard/page.tsx | Staff Overview: 7-KPI hero band with sparklines, Invoiced-vs-Collected combo chart with prior-period overlay, status strip, 4-up cockpit grid (arrears aging / occupancy donut / lease expiries / maintenance spend), 3-up (top-10 overdue table / urgent maintenance list / utility recovery), map + open-maintenance ranked list; threads AnalyticsCtx from URL search params |
 | /dashboard/tenants | (staff)/dashboard/tenants/page.tsx | Tab stub — Phase 4 placeholder |
 | /dashboard/utilities | (staff)/dashboard/utilities/page.tsx | Tab stub — Phase 4 placeholder |
 | /dashboard/trust | (staff)/dashboard/trust/page.tsx | Tab stub — Phase 4 placeholder |
@@ -737,6 +737,8 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | components/analytics/charts/area-chart.tsx | `ChartPoint`, `AreaChart` - shared Recharts area chart wrapper using the analytics theme registry | 66 |
 | components/analytics/charts/bar-chart.tsx | `BarChart` - shared Recharts bar chart wrapper using the analytics theme registry | 40 |
 | components/analytics/charts/donut-chart.tsx | `DonutChart` - shared Recharts donut chart wrapper using the analytics theme registry | 41 |
+| components/analytics/charts/aging-bar.tsx | `AgingBar`, `AgingSegment` — horizontal stacked single-bar with legend (used for arrears aging on Overview) | 60 |
+| components/analytics/top-overdue-table.tsx | `TopOverdueTable`, `TopOverdueRow` — sortable list of overdue leases with relative-amount mini-bars | 60 |
 | components/analytics/charts/trend-card.tsx | `TrendCard` - KPI tile + sparkline composition block | 30 |
 | components/analytics/maps/portfolio-pins.tsx | `PortfolioPin`, `PortfolioPins` - React-Leaflet portfolio marker renderer with custom `divIcon` pins | 53 |
 | components/analytics/maps/map-panel.tsx | `MapPanel` - lazily-loaded portfolio map shell with empty-state fallback | 45 |

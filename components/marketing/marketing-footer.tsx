@@ -50,13 +50,20 @@ export function MarketingFooter() {
           <div>
             <Link href="/" className="flex items-center gap-2.5 no-underline">
               <span className="inline-flex overflow-hidden rounded-sm bg-white">
-                <img src="/regalis.svg" alt="Regalis" className="h-11 w-auto object-contain" />
+                <img src="/regalis.svg" alt="Regalis" className="h-9 w-9 object-contain" />
               </span>
               <span className="flex flex-col leading-none">
                 <span className="font-serif text-[20px] font-normal uppercase tracking-[0.08em]" style={{ color: CREAM }}>
                   Regalis
                 </span>
-                <span className="mt-[2px] font-mono text-[9px] uppercase tracking-[0.2em]" style={{ color: GOLD }}>
+                <span
+                  className="mt-[2px] font-mono text-[9px] uppercase tracking-[0.2em]"
+                  style={{
+                    color: GOLD,
+                    WebkitTextStroke: `0.35px ${CREAM}`,
+                    textShadow: `0 0 1px ${CREAM}`,
+                  }}
+                >
                   Property Ops
                 </span>
               </span>

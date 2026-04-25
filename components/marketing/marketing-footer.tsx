@@ -58,10 +58,7 @@ export function MarketingFooter() {
                 </span>
                 <span
                   className="mt-[2px] font-mono text-[9px] uppercase tracking-[0.2em]"
-                  style={{
-                    color: GOLD,
-                    WebkitTextStroke: `0.5px ${CREAM}`,
-                  }}
+                  style={{ color: GOLD }}
                 >
                   Property Ops
                 </span>

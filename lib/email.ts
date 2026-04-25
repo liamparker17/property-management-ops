@@ -1,5 +1,7 @@
 import nodemailer from 'nodemailer';
 
+import { CONTACT_CONFIRMATION_HTML } from '@/lib/email/templates/contact-confirmation';
+
 type Transporter = ReturnType<typeof nodemailer.createTransport>;
 
 export type EmailMailbox = 'default' | 'noreply' | 'updates';
@@ -341,6 +343,53 @@ export async function sendSignupRequest(args: {
   });
 }
 
+function renderContactConfirmation(args: {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+}): { html: string; text: string } {
+  const html = CONTACT_CONFIRMATION_HTML
+    .replaceAll('{{name}}', escapeHtml(args.name))
+    .replaceAll('{{email}}', escapeHtml(args.email))
+    .replaceAll('{{subject}}', escapeHtml(args.subject))
+    .replaceAll('{{message}}', escapeHtml(args.message));
+
+  const text = [
+    `Hi ${args.name},`,
+    '',
+    'Thank you for writing to Regalis. We have your message and someone on the team will respond within one business day. There is nothing else you need to do.',
+    '',
+    'For reference, here is what you sent us:',
+    '',
+    `Subject: ${args.subject}`,
+    `From:    ${args.name} <${args.email}>`,
+    '',
+    args.message,
+    '',
+    '— Regalis · Property Ops',
+    'hello@regalis.co.za · regalis.co.za',
+  ].join('\n');
+
+  return { html, text };
+}
+
+async function sendContactConfirmation(args: {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+}): Promise<SendResult> {
+  const { html, text } = renderContactConfirmation(args);
+  return sendEmail({
+    mailbox: 'default',
+    to: args.email,
+    subject: 'We received your message — Regalis',
+    html,
+    text,
+  });
+}
+
 export async function sendContactRequest(args: {
   name: string;
   email: string;
@@ -370,7 +419,7 @@ export async function sendContactRequest(args: {
   `;
   const text = `From: ${args.name} <${args.email}>\nSubject: ${args.subject}\n\n${args.message}`;
 
-  return sendEmail({
+  const opsResult = await sendEmail({
     mailbox: 'updates',
     to: recipients,
     subject,
@@ -378,6 +427,16 @@ export async function sendContactRequest(args: {
     text,
     replyTo: args.email,
   });
+
+  // Fire-and-forget auto-reply from hello@ back to the submitter.
+  // Failure here must not affect the success status of the form submission —
+  // ops have already received the message.
+  void sendContactConfirmation(args).catch((err) => {
+    // eslint-disable-next-line no-console
+    console.error('[contact-confirmation] failed to send auto-reply', err);
+  });
+
+  return opsResult;
 }
 
 function escapeHtml(s: string) {

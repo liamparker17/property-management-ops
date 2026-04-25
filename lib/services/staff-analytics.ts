@@ -246,9 +246,7 @@ function snapshotKpis(snapshot?: {
   openMaintenance: number;
   expiringLeases30: number;
   blockedApprovals: number;
-  maintenanceSpendCents?: number;
-  urgentMaintenance?: number;
-}) {
+}, extra?: { netRentalIncome?: number; urgentMaintenance?: number }) {
   return {
     OCCUPANCY_PCT: percent(snapshot?.occupiedUnits ?? 0, snapshot?.totalUnits ?? 0),
     ARREARS_CENTS: snapshot?.arrearsCents ?? 0,
@@ -256,11 +254,11 @@ function snapshotKpis(snapshot?: {
     TRUST_BALANCE: snapshot?.trustBalanceCents ?? 0,
     UNALLOCATED_CENTS: snapshot?.unallocatedCents ?? 0,
     OPEN_MAINTENANCE: snapshot?.openMaintenance ?? 0,
-    URGENT_MAINTENANCE: snapshot?.urgentMaintenance ?? 0,
+    URGENT_MAINTENANCE: extra?.urgentMaintenance ?? 0,
     EXPIRING_LEASES_30: snapshot?.expiringLeases30 ?? 0,
     BLOCKED_APPROVALS: snapshot?.blockedApprovals ?? 0,
     GROSS_RENT: snapshot?.billedCents ?? 0,
-    NET_RENTAL_INCOME: (snapshot?.collectedCents ?? 0) - (snapshot?.maintenanceSpendCents ?? 0),
+    NET_RENTAL_INCOME: extra?.netRentalIncome ?? 0,
     RENT_BILLED: snapshot?.billedCents ?? 0,
     RENT_COLLECTED: snapshot?.collectedCents ?? 0,
     DISBURSED_CENTS: 0,
@@ -413,6 +411,29 @@ async function getBlockedApprovals(ctx: RouteCtx): Promise<ApprovalRow[]> {
   }));
 }
 
+async function getUrgentMaintenanceCount(ctx: RouteCtx): Promise<number> {
+  return db.maintenanceRequest.count({
+    where: {
+      orgId: ctx.orgId,
+      priority: { in: ['HIGH', 'URGENT'] },
+      status: { in: ['OPEN', 'IN_PROGRESS'] },
+    },
+  });
+}
+
+async function computeNetRentalIncome(
+  ctx: RouteCtx,
+  periodStart: Date,
+  collectedCents: number,
+): Promise<number> {
+  const agg = await db.landlordMonthlySnapshot.aggregate({
+    where: { orgId: ctx.orgId, periodStart },
+    _sum: { maintenanceSpendCents: true },
+  });
+  const maint = agg._sum.maintenanceSpendCents ?? 0;
+  return collectedCents - maint;
+}
+
 export async function getStaffCommandCenter(
   ctx: RouteCtx,
   filters?: { periodStart?: Date },
@@ -468,10 +489,22 @@ export async function getStaffCommandCenter(
     y: statusCounts.get(status) ?? 0,
   }));
 
+  const [urgentCount, currentNet, priorNet] = await Promise.all([
+    getUrgentMaintenanceCount(ctx),
+    computeNetRentalIncome(ctx, periodStart, currentSnapshot?.collectedCents ?? 0),
+    computeNetRentalIncome(ctx, priorPeriodStart, priorSnapshot?.collectedCents ?? 0),
+  ]);
+
   return {
     periodStart,
-    kpis: snapshotKpis(currentSnapshot ?? undefined),
-    priorKpis: snapshotKpis(priorSnapshot ?? undefined),
+    kpis: snapshotKpis(currentSnapshot ?? undefined, {
+      netRentalIncome: currentNet,
+      urgentMaintenance: urgentCount,
+    }),
+    priorKpis: snapshotKpis(priorSnapshot ?? undefined, {
+      netRentalIncome: priorNet,
+      urgentMaintenance: 0, // prior-period urgent count is not tracked yet; show as 0 → no delta
+    }),
     expiringLeases,
     topArrears,
     openMaintenance,

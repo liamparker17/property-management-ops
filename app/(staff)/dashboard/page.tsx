@@ -25,7 +25,10 @@ export default async function DashboardPage({
   const baseCtx = userToRouteCtx(session!.user);
   const sp = await searchParams;
   const analyticsCtx = resolveAnalyticsCtx(sp, baseCtx);
-  const data = await getStaffCommandCenter(baseCtx, { periodStart: analyticsCtx.range.to });
+  const data = await getStaffCommandCenter(baseCtx, {
+    periodStart: analyticsCtx.range.to,
+    compare: analyticsCtx.compare,
+  });
 
   return (
     <div className="space-y-8">

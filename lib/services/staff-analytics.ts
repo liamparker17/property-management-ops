@@ -458,7 +458,7 @@ async function computeNetRentalIncome(
 
 export async function getStaffCommandCenter(
   ctx: RouteCtx,
-  filters?: { periodStart?: Date },
+  filters?: { periodStart?: Date; compare?: 'prior' | 'yoy' | 'off' },
 ): Promise<StaffCommandCenter> {
   const periodStart = monthFloor(filters?.periodStart ?? new Date());
   const priorPeriodStart = addMonths(periodStart, -1);
@@ -511,11 +511,12 @@ export async function getStaffCommandCenter(
   });
   const kpiSparks = buildKpiSparks(sparkRows);
 
+  const compareMode = filters?.compare ?? 'prior';
   const comboWindow = Array.from({ length: 12 }, (_, index) => addMonths(periodStart, index - 11));
   const collectionsCombo: ComboChartPoint[] = comboWindow.map((month) => {
     const row = seriesMap.get(keyForMonth(month));
     const priorMonth = addMonths(month, -12);
-    const priorRow = seriesMap.get(keyForMonth(priorMonth));
+    const priorRow = compareMode === 'off' ? undefined : seriesMap.get(keyForMonth(priorMonth));
     return {
       x: labelForMonth(month),
       bars: row?.billedCents ?? 0,

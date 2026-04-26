@@ -1011,3 +1011,222 @@ export async function getStaffOperations(ctx: RouteCtx): Promise<OperationsView>
     missingMoveIns,
   };
 }
+
+// ─── Phase 2b: Drill-detail server functions ────────────────────────────────
+
+type AgingBucketId = '0-30' | '31-60' | '61-90' | '90+';
+
+const AGING_BUCKETS: Array<{ id: AgingBucketId; label: string }> = [
+  { id: '0-30', label: '0–30 days' },
+  { id: '31-60', label: '31–60 days' },
+  { id: '61-90', label: '61–90 days' },
+  { id: '90+', label: '90+ days' },
+];
+
+function agingBucketId(ageDays: number): AgingBucketId {
+  if (ageDays <= 30) return '0-30';
+  if (ageDays <= 60) return '31-60';
+  if (ageDays <= 90) return '61-90';
+  return '90+';
+}
+
+export async function getArrearsAgingDetail(ctx: RouteCtx): Promise<{
+  buckets: Array<{
+    id: string;
+    label: string;
+    rows: Array<{ id: string; tenant: string; property: string; unit: string; cents: number; dueDate: Date; ageDays: number }>;
+  }>;
+}> {
+  const propertyIds = await getPropertyIds(ctx);
+  const bucketsMap = new Map<AgingBucketId, Array<{ id: string; tenant: string; property: string; unit: string; cents: number; dueDate: Date; ageDays: number }>>(
+    AGING_BUCKETS.map((b) => [b.id, []]),
+  );
+
+  if (propertyIds.length === 0) {
+    return { buckets: AGING_BUCKETS.map((b) => ({ ...b, rows: [] })) };
+  }
+
+  const now = new Date();
+  const overdue = await db.invoice.findMany({
+    where: {
+      orgId: ctx.orgId,
+      paidAt: null,
+      status: { in: ['DUE', 'OVERDUE'] },
+      dueDate: { lt: now },
+      lease: { unit: { propertyId: { in: propertyIds } } },
+    },
+    orderBy: [{ amountCents: 'desc' }, { dueDate: 'asc' }],
+    include: {
+      lease: {
+        include: {
+          unit: { include: { property: { select: { name: true } } } },
+          tenants: {
+            where: { isPrimary: true },
+            include: { tenant: { select: { firstName: true, lastName: true } } },
+          },
+        },
+      },
+    },
+  });
+
+  for (const inv of overdue) {
+    const cents = inv.totalCents > 0 ? inv.totalCents : inv.amountCents;
+    const ageDays = Math.floor((now.getTime() - inv.dueDate.getTime()) / 86400000);
+    const bucketId = agingBucketId(ageDays);
+    const primaryTenant = inv.lease.tenants[0]?.tenant;
+    bucketsMap.get(bucketId)!.push({
+      id: inv.id,
+      tenant: primaryTenant
+        ? `${primaryTenant.firstName} ${primaryTenant.lastName}`
+        : 'Primary tenant missing',
+      property: inv.lease.unit.property.name,
+      unit: inv.lease.unit.label,
+      cents,
+      dueDate: inv.dueDate,
+      ageDays,
+    });
+  }
+
+  return {
+    buckets: AGING_BUCKETS.map((b) => ({ ...b, rows: bucketsMap.get(b.id) ?? [] })),
+  };
+}
+
+export async function getTopOverdueDetail(ctx: RouteCtx): Promise<{
+  rows: Array<{ id: string; tenant: string; property: string; unit: string; cents: number; dueDate: Date; ageDays: number }>;
+}> {
+  const propertyIds = await getPropertyIds(ctx);
+  if (propertyIds.length === 0) return { rows: [] };
+
+  const now = new Date();
+  const rows = await db.invoice.findMany({
+    where: {
+      orgId: ctx.orgId,
+      paidAt: null,
+      status: { in: ['DUE', 'OVERDUE'] },
+      dueDate: { lt: now },
+      lease: { unit: { propertyId: { in: propertyIds } } },
+    },
+    orderBy: [{ amountCents: 'desc' }, { dueDate: 'asc' }],
+    include: {
+      lease: {
+        include: {
+          unit: { include: { property: { select: { name: true } } } },
+          tenants: {
+            where: { isPrimary: true },
+            include: { tenant: { select: { firstName: true, lastName: true } } },
+          },
+        },
+      },
+    },
+  });
+
+  return {
+    rows: rows.map((inv: typeof rows[number]) => {
+      const cents = inv.totalCents > 0 ? inv.totalCents : inv.amountCents;
+      const ageDays = Math.floor((now.getTime() - inv.dueDate.getTime()) / 86400000);
+      const primaryTenant = inv.lease.tenants[0]?.tenant;
+      return {
+        id: inv.id,
+        tenant: primaryTenant
+          ? `${primaryTenant.firstName} ${primaryTenant.lastName}`
+          : 'Primary tenant missing',
+        property: inv.lease.unit.property.name,
+        unit: inv.lease.unit.label,
+        cents,
+        dueDate: inv.dueDate,
+        ageDays,
+      };
+    }),
+  };
+}
+
+export async function getLeaseExpiriesDetail(ctx: RouteCtx): Promise<{
+  buckets: Array<{
+    id: string;
+    label: string;
+    rows: Array<{ id: string; tenant: string | null; property: string; unit: string; endDate: Date; daysUntilExpiry: number }>;
+  }>;
+}> {
+  const propertyIds = await getPropertyIds(ctx);
+  const bucketsMap = new Map<AgingBucketId, Array<{ id: string; tenant: string | null; property: string; unit: string; endDate: Date; daysUntilExpiry: number }>>(
+    AGING_BUCKETS.map((b) => [b.id, []]),
+  );
+
+  if (propertyIds.length === 0) {
+    return { buckets: AGING_BUCKETS.map((b) => ({ ...b, rows: [] })) };
+  }
+
+  const now = new Date();
+  const leases = await db.lease.findMany({
+    where: {
+      orgId: ctx.orgId,
+      state: { in: ['ACTIVE', 'RENEWED'] },
+      endDate: { gte: now },
+      unit: { propertyId: { in: propertyIds } },
+    },
+    orderBy: { endDate: 'asc' },
+    include: {
+      unit: { include: { property: { select: { name: true } } } },
+      tenants: {
+        where: { isPrimary: true },
+        include: { tenant: { select: { firstName: true, lastName: true } } },
+      },
+    },
+  });
+
+  for (const lease of leases) {
+    const daysUntilExpiry = Math.ceil((lease.endDate.getTime() - now.getTime()) / 86400000);
+    const bucketId = agingBucketId(daysUntilExpiry);
+    const primaryTenant = lease.tenants[0]?.tenant;
+    bucketsMap.get(bucketId)!.push({
+      id: lease.id,
+      tenant: primaryTenant
+        ? `${primaryTenant.firstName} ${primaryTenant.lastName}`
+        : null,
+      property: lease.unit.property.name,
+      unit: lease.unit.label,
+      endDate: lease.endDate,
+      daysUntilExpiry,
+    });
+  }
+
+  return {
+    buckets: AGING_BUCKETS.map((b) => ({ ...b, rows: bucketsMap.get(b.id) ?? [] })),
+  };
+}
+
+export async function getUrgentMaintenanceDetail(ctx: RouteCtx): Promise<{
+  rows: Array<{ id: string; title: string; priority: string; status: string; property: string; unit: string; vendorName: string | null; ageDays: number; scheduledFor: Date | null }>;
+}> {
+  const propertyIds = await getPropertyIds(ctx);
+  if (propertyIds.length === 0) return { rows: [] };
+
+  const rows = await db.maintenanceRequest.findMany({
+    where: {
+      orgId: ctx.orgId,
+      priority: { in: ['HIGH', 'URGENT'] },
+      status: { in: ['OPEN', 'IN_PROGRESS'] },
+      unit: { propertyId: { in: propertyIds } },
+    },
+    orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
+    include: {
+      unit: { include: { property: { select: { name: true } } } },
+      vendor: { select: { name: true } },
+    },
+  });
+
+  return {
+    rows: rows.map((row: typeof rows[number]) => ({
+      id: row.id,
+      title: row.title,
+      priority: row.priority,
+      status: row.status,
+      property: row.unit.property.name,
+      unit: row.unit.label,
+      vendorName: row.vendor?.name ?? null,
+      ageDays: Math.floor((Date.now() - row.createdAt.getTime()) / 86400000),
+      scheduledFor: row.scheduledFor,
+    })),
+  };
+}

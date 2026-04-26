@@ -1,6 +1,17 @@
 import Link from 'next/link';
 
 import { AgingBar } from '@/components/analytics/charts/aging-bar';
+
+function drillHref(id: string, sp: Record<string, string | string[] | undefined>): string {
+  const next = new URLSearchParams();
+  for (const [k, v] of Object.entries(sp)) {
+    if (k === 'drill') continue;
+    if (typeof v === 'string') next.set(k, v);
+    else if (Array.isArray(v) && v[0] !== undefined) next.set(k, v[0]);
+  }
+  next.set('drill', id);
+  return `?${next.toString()}`;
+}
 import { AreaChart } from '@/components/analytics/charts/area-chart';
 import { BarChart } from '@/components/analytics/charts/bar-chart';
 import { ComboChart } from '@/components/analytics/charts/combo-chart';
@@ -89,7 +100,15 @@ export default async function DashboardPage({
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
         <Card className="border border-border p-5">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--accent)]">Receivables</p>
-          <h2 className="mt-2 mb-4 font-serif text-[22px] font-light text-foreground">Arrears aging</h2>
+          <div className="mt-2 mb-4 flex items-center justify-between gap-2">
+            <h2 className="font-serif text-[22px] font-light text-foreground">Arrears aging</h2>
+            <Link
+              href={drillHref('arrears-aging', sp)}
+              className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground hover:text-foreground"
+            >
+              View detail →
+            </Link>
+          </div>
           <AgingBar segments={data.arrearsAging} />
         </Card>
         <Card className="border border-border p-5">
@@ -104,7 +123,15 @@ export default async function DashboardPage({
         </Card>
         <Card className="border border-border p-5">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--accent)]">Renewals</p>
-          <h2 className="mt-2 mb-4 font-serif text-[22px] font-light text-foreground">Lease expiries</h2>
+          <div className="mt-2 mb-4 flex items-center justify-between gap-2">
+            <h2 className="font-serif text-[22px] font-light text-foreground">Lease expiries</h2>
+            <Link
+              href={drillHref('lease-expiries', sp)}
+              className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground hover:text-foreground"
+            >
+              View detail →
+            </Link>
+          </div>
           <BarChart data={data.leaseExpiryBuckets.map((b) => ({ x: b.label, y: b.count }))} />
         </Card>
         <Card className="border border-border p-5">
@@ -118,12 +145,28 @@ export default async function DashboardPage({
       <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr_1fr]">
         <Card className="border border-border p-5">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--accent)]">Finance</p>
-          <h2 className="mt-2 mb-4 font-serif text-[22px] font-light text-foreground">Top 10 overdue</h2>
+          <div className="mt-2 mb-4 flex items-center justify-between gap-2">
+            <h2 className="font-serif text-[22px] font-light text-foreground">Top 10 overdue</h2>
+            <Link
+              href={drillHref('top-overdue', sp)}
+              className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground hover:text-foreground"
+            >
+              View detail →
+            </Link>
+          </div>
           <TopOverdueTable rows={data.topArrears} />
         </Card>
         <Card className="border border-border p-5">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--accent)]">Operations</p>
-          <h2 className="mt-2 mb-4 font-serif text-[22px] font-light text-foreground">Urgent maintenance</h2>
+          <div className="mt-2 mb-4 flex items-center justify-between gap-2">
+            <h2 className="font-serif text-[22px] font-light text-foreground">Urgent maintenance</h2>
+            <Link
+              href={drillHref('urgent-maintenance', sp)}
+              className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground hover:text-foreground"
+            >
+              View detail →
+            </Link>
+          </div>
           <RankedList
             title=""
             eyebrow=""

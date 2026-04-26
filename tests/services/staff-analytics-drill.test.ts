@@ -90,21 +90,21 @@ describe('drill server functions', () => {
 });
 
 describe('getPropertyDetailDrill', () => {
-  let originalPropertyFindUnique: any;
+  let originalPropertyFindFirst: any;
   let originalSnapshotFindFirst: any;
 
   before(() => {
-    originalPropertyFindUnique = db.property.findUnique;
+    originalPropertyFindFirst = db.property.findFirst;
     originalSnapshotFindFirst = db.propertyMonthlySnapshot?.findFirst;
   });
 
   after(() => {
-    db.property.findUnique = originalPropertyFindUnique;
+    db.property.findFirst = originalPropertyFindFirst;
     if (db.propertyMonthlySnapshot) db.propertyMonthlySnapshot.findFirst = originalSnapshotFindFirst;
   });
 
   it('returns property identity + KPIs + recent expiring leases + recent maintenance', async () => {
-    db.property.findUnique = async ({ where }: any) => ({
+    db.property.findFirst = async ({ where }: any) => ({
       id: where.id,
       name: 'Tower A',
       suburb: 'Sandhurst',

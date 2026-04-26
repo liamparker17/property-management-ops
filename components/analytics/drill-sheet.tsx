@@ -40,6 +40,7 @@ export function DrillSheet({ title, csvHref, children }: DrillSheetProps) {
     if (typeof window === 'undefined') return;
     const url = new URL(window.location.href);
     url.searchParams.delete('drill');
+    url.searchParams.delete('propertyId');
     const search = url.searchParams.toString();
     const next = url.pathname + (search ? `?${search}` : '');
     if (router) router.replace(next);

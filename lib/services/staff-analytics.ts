@@ -1253,12 +1253,12 @@ export async function getPropertyDetailDrill(
   recentExpiringLeases: Array<{ id: string; tenant: string | null; unit: string; endDate: Date; daysUntilExpiry: number }>;
   recentMaintenance: Array<{ id: string; title: string; priority: string; status: string }>;
 }> {
-  // Verify the property is in the org and not deleted
-  const property = await db.property.findUnique({
-    where: { id: propertyId },
-    select: { id: true, name: true, suburb: true, city: true, province: true, orgId: true, deletedAt: true },
+  // Database-scoped lookup so a wrong-org propertyId returns null rather than the row.
+  const property = await db.property.findFirst({
+    where: { id: propertyId, orgId: ctx.orgId, deletedAt: null },
+    select: { id: true, name: true, suburb: true, city: true, province: true },
   });
-  if (!property || property.orgId !== ctx.orgId || property.deletedAt) {
+  if (!property) {
     throw new Error('Property not found');
   }
 

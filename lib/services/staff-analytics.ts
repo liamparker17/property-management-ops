@@ -742,9 +742,22 @@ export async function getStaffCommandCenter(
     utilityRecovery,
     openMaintenance,
     blockedApprovals,
-    portfolioPins: properties
-      .map((row, index) => buildPropertyPin(row, index))
-      .filter((pin): pin is PortfolioPin => pin !== null),
+    portfolioPins: await (async () => {
+      const propertyIds = properties.map((p) => p.id);
+      const propertySnapshots = propertyIds.length > 0
+        ? await db.propertyMonthlySnapshot.findMany({
+            where: { orgId: ctx.orgId, periodStart, propertyId: { in: propertyIds } },
+          })
+        : [];
+      const snapMap = new Map(propertySnapshots.map((s: { propertyId: string }) => [s.propertyId, s]));
+      return properties
+        .map((row, index) => buildPropertyPin(row, index))
+        .filter((pin): pin is PortfolioPin => pin !== null)
+        .map((pin) => {
+          const snap = snapMap.get(pin.id) as { occupiedUnits: number; totalUnits: number; arrearsCents: number; grossRentCents: number; openMaintenance: number } | undefined;
+          return { ...pin, healthScore: snap ? computeHealthScore(snap) : null };
+        });
+    })(),
     collectionsTrend,
     collectionsCombo,
     maintenanceByStatus,

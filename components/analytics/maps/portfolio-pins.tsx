@@ -12,6 +12,7 @@ export type PortfolioPin = {
   lng: number;
   href?: string;
   meta?: string;
+  healthScore?: number | null;
 };
 
 type PortfolioPinsProps = {

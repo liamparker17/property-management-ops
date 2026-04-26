@@ -17,6 +17,7 @@ let originalInvoiceFindMany: any;
 let originalApprovalFindMany: any;
 let originalMaintenanceFindMany: any;
 let originalOrgFindUnique: any;
+let originalPropertyMonthlySnapshotFindMany: any;
 
 const ORG_ID = 'org_test';
 const ROUTE_CTX = { orgId: ORG_ID, userId: 'u1', role: 'ADMIN' as const };
@@ -37,6 +38,7 @@ before(async () => {
   originalInvoiceFindMany = db.invoice.findMany;
   originalApprovalFindMany = db.approval.findMany;
   originalOrgFindUnique = db.org.findUnique;
+  originalPropertyMonthlySnapshotFindMany = db.propertyMonthlySnapshot.findMany;
 
   ({ getStaffCommandCenter } = await import('@/lib/services/staff-analytics'));
 });
@@ -55,6 +57,7 @@ after(() => {
   db.invoice.findMany = originalInvoiceFindMany;
   db.approval.findMany = originalApprovalFindMany;
   db.org.findUnique = originalOrgFindUnique;
+  db.propertyMonthlySnapshot.findMany = originalPropertyMonthlySnapshotFindMany;
 });
 
 beforeEach(() => {
@@ -90,6 +93,8 @@ beforeEach(() => {
   db.invoice.findMany = async () => [];
   db.approval.findMany = async () => [];
   db.org.findUnique = async () => ({ expiringWindowDays: 60 });
+  db.propertyMonthlySnapshot = db.propertyMonthlySnapshot ?? {};
+  db.propertyMonthlySnapshot.findMany = async () => [];
 });
 
 describe('getStaffCommandCenter — Phase 1 hero KPIs', () => {
@@ -397,5 +402,31 @@ describe('getStaffCommandCenter — topArrears.fraction', () => {
     const result = await getStaffCommandCenter(ROUTE_CTX);
     assert.equal(result.topArrears[0].fraction, 1);
     assert.equal(result.topArrears[1].fraction, 0.5);
+  });
+});
+
+describe('getStaffCommandCenter — portfolioPins.healthScore', () => {
+  it('attaches healthScore to each pin from the corresponding property snapshot', async () => {
+    db.property.findMany = async () => [
+      { id: 'p1', name: 'Tower A', addressLine1: '', suburb: 's', city: 'Johannesburg', province: 'GP', latitude: -26.2, longitude: 28.0, landlord: null, assignedAgent: null },
+    ];
+    db.propertyMonthlySnapshot.findMany = async () => [
+      { orgId: ORG_ID, propertyId: 'p1', periodStart: new Date(), occupiedUnits: 9, totalUnits: 10, openMaintenance: 0, arrearsCents: 0, grossRentCents: 100_000_00 },
+    ];
+    const result = await getStaffCommandCenter(ROUTE_CTX);
+    const pin = result.portfolioPins.find((p: any) => p.id === 'p1');
+    assert.ok(pin, 'pin exists');
+    assert.equal(typeof pin.healthScore, 'number', 'healthScore is set');
+    assert.ok(pin.healthScore >= 0 && pin.healthScore <= 90);
+  });
+
+  it('healthScore is null when no snapshot exists for a property', async () => {
+    db.property.findMany = async () => [
+      { id: 'p2', name: 'No Snapshot', addressLine1: '', suburb: '', city: 'Johannesburg', province: 'GP', latitude: -26.2, longitude: 28.0, landlord: null, assignedAgent: null },
+    ];
+    db.propertyMonthlySnapshot.findMany = async () => [];
+    const result = await getStaffCommandCenter(ROUTE_CTX);
+    const pin = result.portfolioPins.find((p: any) => p.id === 'p2');
+    assert.equal(pin?.healthScore, null);
   });
 });

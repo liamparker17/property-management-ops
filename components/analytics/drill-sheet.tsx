@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 
 import { cn } from '@/lib/utils';
@@ -11,19 +12,28 @@ type DrillSheetProps = {
   children: React.ReactNode;
 };
 
-/** Remove the `drill` search-param and navigate — works without App Router context (e.g. tests). */
-function closeDrill() {
-  if (typeof window === 'undefined') return;
-  const url = new URL(window.location.href);
-  url.searchParams.delete('drill');
-  // Use Next.js router if available, otherwise fall back to history API
-  const search = url.searchParams.toString();
-  const next = url.pathname + (search ? `?${search}` : '');
-  window.history.replaceState(null, '', next);
-}
-
 export function DrillSheet({ title, csvHref, children }: DrillSheetProps) {
+  // useRouter throws outside the App Router context (e.g. SSR test renders).
+  // We try to use it; if the call fails we fall back to history.replaceState
+  // so SSR snapshots still work. In the browser the router path is taken so
+  // closing actually triggers a Server Component re-render of the layout.
+  let router: ReturnType<typeof useRouter> | null = null;
+  try {
+    router = useRouter();
+  } catch {
+    router = null;
+  }
   const ref = useRef<HTMLDivElement>(null);
+
+  function closeDrill() {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete('drill');
+    const search = url.searchParams.toString();
+    const next = url.pathname + (search ? `?${search}` : '');
+    if (router) router.replace(next);
+    else window.history.replaceState(null, '', next);
+  }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -32,6 +42,7 @@ export function DrillSheet({ title, csvHref, children }: DrillSheetProps) {
     document.addEventListener('keydown', onKey);
     ref.current?.focus();
     return () => document.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

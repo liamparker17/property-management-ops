@@ -4,6 +4,7 @@ import type { Role } from '@prisma/client';
 import Link from 'next/link';
 
 import { Sparkline } from '@/components/analytics/sparkline';
+import { formatZarShort } from '@/lib/format';
 import { formatKpi } from '@/lib/analytics/formatters';
 import { resolveDrillTarget } from '@/lib/analytics/drill-targets';
 import { getKpi, type KpiId } from '@/lib/analytics/kpis';
@@ -38,6 +39,7 @@ export function KpiTile({
   const kpi = getKpi(kpiId);
   const target = href ?? resolveDrillTarget(kpiId, role);
   const delta = formatDelta(value, prior);
+  const displayValue = kpi.format === 'CENTS' ? formatZarShort(value) : formatKpi(value, kpi.format);
 
   return (
     <Link
@@ -52,8 +54,8 @@ export function KpiTile({
       </p>
       <p className="mt-4 text-sm text-muted-foreground">{kpi.label}</p>
       <div className="mt-3 flex items-end justify-between gap-3">
-        <p className="font-serif text-[40px] leading-none tracking-[-0.03em] text-foreground">
-          {formatKpi(value, kpi.format)}
+        <p className="font-serif text-[28px] md:text-[32px] xl:text-[36px] 2xl:text-[40px] leading-none tracking-[-0.03em] text-foreground truncate">
+          {displayValue}
         </p>
         {delta ? (
           <span className="border border-border bg-[color:var(--muted)] px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">

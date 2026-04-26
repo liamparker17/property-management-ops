@@ -53,16 +53,14 @@ export function KpiTile({
         {kpi.eyebrow}
       </p>
       <p className="mt-4 text-sm text-muted-foreground">{kpi.label}</p>
-      <div className="mt-3 flex items-end justify-between gap-3">
-        <p className="font-serif text-[28px] md:text-[32px] xl:text-[36px] 2xl:text-[40px] leading-none tracking-[-0.03em] text-foreground truncate">
-          {displayValue}
-        </p>
-        {delta ? (
-          <span className="border border-border bg-[color:var(--muted)] px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            {delta}
-          </span>
-        ) : null}
-      </div>
+      <p className="mt-3 font-serif text-[26px] md:text-[30px] xl:text-[32px] 2xl:text-[34px] leading-none tracking-[-0.02em] text-foreground tabular-nums">
+        {displayValue}
+      </p>
+      {delta ? (
+        <span className="mt-2 inline-block border border-border bg-[color:var(--muted)] px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+          {delta}
+        </span>
+      ) : null}
       {series && series.length > 0 ? (
         <div className="mt-4">
           <Sparkline series={series} width={140} height={28} />

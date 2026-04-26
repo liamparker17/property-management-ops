@@ -19,12 +19,32 @@ type PortfolioPinsProps = {
   pins: PortfolioPin[];
 };
 
-const markerIcon = divIcon({
-  className: 'analytics-map-pin',
-  html: '<span style="display:block;height:14px;width:14px;border:2px solid var(--color-card);border-radius:9999px;background:var(--color-chart-2);box-shadow:0 0 0 4px color-mix(in oklch, var(--color-chart-2) 28%, transparent);"></span>',
-  iconSize: [14, 14],
-  iconAnchor: [7, 7],
-});
+export type HealthBand = 'green' | 'gold' | 'orange' | 'red' | 'neutral';
+
+export function healthBandColor(score: number | null | undefined): HealthBand {
+  if (score === null || score === undefined) return 'neutral';
+  if (score >= 80) return 'green';
+  if (score >= 60) return 'gold';
+  if (score >= 40) return 'orange';
+  return 'red';
+}
+
+const BAND_HEX: Record<HealthBand, string> = {
+  green: '#2f9461',
+  gold: '#c9a44c',
+  orange: '#d68a3e',
+  red: '#c45a4f',
+  neutral: '#5c6680',
+};
+
+function makePinIcon(color: string) {
+  return divIcon({
+    className: 'analytics-map-pin',
+    html: `<span style="display:block;height:14px;width:14px;border:2px solid var(--color-card);border-radius:9999px;background:${color};box-shadow:0 0 0 4px color-mix(in srgb, ${color} 28%, transparent);"></span>`,
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
+  });
+}
 
 const SOUTH_AFRICA_CENTER: [number, number] = [-29.0, 24.0];
 
@@ -65,7 +85,11 @@ export function PortfolioPins({ pins }: PortfolioPinsProps) {
       />
       <FitToPins pins={pins} />
       {pins.map((pin) => (
-        <Marker key={pin.id} position={[pin.lat, pin.lng]} icon={markerIcon}>
+        <Marker
+          key={pin.id}
+          position={[pin.lat, pin.lng]}
+          icon={makePinIcon(BAND_HEX[healthBandColor(pin.healthScore)])}
+        >
           <Popup>
             <div className="space-y-1">
               <p className="font-medium">{pin.label}</p>

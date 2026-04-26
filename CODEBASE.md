@@ -217,7 +217,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | File | Exports | Lines |
 |------|---------|-------|
 | dashboard.ts | `getDashboardSummary(ctx)` → portfolio totals, occupancy, lease expiries, invoice overview (invoiced vs paid, overdue accounts, cashflow by unit, expiry buckets), recent leases; M2 adds `incomeByKind` (RENT vs UTILITY_* split sourced from `InvoiceLineItem`) | 301 |
-| staff-analytics.ts | `getStaffCommandCenter(ctx, filters?)` (Phase 1: `kpis` includes NET_RENTAL_INCOME / RENT_BILLED / RENT_COLLECTED / URGENT_MAINTENANCE; adds `kpiSparks` per-KPI 12-mo series and `collectionsCombo` ComboChartPoint[] for billed/collected/prior overlay; Phase 2a: also returns `arrearsAging`, `occupancyBreakdown`, `leaseExpiryBuckets`, `maintenanceSpendTrend`, `urgentMaintenanceList`, `utilityRecovery`; `topArrears` rows include `fraction` for mini-bar widths). `getStaffPortfolio` rows include `healthScore` (0-90 composite weighted: 0.4*collectionRate + 0.3*occupancy + 0.2*(1-urgentMaintRatio); +0.1 leaseExpiryRisk in Phase 3). Also `getStaffFinance`, `getStaffMaintenance`, `getStaffOperations`. | 876 |
+| staff-analytics.ts | `getStaffCommandCenter(ctx, filters?)` (Phase 1: `kpis` includes NET_RENTAL_INCOME / RENT_BILLED / RENT_COLLECTED / URGENT_MAINTENANCE; adds `kpiSparks` per-KPI 12-mo series and `collectionsCombo` ComboChartPoint[] for billed/collected/prior overlay; Phase 2a: also returns `arrearsAging`, `occupancyBreakdown`, `leaseExpiryBuckets`, `maintenanceSpendTrend`, `urgentMaintenanceList`, `utilityRecovery`; `topArrears` rows include `fraction` for mini-bar widths). `getStaffPortfolio` rows include `healthScore` (0-90 composite weighted: 0.4*collectionRate + 0.3*occupancy + 0.2*(1-urgentMaintRatio); +0.1 leaseExpiryRisk in Phase 3). Phase 2b adds: `getArrearsAgingDetail`, `getTopOverdueDetail`, `getLeaseExpiriesDetail`, `getUrgentMaintenanceDetail` — drill-detail server functions returning unbounded grouped/flat rows for the side-drawer drill-ins. Also `getStaffFinance`, `getStaffMaintenance`, `getStaffOperations`. | 1232 |
 | leases.ts | `DerivedStatus` type, `deriveStatus()`, `listLeases()`, `getLease()`, `createLease()`, `updateDraftLease()`, `activateLease()` (M2: writes `DEPOSIT_IN` ledger entry when `depositReceivedAt` set), `terminateLease()`, `renewLease()`, `setPrimaryTenant()`, `setSelfManagedDebitOrder()` | — |
 | properties.ts | `listProperties()`, `getProperty()`, `createProperty()`, `updateProperty()`, `softDeleteProperty()` | 51 |
 | tenants.ts | `listTenants()`, `getTenant()`, `detectDuplicates()`, `createTenant()`, `updateTenant()`, `archiveTenant()`, `unarchiveTenant()`, `deleteTenant()` (hard delete — requires archived; cascades LeaseTenant, MaintenanceRequest, LeaseSignature, LeaseReviewRequest, linked User; nulls Document.tenantId), `inviteTenantToPortal()` — creates a TENANT User, links via Tenant.userId, returns one-time temp password | 170 |
@@ -380,7 +380,8 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | /login | (marketing)/login/page.tsx | Renders `<LoginForm>` in Suspense |
 | — | (staff)/layout.tsx | Auth guard + `<StaffNav>` |
 | — | (staff)/dashboard/layout.tsx | Wraps all `/dashboard/*` routes with `DashboardShell` (sticky tab bar + range/compare URL filters) |
-| /dashboard | (staff)/dashboard/page.tsx | Staff Overview: 7-KPI hero band with sparklines, Invoiced-vs-Collected combo chart with prior-period overlay, status strip, 4-up cockpit grid (arrears aging / occupancy donut / lease expiries / maintenance spend), 3-up (top-10 overdue table / urgent maintenance list / utility recovery), map + open-maintenance ranked list; threads AnalyticsCtx from URL search params |
+| /dashboard | (staff)/dashboard/page.tsx | Staff Overview: 7-KPI hero band with sparklines, Invoiced-vs-Collected combo chart with prior-period overlay, status strip, 4-up cockpit grid (arrears aging / occupancy donut / lease expiries / maintenance spend), 3-up (top-10 overdue table / urgent maintenance list / utility recovery), map + open-maintenance ranked list; threads AnalyticsCtx from URL search params; Phase 2b: 4 drillable tiles carry "View detail →" links setting `?drill=<tileId>` |
+| — | (staff)/dashboard/layout.tsx | Wraps every `/dashboard/*` route with `DashboardShell`; Phase 2b: when `?drill=<id>` is set, fetches the matching drill-detail payload and renders it inside a `DrillSheet` overlay |
 | /dashboard/tenants | (staff)/dashboard/tenants/page.tsx | Tab stub — Phase 4 placeholder |
 | /dashboard/utilities | (staff)/dashboard/utilities/page.tsx | Tab stub — Phase 4 placeholder |
 | /dashboard/trust | (staff)/dashboard/trust/page.tsx | Tab stub — Phase 4 placeholder |
@@ -501,6 +502,7 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 |----------|---------|--------------|
 | /api/auth/[...nextauth] | GET, POST | handlers (NextAuth) |
 | /api/dashboard/summary | GET | getDashboardSummary |
+| /api/analytics/drill/[tileId]/export.csv | GET | Streams a CSV for one of 4 drill tiles (arrears-aging / top-overdue / lease-expiries / urgent-maintenance); `withOrg`-gated, validates tileId via `drillIdSchema`, calls matching `staff-analytics` drill-detail function |
 | /api/properties | GET, POST | listProperties, createProperty |
 | /api/properties/[id] | GET, PATCH, DELETE | getProperty, updateProperty, softDeleteProperty |
 | /api/units | GET, POST | listUnits, createUnit |
@@ -727,6 +729,8 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | lib/analytics/formatters.ts | `formatKpi()` - shared KPI formatter for cents, counts, and percentages | 7 |
 | lib/analytics/chart-theme.ts | `chartTheme`, `getSeriesPalette()` - shared Regalis chart token registry and deterministic palette helper | 31 |
 | lib/analytics/drill-targets.ts | `resolveDrillTarget()` - central KPI drill-through path builder with optional scope query params | 16 |
+| lib/analytics/drill.ts | `DRILL_IDS`, `isDrillId()` — Phase 2b drill registry types backed by `drillIdSchema` | 12 |
+| lib/zod/analytics-drill.ts | `drillIdSchema`, `DrillId` — Zod enum of phase-2b drill ids (arrears-aging / top-overdue / lease-expiries / urgent-maintenance) | 13 |
 | components/analytics/empty-metric.tsx | `EmptyMetric` - compact analytics empty-state panel | 22 |
 | components/analytics/status-strip.tsx | `StatusStrip` - strip of compact KPI/status cells for dashboard modules | 42 |
 | components/analytics/ranked-list.tsx | `RankedList` - editorial top-N list with optional links | 66 |
@@ -739,6 +743,11 @@ Layouts: (staff)/layout.tsx and (tenant)/layout.tsx call auth() as defense-in-de
 | components/analytics/charts/donut-chart.tsx | `DonutChart` - shared Recharts donut chart wrapper using the analytics theme registry | 41 |
 | components/analytics/charts/aging-bar.tsx | `AgingBar`, `AgingSegment` — horizontal stacked single-bar with legend (used for arrears aging on Overview) | 60 |
 | components/analytics/top-overdue-table.tsx | `TopOverdueTable`, `TopOverdueRow` — sortable list of overdue leases with relative-amount mini-bars | 60 |
+| components/analytics/drill-sheet.tsx | `DrillSheet` — Phase 2b URL-driven side drawer (Esc/backdrop close, CSV export link header, router.replace fallback to history.replaceState for SSR tests) | 90 |
+| components/analytics/drill/arrears-aging-drill.tsx | `ArrearsAgingDrill` — per-bucket grouped table of overdue invoices for the arrears-aging drill | 80 |
+| components/analytics/drill/top-overdue-drill.tsx | `TopOverdueDrill` — unbounded ranked overdue table for the top-overdue drill | 75 |
+| components/analytics/drill/lease-expiries-drill.tsx | `LeaseExpiriesDrill` — per-bucket grouped table of upcoming lease expiries | 80 |
+| components/analytics/drill/urgent-maintenance-drill.tsx | `UrgentMaintenanceDrill` — full HIGH/URGENT ticket table with priority chip + age columns | 85 |
 | components/analytics/charts/trend-card.tsx | `TrendCard` - KPI tile + sparkline composition block | 30 |
 | components/analytics/maps/portfolio-pins.tsx | `PortfolioPin`, `PortfolioPins` - React-Leaflet portfolio marker renderer with custom `divIcon` pins | 53 |
 | components/analytics/maps/map-panel.tsx | `MapPanel` - lazily-loaded portfolio map shell with empty-state fallback | 45 |

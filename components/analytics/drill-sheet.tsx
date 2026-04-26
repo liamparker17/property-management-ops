@@ -62,7 +62,7 @@ export function DrillSheet({ title, csvHref, children }: DrillSheetProps) {
         type="button"
         aria-label="Close"
         onClick={closeDrill}
-        className="absolute inset-0 cursor-default bg-background/60 backdrop-blur-sm"
+        className="absolute inset-0 cursor-default bg-background/80 backdrop-blur-sm dark:bg-background/70"
       />
       <div
         ref={ref}

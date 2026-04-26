@@ -12,17 +12,28 @@ type DrillSheetProps = {
   children: React.ReactNode;
 };
 
-export function DrillSheet({ title, csvHref, children }: DrillSheetProps) {
-  // useRouter throws outside the App Router context (e.g. SSR test renders).
-  // We try to use it; if the call fails we fall back to history.replaceState
-  // so SSR snapshots still work. In the browser the router path is taken so
-  // closing actually triggers a Server Component re-render of the layout.
-  let router: ReturnType<typeof useRouter> | null = null;
+/**
+ * `useRouter` from `next/navigation` throws when called outside the App Router
+ * context (notably during `renderToString` in unit tests). We wrap it so the
+ * SSR test path can render without a router provider while production renders
+ * always succeed and use `router.replace` to trigger a Server Component
+ * re-render of the layout when the drawer closes.
+ *
+ * The try/catch is safe wrt rules-of-hooks: if `useRouter` throws on first
+ * render, the component render aborts and there is no second render with a
+ * different hook order. In every render that completes, `useRouter` is called
+ * exactly once, in the same position.
+ */
+function useRouterIfAvailable(): ReturnType<typeof useRouter> | null {
   try {
-    router = useRouter();
+    return useRouter();
   } catch {
-    router = null;
+    return null;
   }
+}
+
+export function DrillSheet({ title, csvHref, children }: DrillSheetProps) {
+  const router = useRouterIfAvailable();
   const ref = useRef<HTMLDivElement>(null);
 
   function closeDrill() {

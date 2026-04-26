@@ -15,7 +15,7 @@ function csvEscape(value: unknown): string {
 }
 
 function rowsToCsv(rows: string[][]): string {
-  return rows.map((row) => row.map(csvEscape).join(',')).join('\n');
+  return rows.map((row) => row.map(csvEscape).join(',')).join('\r\n') + '\r\n';
 }
 
 // withOrg unwraps routeParams.params internally and passes the resolved object
@@ -106,6 +106,7 @@ export const GET = withOrg(async (req, ctx, { tileId }: { tileId: string }) => {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
       'Content-Disposition': `attachment; filename="${filename}"`,
+      'Cache-Control': 'no-store',
     },
   });
 });

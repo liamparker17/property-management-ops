@@ -17,6 +17,7 @@ import { ArrearsAgingDrill } from '@/components/analytics/drill/arrears-aging-dr
 import { TopOverdueDrill } from '@/components/analytics/drill/top-overdue-drill';
 import { LeaseExpiriesDrill } from '@/components/analytics/drill/lease-expiries-drill';
 import { UrgentMaintenanceDrill } from '@/components/analytics/drill/urgent-maintenance-drill';
+import { PropertyDetailDrill } from '@/components/analytics/drill/property-detail-drill';
 import { PageHeader } from '@/components/page-header';
 import { Card } from '@/components/ui/card';
 import { auth } from '@/lib/auth';
@@ -29,6 +30,7 @@ import {
   getTopOverdueDetail,
   getLeaseExpiriesDetail,
   getUrgentMaintenanceDetail,
+  getPropertyDetailDrill,
 } from '@/lib/services/staff-analytics';
 import { resolveAnalyticsCtx } from '@/lib/analytics/ctx';
 import { drillIdSchema, type DrillId } from '@/lib/zod/analytics-drill';
@@ -51,6 +53,7 @@ const DRILL_TITLES: Record<DrillId, string> = {
   'top-overdue': 'All overdue accounts',
   'lease-expiries': 'Upcoming lease expiries',
   'urgent-maintenance': 'Urgent maintenance detail',
+  'property-detail': 'Property detail',
 };
 
 async function renderDrill(drillId: DrillId, ctx: RouteCtx): Promise<ReactNode> {
@@ -80,12 +83,17 @@ async function renderDrill(drillId: DrillId, ctx: RouteCtx): Promise<ReactNode> 
       </DrillSheet>
     );
   }
-  const data = await getUrgentMaintenanceDetail(ctx);
-  return (
-    <DrillSheet title={title} csvHref={csvHref}>
-      <UrgentMaintenanceDrill data={data} />
-    </DrillSheet>
-  );
+  if (drillId === 'urgent-maintenance') {
+    const data = await getUrgentMaintenanceDetail(ctx);
+    return (
+      <DrillSheet title={title} csvHref={csvHref}>
+        <UrgentMaintenanceDrill data={data} />
+      </DrillSheet>
+    );
+  }
+  // property-detail requires a propertyId param — not reachable from the dashboard drill flow yet,
+  // but the type must be handled to satisfy the exhaustive Record<DrillId, string> check.
+  return null;
 }
 
 export default async function DashboardPage({

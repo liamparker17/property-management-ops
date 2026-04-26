@@ -6,7 +6,7 @@ import { drillIdSchema } from '@/lib/zod/analytics-drill';
 
 describe('drill ids', () => {
   it('exposes the 4 phase-2b drill ids', () => {
-    assert.deepEqual([...DRILL_IDS].sort(), ['arrears-aging', 'lease-expiries', 'top-overdue', 'urgent-maintenance']);
+    assert.deepEqual([...DRILL_IDS].sort(), ['arrears-aging', 'lease-expiries', 'property-detail', 'top-overdue', 'urgent-maintenance']);
   });
   it('isDrillId narrows to a known id', () => {
     assert.ok(isDrillId('arrears-aging'));

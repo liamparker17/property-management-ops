@@ -6,6 +6,7 @@ import { ArrearsAgingDrill } from '@/components/analytics/drill/arrears-aging-dr
 import { TopOverdueDrill } from '@/components/analytics/drill/top-overdue-drill';
 import { LeaseExpiriesDrill } from '@/components/analytics/drill/lease-expiries-drill';
 import { UrgentMaintenanceDrill } from '@/components/analytics/drill/urgent-maintenance-drill';
+import { PropertyDetailDrill } from '@/components/analytics/drill/property-detail-drill';
 
 describe('drill renderers', () => {
   it('ArrearsAgingDrill renders a table per bucket', () => {
@@ -38,5 +39,24 @@ describe('drill renderers', () => {
     ] }} />);
     assert.match(html, /URGENT/);
     assert.match(html, /Burst geyser/);
+  });
+});
+
+describe('PropertyDetailDrill', () => {
+  it('renders property name, KPI cards, and Open property link', () => {
+    const html = renderToString(<PropertyDetailDrill data={{
+      property: { id: 'p1', name: 'Tower A', suburb: 'Sandhurst', city: 'Johannesburg', province: 'GP' },
+      kpis: { occupancyPct: 90, openMaintenance: 1, arrearsCents: 0, grossRentCents: 100_000_00, healthScore: 75 },
+      recentExpiringLeases: [
+        { id: 'l1', tenant: 'Alice T', unit: '1', endDate: new Date(), daysUntilExpiry: 20 },
+      ],
+      recentMaintenance: [
+        { id: 'm1', title: 'Burst geyser', priority: 'URGENT', status: 'OPEN' },
+      ],
+    }} />);
+    assert.match(html, /Tower A/);
+    assert.match(html, /Open property/);
+    assert.match(html, /Burst geyser/);
+    assert.match(html, /Alice T/);
   });
 });

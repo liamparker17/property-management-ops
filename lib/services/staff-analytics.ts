@@ -1243,3 +1243,77 @@ export async function getUrgentMaintenanceDetail(ctx: RouteCtx): Promise<{
     })),
   };
 }
+
+export async function getPropertyDetailDrill(
+  ctx: RouteCtx,
+  propertyId: string,
+): Promise<{
+  property: { id: string; name: string; suburb: string | null; city: string | null; province: string };
+  kpis: { occupancyPct: number; openMaintenance: number; arrearsCents: number; grossRentCents: number; healthScore: number | null };
+  recentExpiringLeases: Array<{ id: string; tenant: string | null; unit: string; endDate: Date; daysUntilExpiry: number }>;
+  recentMaintenance: Array<{ id: string; title: string; priority: string; status: string }>;
+}> {
+  // Verify the property is in the org and not deleted
+  const property = await db.property.findUnique({
+    where: { id: propertyId },
+    select: { id: true, name: true, suburb: true, city: true, province: true, orgId: true, deletedAt: true },
+  });
+  if (!property || property.orgId !== ctx.orgId || property.deletedAt) {
+    throw new Error('Property not found');
+  }
+
+  const periodStart = monthFloor(new Date());
+  const snapshot = await db.propertyMonthlySnapshot.findFirst({
+    where: { orgId: ctx.orgId, propertyId, periodStart },
+  });
+
+  const kpis = {
+    occupancyPct: snapshot ? percent(snapshot.occupiedUnits, snapshot.totalUnits) : 0,
+    openMaintenance: snapshot?.openMaintenance ?? 0,
+    arrearsCents: snapshot?.arrearsCents ?? 0,
+    grossRentCents: snapshot?.grossRentCents ?? 0,
+    healthScore: snapshot ? computeHealthScore(snapshot) : null,
+  };
+
+  const now = new Date();
+  const horizonEnd = new Date(now.getTime() + 90 * 86400000);
+  const expiring = await db.lease.findMany({
+    where: {
+      orgId: ctx.orgId,
+      state: { in: ['ACTIVE', 'RENEWED'] },
+      endDate: { gte: now, lte: horizonEnd },
+      unit: { propertyId },
+    },
+    orderBy: { endDate: 'asc' },
+    take: 5,
+    include: {
+      unit: { select: { label: true } },
+      tenants: { where: { isPrimary: true }, include: { tenant: { select: { firstName: true, lastName: true } } } },
+    },
+  });
+  const recentExpiringLeases = expiring.map((l: any) => ({
+    id: l.id,
+    tenant: l.tenants[0]?.tenant ? `${l.tenants[0].tenant.firstName} ${l.tenants[0].tenant.lastName}` : null,
+    unit: l.unit.label,
+    endDate: l.endDate,
+    daysUntilExpiry: Math.ceil((l.endDate.getTime() - now.getTime()) / 86400000),
+  }));
+
+  const maint = await db.maintenanceRequest.findMany({
+    where: {
+      orgId: ctx.orgId,
+      status: { in: ['OPEN', 'IN_PROGRESS'] },
+      unit: { propertyId },
+    },
+    orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
+    take: 5,
+    select: { id: true, title: true, priority: true, status: true },
+  });
+
+  return {
+    property: { id: property.id, name: property.name, suburb: property.suburb, city: property.city, province: property.province },
+    kpis,
+    recentExpiringLeases,
+    recentMaintenance: maint,
+  };
+}

@@ -88,3 +88,53 @@ describe('drill server functions', () => {
     assert.equal(result.rows.length, 12);
   });
 });
+
+describe('getPropertyDetailDrill', () => {
+  let originalPropertyFindUnique: any;
+  let originalSnapshotFindFirst: any;
+
+  before(() => {
+    originalPropertyFindUnique = db.property.findUnique;
+    originalSnapshotFindFirst = db.propertyMonthlySnapshot?.findFirst;
+  });
+
+  after(() => {
+    db.property.findUnique = originalPropertyFindUnique;
+    if (db.propertyMonthlySnapshot) db.propertyMonthlySnapshot.findFirst = originalSnapshotFindFirst;
+  });
+
+  it('returns property identity + KPIs + recent expiring leases + recent maintenance', async () => {
+    db.property.findUnique = async ({ where }: any) => ({
+      id: where.id,
+      name: 'Tower A',
+      suburb: 'Sandhurst',
+      city: 'Johannesburg',
+      province: 'GP',
+      orgId: ORG_ID,
+      deletedAt: null,
+    });
+    db.propertyMonthlySnapshot.findFirst = async () => ({
+      orgId: ORG_ID,
+      propertyId: 'p1',
+      periodStart: new Date(),
+      occupiedUnits: 9,
+      totalUnits: 10,
+      openMaintenance: 1,
+      arrearsCents: 0,
+      grossRentCents: 100_000_00,
+    });
+    db.lease.findMany = async () => [
+      { id: 'l1', endDate: new Date(Date.now() + 20 * 86400000), unit: { label: '1', property: { name: 'Tower A' } }, tenants: [{ tenant: { firstName: 'A', lastName: 'B' } }] },
+    ];
+    db.maintenanceRequest.findMany = async () => [
+      { id: 'm1', title: 'Burst geyser', priority: 'URGENT', status: 'OPEN', unit: { property: { id: 'p1' } } },
+    ];
+    const result = await (await import('@/lib/services/staff-analytics')).getPropertyDetailDrill(ROUTE_CTX, 'p1');
+    assert.equal(result.property.id, 'p1');
+    assert.equal(result.property.name, 'Tower A');
+    assert.equal(result.kpis.occupancyPct, 90);
+    assert.ok(typeof result.kpis.healthScore === 'number');
+    assert.equal(result.recentExpiringLeases.length, 1);
+    assert.equal(result.recentMaintenance.length, 1);
+  });
+});

@@ -5,6 +5,7 @@ export const drillIdSchema = z.enum([
   'top-overdue',
   'lease-expiries',
   'urgent-maintenance',
+  'property-detail',
 ]);
 
 export type DrillId = z.infer<typeof drillIdSchema>;

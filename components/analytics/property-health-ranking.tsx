@@ -24,10 +24,10 @@ type Row = {
 };
 
 const BADGE_CLASS: Record<HealthBand, string> = {
-  green: 'bg-green-500/15 text-green-700 dark:text-green-300',
-  gold: 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-300',
-  orange: 'bg-orange-500/15 text-orange-700 dark:text-orange-300',
-  red: 'bg-red-500/15 text-red-700 dark:text-red-300',
+  green: 'bg-green-500/20 text-green-800 dark:bg-green-500/25 dark:text-green-200',
+  gold: 'bg-yellow-500/20 text-yellow-800 dark:bg-yellow-500/25 dark:text-yellow-200',
+  orange: 'bg-orange-500/20 text-orange-800 dark:bg-orange-500/25 dark:text-orange-200',
+  red: 'bg-red-500/20 text-red-800 dark:bg-red-500/25 dark:text-red-200',
   neutral: 'bg-muted text-muted-foreground',
 };
 

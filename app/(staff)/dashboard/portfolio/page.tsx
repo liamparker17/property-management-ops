@@ -66,9 +66,9 @@ export default async function StaffPortfolioPage() {
                     <td className="px-4 py-3">
                       <span className={cn(
                         'inline-block rounded-sm px-2 py-0.5 text-xs font-medium',
-                        row.healthScore >= 80 ? 'bg-green-500/10 text-green-700 dark:text-green-300' :
-                        row.healthScore >= 60 ? 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-300' :
-                        'bg-red-500/10 text-red-700 dark:text-red-300',
+                        row.healthScore >= 80 ? 'bg-green-500/20 text-green-800 dark:bg-green-500/25 dark:text-green-200' :
+                        row.healthScore >= 60 ? 'bg-yellow-500/20 text-yellow-800 dark:bg-yellow-500/25 dark:text-yellow-200' :
+                        'bg-red-500/20 text-red-800 dark:bg-red-500/25 dark:text-red-200',
                       )}>
                         {row.healthScore}
                       </span>

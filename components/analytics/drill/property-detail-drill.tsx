@@ -24,10 +24,10 @@ export function PropertyDetailDrill({ data }: { data: Data }) {
   const band = healthBandColor(data.kpis.healthScore);
   const badgeClass = cn(
     'inline-block rounded-sm px-2 py-0.5 text-xs font-medium',
-    band === 'green' && 'bg-green-500/15 text-green-700 dark:text-green-300',
-    band === 'gold' && 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-300',
-    band === 'orange' && 'bg-orange-500/15 text-orange-700 dark:text-orange-300',
-    band === 'red' && 'bg-red-500/15 text-red-700 dark:text-red-300',
+    band === 'green' && 'bg-green-500/20 text-green-800 dark:bg-green-500/25 dark:text-green-200',
+    band === 'gold' && 'bg-yellow-500/20 text-yellow-800 dark:bg-yellow-500/25 dark:text-yellow-200',
+    band === 'orange' && 'bg-orange-500/20 text-orange-800 dark:bg-orange-500/25 dark:text-orange-200',
+    band === 'red' && 'bg-red-500/20 text-red-800 dark:bg-red-500/25 dark:text-red-200',
     band === 'neutral' && 'bg-muted text-muted-foreground',
   );
 

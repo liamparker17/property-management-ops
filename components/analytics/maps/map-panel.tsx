@@ -16,6 +16,7 @@ type MapPanelProps = {
   eyebrow?: string;
   pins: PortfolioPin[];
   className?: string;
+  hrefBuilder?: (pinId: string) => string;
 };
 
 export function MapPanel({
@@ -23,6 +24,7 @@ export function MapPanel({
   eyebrow = 'Map',
   pins,
   className,
+  hrefBuilder,
 }: MapPanelProps) {
   return (
     <section className={cn('overflow-hidden border border-border bg-card', className)}>
@@ -42,7 +44,7 @@ export function MapPanel({
             />
           </div>
         ) : (
-          <PortfolioPins pins={pins} />
+          <PortfolioPins pins={pins} hrefBuilder={hrefBuilder} />
         )}
       </div>
     </section>

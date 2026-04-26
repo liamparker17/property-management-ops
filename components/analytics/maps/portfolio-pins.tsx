@@ -17,6 +17,7 @@ export type PortfolioPin = {
 
 type PortfolioPinsProps = {
   pins: PortfolioPin[];
+  hrefBuilder?: (pinId: string) => string;
 };
 
 export type HealthBand = 'green' | 'gold' | 'orange' | 'red' | 'neutral';
@@ -70,7 +71,7 @@ function FitToPins({ pins }: { pins: PortfolioPin[] }) {
   return null;
 }
 
-export function PortfolioPins({ pins }: PortfolioPinsProps) {
+export function PortfolioPins({ pins, hrefBuilder }: PortfolioPinsProps) {
   return (
     <MapContainer
       center={SOUTH_AFRICA_CENTER}
@@ -84,25 +85,30 @@ export function PortfolioPins({ pins }: PortfolioPinsProps) {
         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <FitToPins pins={pins} />
-      {pins.map((pin) => (
-        <Marker
-          key={pin.id}
-          position={[pin.lat, pin.lng]}
-          icon={makePinIcon(BAND_HEX[healthBandColor(pin.healthScore)])}
-        >
-          <Popup>
-            <div className="space-y-1">
-              <p className="font-medium">{pin.label}</p>
-              {pin.meta ? <p className="text-xs text-slate-600">{pin.meta}</p> : null}
-              {pin.href ? (
-                <Link href={pin.href} className="text-xs underline">
-                  Open property
-                </Link>
-              ) : null}
-            </div>
-          </Popup>
-        </Marker>
-      ))}
+      {pins.map((pin) => {
+        const detailHref = hrefBuilder ? hrefBuilder(pin.id) : (pin.href ?? null);
+        return (
+          <Marker
+            key={pin.id}
+            position={[pin.lat, pin.lng]}
+            icon={makePinIcon(BAND_HEX[healthBandColor(pin.healthScore)])}
+          >
+            <Popup>
+              <div style={{ minWidth: 160 }}>
+                <div style={{ fontWeight: 500 }}>{pin.label}</div>
+                {pin.meta ? <div style={{ fontSize: 12, opacity: 0.7 }}>{pin.meta}</div> : null}
+                {detailHref ? (
+                  <div style={{ marginTop: 6 }}>
+                    <Link href={detailHref} className="text-xs underline">
+                      Open detail →
+                    </Link>
+                  </div>
+                ) : null}
+              </div>
+            </Popup>
+          </Marker>
+        );
+      })}
     </MapContainer>
   );
 }

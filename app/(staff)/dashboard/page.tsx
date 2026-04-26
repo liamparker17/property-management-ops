@@ -9,6 +9,8 @@ import { ComboChart } from '@/components/analytics/charts/combo-chart';
 import { DonutChart } from '@/components/analytics/charts/donut-chart';
 import { KpiTile } from '@/components/analytics/kpi-tile';
 import { MapPanel } from '@/components/analytics/maps/map-panel';
+import { MapTableToggle } from '@/components/analytics/map-table-toggle';
+import { PropertyHealthRanking } from '@/components/analytics/property-health-ranking';
 import { RankedList } from '@/components/analytics/ranked-list';
 import { StatusStrip } from '@/components/analytics/status-strip';
 import { TopOverdueTable } from '@/components/analytics/top-overdue-table';
@@ -26,6 +28,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { formatDate, formatZar } from '@/lib/format';
 import {
   getStaffCommandCenter,
+  getStaffPortfolio,
   getArrearsAgingDetail,
   getTopOverdueDetail,
   getLeaseExpiriesDetail,
@@ -56,7 +59,7 @@ const DRILL_TITLES: Record<DrillId, string> = {
   'property-detail': 'Property detail',
 };
 
-async function renderDrill(drillId: DrillId, ctx: RouteCtx): Promise<ReactNode> {
+async function renderDrill(drillId: DrillId, ctx: RouteCtx, propertyId?: string): Promise<ReactNode> {
   const csvHref = `/api/analytics/drill/${drillId}/export.csv`;
   const title = DRILL_TITLES[drillId];
   if (drillId === 'arrears-aging') {
@@ -91,8 +94,15 @@ async function renderDrill(drillId: DrillId, ctx: RouteCtx): Promise<ReactNode> 
       </DrillSheet>
     );
   }
-  // property-detail requires a propertyId param — not reachable from the dashboard drill flow yet,
-  // but the type must be handled to satisfy the exhaustive Record<DrillId, string> check.
+  if (drillId === 'property-detail') {
+    if (!propertyId) return null;
+    const data = await getPropertyDetailDrill(ctx, propertyId);
+    return (
+      <DrillSheet title={`Property: ${data.property.name}`}>
+        <PropertyDetailDrill data={data} />
+      </DrillSheet>
+    );
+  }
   return null;
 }
 
@@ -105,15 +115,34 @@ export default async function DashboardPage({
   const baseCtx = userToRouteCtx(session!.user);
   const sp = await searchParams;
   const analyticsCtx = resolveAnalyticsCtx(sp, baseCtx);
-  const data = await getStaffCommandCenter(baseCtx, {
-    periodStart: analyticsCtx.range.to,
-    compare: analyticsCtx.compare,
-  });
+  const [data, portfolio] = await Promise.all([
+    getStaffCommandCenter(baseCtx, {
+      periodStart: analyticsCtx.range.to,
+      compare: analyticsCtx.compare,
+    }),
+    getStaffPortfolio(baseCtx),
+  ]);
+
+  const viewRaw = Array.isArray(sp.view) ? sp.view[0] : sp.view;
+  const view: 'map' | 'table' = viewRaw === 'table' ? 'table' : 'map';
+
+  const propertyDrillHref = (propertyId: string) => {
+    const next = new URLSearchParams();
+    for (const [k, v] of Object.entries(sp)) {
+      if (k === 'drill' || k === 'propertyId') continue;
+      if (typeof v === 'string') next.set(k, v);
+      else if (Array.isArray(v) && v[0] !== undefined) next.set(k, v[0]);
+    }
+    next.set('drill', 'property-detail');
+    next.set('propertyId', propertyId);
+    return `?${next.toString()}`;
+  };
 
   const drillRaw = Array.isArray(sp.drill) ? sp.drill[0] : sp.drill;
   const drillParse = drillRaw ? drillIdSchema.safeParse(drillRaw) : null;
   const drillId: DrillId | null = drillParse?.success ? drillParse.data : null;
-  const drillNode: ReactNode = drillId ? await renderDrill(drillId, baseCtx) : null;
+  const propertyIdRaw = Array.isArray(sp.propertyId) ? sp.propertyId[0] : sp.propertyId;
+  const drillNode: ReactNode = drillId ? await renderDrill(drillId, baseCtx, typeof propertyIdRaw === 'string' ? propertyIdRaw : undefined) : null;
 
   return (
     <>
@@ -165,6 +194,24 @@ export default async function DashboardPage({
           yFormat="cents"
           seriesLabels={{ bars: 'Billed', line: 'Collected', priorLine: 'Collected (prior year)' }}
         />
+      </Card>
+
+      {/* Map hero band — 480px with Map/Table toggle */}
+      <Card className="border border-border p-0 overflow-hidden">
+        <div className="flex items-center justify-between gap-4 border-b border-border px-5 py-3">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--accent)]">Portfolio</p>
+            <h2 className="mt-1 font-serif text-[22px] font-light text-foreground">Map</h2>
+          </div>
+          <MapTableToggle current={view} />
+        </div>
+        <div style={{ height: 480 }} className="relative">
+          {view === 'map' ? (
+            <MapPanel title="" eyebrow="" pins={data.portfolioPins} hrefBuilder={propertyDrillHref} />
+          ) : (
+            <PropertyHealthRanking rows={portfolio.rows} className="h-full" />
+          )}
+        </div>
       </Card>
 
       {/* 4-up cockpit grid: aging, occupancy donut, expiry buckets, maint spend */}
@@ -274,21 +321,18 @@ export default async function DashboardPage({
         </Card>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
-        <MapPanel title="Portfolio footprint" eyebrow="Portfolio" pins={data.portfolioPins} />
-        <RankedList
-          title="Open maintenance"
-          eyebrow="Operations"
-          items={data.openMaintenance.map((row) => ({
-            id: row.id,
-            title: row.title,
-            subtitle: `${row.subtitle} · ${row.priority}`,
-            value: row.status.replace('_', ' '),
-            href: row.href,
-          }))}
-          emptyCopy="No open tickets are waiting in the queue."
-        />
-      </div>
+      <RankedList
+        title="Open maintenance"
+        eyebrow="Operations"
+        items={data.openMaintenance.map((row) => ({
+          id: row.id,
+          title: row.title,
+          subtitle: `${row.subtitle} · ${row.priority}`,
+          value: row.status.replace('_', ' '),
+          href: row.href,
+        }))}
+        emptyCopy="No open tickets are waiting in the queue."
+      />
 
       <Card className="border border-border p-5">
         <div className="mb-4">

@@ -5,6 +5,9 @@ import { divIcon, latLngBounds } from 'leaflet';
 import { useEffect } from 'react';
 import Link from 'next/link';
 
+import { healthBandColor, HEALTH_BAND_HEX } from '@/lib/analytics/health-band';
+export { healthBandColor, type HealthBand } from '@/lib/analytics/health-band';
+
 export type PortfolioPin = {
   id: string;
   label: string;
@@ -18,24 +21,6 @@ export type PortfolioPin = {
 type PortfolioPinsProps = {
   pins: PortfolioPin[];
   hrefBuilder?: (pinId: string) => string;
-};
-
-export type HealthBand = 'green' | 'gold' | 'orange' | 'red' | 'neutral';
-
-export function healthBandColor(score: number | null | undefined): HealthBand {
-  if (score === null || score === undefined) return 'neutral';
-  if (score >= 80) return 'green';
-  if (score >= 60) return 'gold';
-  if (score >= 40) return 'orange';
-  return 'red';
-}
-
-const BAND_HEX: Record<HealthBand, string> = {
-  green: '#2f9461',
-  gold: '#c9a44c',
-  orange: '#d68a3e',
-  red: '#c45a4f',
-  neutral: '#5c6680',
 };
 
 function makePinIcon(color: string) {
@@ -91,7 +76,7 @@ export function PortfolioPins({ pins, hrefBuilder }: PortfolioPinsProps) {
           <Marker
             key={pin.id}
             position={[pin.lat, pin.lng]}
-            icon={makePinIcon(BAND_HEX[healthBandColor(pin.healthScore)])}
+            icon={makePinIcon(HEALTH_BAND_HEX[healthBandColor(pin.healthScore)])}
           >
             <Popup>
               <div style={{ minWidth: 160 }}>

@@ -1,7 +1,6 @@
 import Link from 'next/link';
 
-import { healthBandColor } from '@/components/analytics/maps/portfolio-pins';
-import type { HealthBand } from '@/components/analytics/maps/portfolio-pins';
+import { healthBandColor, type HealthBand } from '@/lib/analytics/health-band';
 import { formatZar } from '@/lib/format';
 import { cn } from '@/lib/utils';
 

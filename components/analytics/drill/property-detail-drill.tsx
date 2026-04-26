@@ -1,17 +1,8 @@
 import Link from 'next/link';
 
 import { formatDate, formatZar } from '@/lib/format';
+import { healthBandColor } from '@/lib/analytics/health-band';
 import { cn } from '@/lib/utils';
-
-type HealthBand = 'green' | 'gold' | 'orange' | 'red' | 'neutral';
-
-function healthBandColor(score: number | null | undefined): HealthBand {
-  if (score === null || score === undefined) return 'neutral';
-  if (score >= 80) return 'green';
-  if (score >= 60) return 'gold';
-  if (score >= 40) return 'orange';
-  return 'red';
-}
 
 type Data = {
   property: { id: string; name: string; suburb: string | null; city: string | null; province: string };

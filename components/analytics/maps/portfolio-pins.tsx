@@ -20,7 +20,6 @@ export type PortfolioPin = {
 
 type PortfolioPinsProps = {
   pins: PortfolioPin[];
-  hrefBuilder?: (pinId: string) => string;
 };
 
 function makePinIcon(color: string) {
@@ -56,7 +55,7 @@ function FitToPins({ pins }: { pins: PortfolioPin[] }) {
   return null;
 }
 
-export function PortfolioPins({ pins, hrefBuilder }: PortfolioPinsProps) {
+export function PortfolioPins({ pins }: PortfolioPinsProps) {
   return (
     <MapContainer
       center={SOUTH_AFRICA_CENTER}
@@ -71,7 +70,7 @@ export function PortfolioPins({ pins, hrefBuilder }: PortfolioPinsProps) {
       />
       <FitToPins pins={pins} />
       {pins.map((pin) => {
-        const detailHref = hrefBuilder ? hrefBuilder(pin.id) : (pin.href ?? null);
+        const detailHref = pin.href ?? null;
         return (
           <Marker
             key={pin.id}

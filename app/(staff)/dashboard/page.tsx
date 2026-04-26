@@ -126,17 +126,21 @@ export default async function DashboardPage({
   const viewRaw = Array.isArray(sp.view) ? sp.view[0] : sp.view;
   const view: 'map' | 'table' = viewRaw === 'table' ? 'table' : 'map';
 
-  const propertyDrillHref = (propertyId: string) => {
-    const next = new URLSearchParams();
-    for (const [k, v] of Object.entries(sp)) {
-      if (k === 'drill' || k === 'propertyId') continue;
-      if (typeof v === 'string') next.set(k, v);
-      else if (Array.isArray(v) && v[0] !== undefined) next.set(k, v[0]);
-    }
+  // Build the shared search-param prefix once (server-side) so we can attach
+  // property-detail drill URLs onto each pin without passing a function across
+  // the server→client boundary.
+  const sharedParams = new URLSearchParams();
+  for (const [k, v] of Object.entries(sp)) {
+    if (k === 'drill' || k === 'propertyId') continue;
+    if (typeof v === 'string') sharedParams.set(k, v);
+    else if (Array.isArray(v) && v[0] !== undefined) sharedParams.set(k, v[0]);
+  }
+  const pinsWithDrillHref = data.portfolioPins.map((pin) => {
+    const next = new URLSearchParams(sharedParams);
     next.set('drill', 'property-detail');
-    next.set('propertyId', propertyId);
-    return `?${next.toString()}`;
-  };
+    next.set('propertyId', pin.id);
+    return { ...pin, href: `?${next.toString()}` };
+  });
 
   const drillRaw = Array.isArray(sp.drill) ? sp.drill[0] : sp.drill;
   const drillParse = drillRaw ? drillIdSchema.safeParse(drillRaw) : null;
@@ -207,7 +211,7 @@ export default async function DashboardPage({
         </div>
         <div style={{ height: 480 }} className="relative">
           {view === 'map' ? (
-            <MapPanel title="" eyebrow="" pins={data.portfolioPins} hrefBuilder={propertyDrillHref} />
+            <MapPanel title="" eyebrow="" pins={pinsWithDrillHref} />
           ) : (
             <PropertyHealthRanking rows={portfolio.rows} className="h-full" />
           )}

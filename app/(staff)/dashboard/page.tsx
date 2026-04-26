@@ -1,6 +1,39 @@
+import type { ReactNode } from 'react';
+
 import Link from 'next/link';
 
 import { AgingBar } from '@/components/analytics/charts/aging-bar';
+import { AreaChart } from '@/components/analytics/charts/area-chart';
+import { BarChart } from '@/components/analytics/charts/bar-chart';
+import { ComboChart } from '@/components/analytics/charts/combo-chart';
+import { DonutChart } from '@/components/analytics/charts/donut-chart';
+import { KpiTile } from '@/components/analytics/kpi-tile';
+import { MapPanel } from '@/components/analytics/maps/map-panel';
+import { RankedList } from '@/components/analytics/ranked-list';
+import { StatusStrip } from '@/components/analytics/status-strip';
+import { TopOverdueTable } from '@/components/analytics/top-overdue-table';
+import { DrillSheet } from '@/components/analytics/drill-sheet';
+import { ArrearsAgingDrill } from '@/components/analytics/drill/arrears-aging-drill';
+import { TopOverdueDrill } from '@/components/analytics/drill/top-overdue-drill';
+import { LeaseExpiriesDrill } from '@/components/analytics/drill/lease-expiries-drill';
+import { UrgentMaintenanceDrill } from '@/components/analytics/drill/urgent-maintenance-drill';
+import { PageHeader } from '@/components/page-header';
+import { Card } from '@/components/ui/card';
+import { auth } from '@/lib/auth';
+import { userToRouteCtx } from '@/lib/auth/page-ctx';
+import { buttonVariants } from '@/components/ui/button';
+import { formatDate, formatZar } from '@/lib/format';
+import {
+  getStaffCommandCenter,
+  getArrearsAgingDetail,
+  getTopOverdueDetail,
+  getLeaseExpiriesDetail,
+  getUrgentMaintenanceDetail,
+} from '@/lib/services/staff-analytics';
+import { resolveAnalyticsCtx } from '@/lib/analytics/ctx';
+import { drillIdSchema, type DrillId } from '@/lib/zod/analytics-drill';
+import type { RouteCtx } from '@/lib/auth/with-org';
+import { cn } from '@/lib/utils';
 
 function drillHref(id: string, sp: Record<string, string | string[] | undefined>): string {
   const next = new URLSearchParams();
@@ -12,24 +45,48 @@ function drillHref(id: string, sp: Record<string, string | string[] | undefined>
   next.set('drill', id);
   return `?${next.toString()}`;
 }
-import { AreaChart } from '@/components/analytics/charts/area-chart';
-import { BarChart } from '@/components/analytics/charts/bar-chart';
-import { ComboChart } from '@/components/analytics/charts/combo-chart';
-import { DonutChart } from '@/components/analytics/charts/donut-chart';
-import { KpiTile } from '@/components/analytics/kpi-tile';
-import { MapPanel } from '@/components/analytics/maps/map-panel';
-import { RankedList } from '@/components/analytics/ranked-list';
-import { StatusStrip } from '@/components/analytics/status-strip';
-import { TopOverdueTable } from '@/components/analytics/top-overdue-table';
-import { PageHeader } from '@/components/page-header';
-import { Card } from '@/components/ui/card';
-import { auth } from '@/lib/auth';
-import { userToRouteCtx } from '@/lib/auth/page-ctx';
-import { buttonVariants } from '@/components/ui/button';
-import { formatDate, formatZar } from '@/lib/format';
-import { getStaffCommandCenter } from '@/lib/services/staff-analytics';
-import { resolveAnalyticsCtx } from '@/lib/analytics/ctx';
-import { cn } from '@/lib/utils';
+
+const DRILL_TITLES: Record<DrillId, string> = {
+  'arrears-aging': 'Arrears aging detail',
+  'top-overdue': 'All overdue accounts',
+  'lease-expiries': 'Upcoming lease expiries',
+  'urgent-maintenance': 'Urgent maintenance detail',
+};
+
+async function renderDrill(drillId: DrillId, ctx: RouteCtx): Promise<ReactNode> {
+  const csvHref = `/api/analytics/drill/${drillId}/export.csv`;
+  const title = DRILL_TITLES[drillId];
+  if (drillId === 'arrears-aging') {
+    const data = await getArrearsAgingDetail(ctx);
+    return (
+      <DrillSheet title={title} csvHref={csvHref}>
+        <ArrearsAgingDrill data={data} />
+      </DrillSheet>
+    );
+  }
+  if (drillId === 'top-overdue') {
+    const data = await getTopOverdueDetail(ctx);
+    return (
+      <DrillSheet title={title} csvHref={csvHref}>
+        <TopOverdueDrill data={data} />
+      </DrillSheet>
+    );
+  }
+  if (drillId === 'lease-expiries') {
+    const data = await getLeaseExpiriesDetail(ctx);
+    return (
+      <DrillSheet title={title} csvHref={csvHref}>
+        <LeaseExpiriesDrill data={data} />
+      </DrillSheet>
+    );
+  }
+  const data = await getUrgentMaintenanceDetail(ctx);
+  return (
+    <DrillSheet title={title} csvHref={csvHref}>
+      <UrgentMaintenanceDrill data={data} />
+    </DrillSheet>
+  );
+}
 
 export default async function DashboardPage({
   searchParams,
@@ -45,7 +102,13 @@ export default async function DashboardPage({
     compare: analyticsCtx.compare,
   });
 
+  const drillRaw = Array.isArray(sp.drill) ? sp.drill[0] : sp.drill;
+  const drillParse = drillRaw ? drillIdSchema.safeParse(drillRaw) : null;
+  const drillId: DrillId | null = drillParse?.success ? drillParse.data : null;
+  const drillNode: ReactNode = drillId ? await renderDrill(drillId, baseCtx) : null;
+
   return (
+    <>
     <div className="space-y-8">
       <PageHeader
         eyebrow="Command Center"
@@ -229,5 +292,7 @@ export default async function DashboardPage({
         <BarChart data={data.maintenanceByStatus} />
       </Card>
     </div>
+    {drillNode}
+    </>
   );
 }
